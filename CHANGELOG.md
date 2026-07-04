@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.2 — first-dogfood feedback
+
+Improvements learned from the first real end-to-end run (a web dashboard feature):
+- **Verify contracts, never assume** (`sc-design`): read the actual endpoint/entity/serialized response;
+  an assumed API shape propagated to the implementer and caused a runtime crash. Now a hard rule.
+- **Worktree is conditional** (`ship-cycle`/`sc-implement`): create it only for stack-split/parallel
+  work; single-track changes use a plain feature branch (worktree was pure overhead otherwise).
+- **Complexity exception to cheap-path-first** (`ship-cycle`): start complex work (novel algorithms,
+  intricate SVG/canvas UI) at the higher tier instead of wasting a failed mid-tier attempt.
+- **UI-only merges design+implement** (`sc-design`): don't force a separate READ-ONLY architecture doc
+  for a widget; keep the critic/accessibility pass.
+- **G9 E2E degrades honestly** (`sc-qa`): without a live backend + seeded auth session, degrade to
+  contract-level seam verification and log the deferral — never fake a pass.
+
 ## 0.2.1 — review discipline (borrowed from Superpowers)
 
 `sc-review` keeps its multi-lens/parallel structure and adds the output discipline from Superpowers'

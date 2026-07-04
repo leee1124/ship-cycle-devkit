@@ -10,6 +10,12 @@ Two roles, run as separate agents for real adversarial separation.
 ## Design (architect — READ-ONLY, no code)
 Produce a design doc, not an implementation:
 - **Interfaces & boundaries**: the contracts (APIs/DTOs/module seams) the change introduces or touches.
+- **Verify contracts, never assume them** (hard rule): for any API/DTO/entity the change integrates with,
+  read the **actual** endpoint/entity/serialized response and record the real field names/types — do not
+  guess from a plausible-looking shape. Assumed contracts silently propagate to the implementer and
+  surface as runtime crashes (a real dogfood run passed `{exerciseName,weight}` when the endpoint
+  returned a JPA entity `{exerciseId,estimated1rm}` → the widget crashed). If the backend returns a raw
+  entity, flag it (constitution #6) and design the frontend against the *actual* serialization.
 - **Tradeoffs & alternatives**: at least one alternative considered, with why the chosen one wins.
 - **Constitution fit**: layered separation (Controller/Service/Repository/DTO); depend on interfaces;
   business logic **inside the domain** (no anemic model). See
@@ -26,6 +32,12 @@ A separate agent attacks the design:
 - G3: the critic's unresolved-objection list is **empty** (not "addressed later" — resolved).
 - Set `gates.G2 = pass`, `gates.G3 = pass`. On unresolved objections, loop within this stage
   (respect the orchestrator's loop cap of 3).
+
+## UI-only changes
+For a pure UI change (new component/screen, no new domain logic), this stage and `sc-implement` merge
+naturally under a **designer**: the "design" is the component/interaction design, produced alongside the
+code. Keep the critic pass (accessibility/contract), but don't force a separate READ-ONLY architecture
+doc for a widget.
 
 ## Model routing
 architect + critic run at the **high** tier; upgrade to **top** if PREFLIGHT flagged this change as a

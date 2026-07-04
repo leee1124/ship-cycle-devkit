@@ -17,6 +17,11 @@ implementers wrote.
 - **Exploration + regression**: probe edge cases and adjacent flows the change could have broken.
 - Headless is fully feasible for backend (boot + curl) and web (dev server + an E2E driver); native
   mobile is partial (device/emulator screenshot → a vision agent, or a UI-automation CLI).
+- **E2E prerequisites**: a live backend + an **authenticated session + seeded data** are needed to
+  exercise real flows. If the environment can't provide them (no local backend, no seed/auth), **don't
+  fake a pass** — degrade G9 to **contract-level seam verification** (assert the front↔back DTO shapes
+  match by reading both sides) and **log the deferral**. Contract verification catches the most common
+  multi-stack defect (field/type drift) even without a running system.
 
 ## When to run / skip
 - **Run** for real features and any change that crosses a seam.

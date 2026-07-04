@@ -50,9 +50,11 @@ Run in order; a gate must pass before the next stage. On failure, loop back per 
 ## Stage 0 — PREFLIGHT
 
 1. **Branch guard**: if on a protected branch (overlay `vcs.protectedBranches`), create `feature/*`|`fix/*`.
-2. **Worktree isolation**: create an isolated worktree so work never touches the main checkout:
-   `git worktree add ../<repo>-<branch> -b <branch>` (or reuse the branch). Record its path in state.
-   This lets stack-split implementers (backend/web/mobile) run in **parallel without collisions**.
+2. **Worktree isolation (conditional)**: create an isolated worktree **only when it earns its keep** —
+   the change is split across stacks (backend/web/mobile) or runs parallel implementers, where
+   `git worktree add ../<repo>-<branch> -b <branch>` lets them work **without collisions**. For a
+   single-track change (one platform, sequential), a plain feature branch is enough — worktree is pure
+   overhead. Record the worktree path in state when used.
 3. **Load overlay**: read `${CLAUDE_PROJECT_DIR}/<projectConfig>` (plugin `projectConfig` setting;
    default `.claude/ship-cycle.config.json`). **Absent** → built-in heuristics + log "defaults in use".
    **Malformed JSON / schema-invalid** → stop and report; do not silently fall back.
@@ -102,7 +104,9 @@ Assign models by **cost-of-being-wrong × cost-of-verification**, not by role na
   (e.g. `{"top":"opus","high":"opus","mid":"sonnet","low":"haiku"}`) and **pass `model=<resolved>` on
   each `Task` call**. Without a tierMap, tiers are advisory only.
 - **Bigger levers first**: prompt caching (cache the repo/diff/design doc), an effort dial, and
-  "cheap path first" for implementation (mid tier → verify → escalate only the failing fix).
+  "cheap path first" for implementation (mid tier → verify → escalate only the failing fix). **Exception**:
+  for inherently complex work (novel algorithms, intricate UI like SVG/canvas), start at the higher tier —
+  cheap-path-first there just buys a wasted failed attempt.
 
 ## Lightweight path
 

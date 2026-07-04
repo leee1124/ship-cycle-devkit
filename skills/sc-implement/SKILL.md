@@ -7,9 +7,11 @@ description: Stage 4 of ship-cycle. Implement minimal code to pass the failing t
 
 Make the failing tests pass with the **minimum** code, then refactor. Update docs in the same change.
 
-## Worktree isolation (real, mechanical)
-Do implementation in the feature worktree created at PREFLIGHT (`state.worktreePath`) so it never
-touches the main checkout. When the codebase is **split by stack**, give each stack its own isolation:
+## Worktree isolation (when it earns its keep)
+If PREFLIGHT created a worktree (`state.worktreePath`) — i.e. this is stack-split or parallel work — do
+the implementation there so it never touches the main checkout. For single-track work, no worktree was
+created and the feature branch is enough. When the codebase is **split by stack**, give each stack its
+own isolation:
 - Spawn each stack's implementer as a separate agent with **`isolation: worktree`** so backend / web /
   mobile edit in **parallel without collisions**.
 - Independent stacks → parallel. If the front end depends on a back-end API, settle that **contract
