@@ -8,6 +8,13 @@ description: Stage 5 of ship-cycle. Multi-lens parallel code review — security
 **Iron Law #3: no PR without a passing review.** Run the lenses (from overlay `changeNature[].reviews`)
 as **separate agents in parallel** — each is blind to the others, so they catch different failure modes.
 
+## Every review checks (cross-cutting, all lenses)
+- **Plan alignment**: does the implementation actually satisfy the **acceptance criteria** from
+  `sc-brainstorm` (in state)? Missing/extra scope, or a deviation, is a finding — catch "built the
+  wrong thing" here, not at final verify. (A defect-only review misses a widget that was never built.)
+- **Production readiness** (when the change touches contracts/schema/public surface): backward
+  compatibility (does it break existing clients?), migration safety, and whether docs were updated.
+
 ## Lenses (each names its anti-patterns)
 - **security**: authz/ownership bypass (IDOR), paywall/entitlement leak, injection (SQLi/XSS), secrets,
   unsafe deserialization, missing input validation.
@@ -16,6 +23,15 @@ as **separate agents in parallel** — each is blind to the others, so they catc
 - **performance**: N+1, unbounded queries / load-all-then-filter, missing indexes, needless re-render.
 - **algorithm** (when logic is non-trivial): correctness of the core computation vs. the spec.
 - **designer** (UI changes only): typography/spacing/hierarchy/consistency/accessibility/branding.
+
+## Output & severity discipline (each lens)
+Every lens returns, in this shape:
+- **Strengths** — specific, with file refs. Mandatory: it forces real code comprehension and calibrates
+  severity (a problems-only reviewer inflates). "Solid" is a valid finding.
+- **Issues** — by **actual** severity (Critical/High/Medium/Low), with file:line, *why it matters*, and a
+  fix. Don't mark nitpicks as Critical; don't bury a Critical as a nit.
+- **Verdict** — a clear merge call: **Yes / No / With-Fixes**, plus 1–2 sentences of reasoning.
+- No verdict without having actually read the code.
 
 ## Verify findings (avoid false positives)
 For each Critical/High, spawn an independent check that tries to **refute** it (does the code path

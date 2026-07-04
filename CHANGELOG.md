@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.1 — review discipline (borrowed from Superpowers)
+
+`sc-review` keeps its multi-lens/parallel structure and adds the output discipline from Superpowers'
+`requesting-code-review` reviewer:
+- **Plan alignment** as a cross-cutting check (does the impl satisfy the acceptance criteria — catch
+  "built the wrong thing" at review, not final verify).
+- **Production readiness** check for contract/schema/public-surface changes (backward compat, migration, docs).
+- Per-lens **output discipline**: mandatory Strengths, actual-severity issues, and a clear merge
+  **verdict (Yes/No/With-Fixes)**; no severity inflation; no verdict without reading the code.
+
 ## 0.2.0 — composable restructure
 
 Refactored the single monolithic `ship-cycle` skill into an orchestrator + one skill per stage, and
