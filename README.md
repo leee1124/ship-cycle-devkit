@@ -12,12 +12,21 @@ types if your environment provides them.
 
 ## What's inside
 
+Composable skills — a thin orchestrator that chains one short skill per stage (each usable à la carte):
+
 | Component | Path | Purpose |
 |---|---|---|
-| `ship-cycle` skill | `skills/ship-cycle/SKILL.md` | The gated lifecycle state machine + model routing |
+| `ship-cycle` (orchestrator) | `skills/ship-cycle/` | PREFLIGHT + worktree + routing + state + gate chaining + model routing |
+| `sc-brainstorm` | `skills/sc-brainstorm/` | Discovery: clarify a vague goal, propose a design, get acceptance |
+| `sc-design` | `skills/sc-design/` | Architect design + adversarial critic review |
+| `sc-tdd` | `skills/sc-tdd/` | Write failing tests first (Red) |
+| `sc-implement` | `skills/sc-implement/` | Green + build, in git worktree isolation (parallel stacks) |
+| `sc-review` | `skills/sc-review/` | Multi-lens parallel review (security/quality/perf/algorithm/designer) |
+| `sc-qa` | `skills/sc-qa/` | Integration/E2E + front↔back seam contracts |
+| `sc-ship` | `skills/sc-ship/` | Docs + evidence verify + PR + branch/worktree cleanup |
 | Engineering constitution | `docs/engineering-constitution.md` | The rules the gates enforce (SOLID/OWASP/DDD/TDD/…) |
-| Implementation prompt templates | `prompts/impl-{backend,web,mobile}.md` | Stack-specific implementation-agent prompts (adapt to your stack) |
-| Overlay config example | `docs/ship-cycle.config.example.json` | The per-project schema |
+| Impl prompt templates | `prompts/impl-{backend,web,mobile}.md` | Stack-specific implementation prompts (adapt to your stack) |
+| Overlay config + schema | `docs/ship-cycle.config.{example,schema}.json` | The per-project config and its JSON Schema |
 
 ## Install
 
@@ -42,7 +51,7 @@ claude plugin validate /path/to/ship-cycle-devkit
 Trigger the skill on any goal:
 
 ```
-/ship-cycle:ship-cycle  add rate limiting to the login endpoint
+/ship-cycle-devkit:ship-cycle  add rate limiting to the login endpoint
 ```
 (or say "ship it" / "run the lifecycle" for `{goal}`)
 

@@ -45,7 +45,13 @@
   },
 
   "modelRouting": {
-    "$comment": "Optional. Override the base pyramid or the risk-gated upgrades. Tier names map onto your environment's model lineup.",
+    "$comment": "Optional. tierMap bridges tier names → real model ids the Task tool accepts; the skill passes model=<resolved> per call. base overrides which tier each role runs at.",
+    "tierMap": {
+      "top": "opus",
+      "high": "opus",
+      "mid": "sonnet",
+      "low": "haiku"
+    },
     "base": {
       "design": "high",
       "review": "high",

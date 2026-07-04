@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ship-cycle project overlay",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "vcs": {
+      "type": "object",
+      "properties": {
+        "provider": { "type": "string" },
+        "repo": { "type": "string" },
+        "defaultBase": { "type": "string" },
+        "protectedBranches": { "type": "array", "items": { "type": "string" } },
+        "tracker": {
+          "type": "object",
+          "properties": {
+            "milestones": { "type": "boolean" },
+            "projectBoard": { "type": "string" }
+          }
+        }
+      },
+      "required": ["defaultBase", "protectedBranches"]
+    },
+    "changeNature": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "match": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "array", "items": { "type": "string" } }
+            ]
+          },
+          "nature": { "type": "string" },
+          "tests": { "type": "array", "items": { "type": "string" } },
+          "build": { "type": "array", "items": { "type": "string" } },
+          "reviews": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["match", "nature", "reviews"]
+      }
+    },
+    "i18n": {
+      "type": "object",
+      "properties": { "configPath": { "type": "string" } }
+    },
+    "modelRouting": {
+      "type": "object",
+      "properties": {
+        "tierMap": {
+          "type": "object",
+          "properties": {
+            "top": { "type": "string" },
+            "high": { "type": "string" },
+            "mid": { "type": "string" },
+            "low": { "type": "string" }
+          }
+        },
+        "base": { "type": "object" }
+      }
+    }
+  }
+}
