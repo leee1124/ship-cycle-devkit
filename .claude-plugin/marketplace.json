@@ -1,0 +1,13 @@
+{
+  "name": "ship-cycle-devkit-marketplace",
+  "description": "Portable development-lifecycle tooling for Claude Code",
+  "version": "0.1.0",
+  "author": "leee1124",
+  "plugins": [
+    {
+      "name": "ship-cycle-devkit",
+      "source": "./",
+      "description": "Gated dev lifecycle (design→review→test→impl→verify→PR) with risk-based model routing"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Node (if scripts add deps later)
+node_modules/
+
+# Never commit project-specific overlays or secrets into the portable plugin
+**/ship-cycle.config.json
+**/*.local.json
+.env

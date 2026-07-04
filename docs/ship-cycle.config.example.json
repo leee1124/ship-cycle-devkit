@@ -1,0 +1,56 @@
+{
+  "$comment": "Copy to your project as .claude/ship-cycle.config.json and edit. This overlay supplies ALL project-specific values; the plugin itself stays generic. Nothing here is required — omit a section to use built-in defaults.",
+
+  "vcs": {
+    "provider": "github",
+    "repo": "your-org/your-repo",
+    "defaultBase": "dev",
+    "protectedBranches": ["main", "master", "dev"],
+    "tracker": {
+      "milestones": true,
+      "projectBoard": "https://github.com/users/your-org/projects/1"
+    }
+  },
+
+  "changeNature": [
+    {
+      "match": "apps/backend/**/*.java",
+      "nature": "backend",
+      "tests": ["./gradlew test"],
+      "build": ["./gradlew build"],
+      "reviews": ["security", "quality", "performance", "algorithm"]
+    },
+    {
+      "match": "apps/web/**",
+      "nature": "web",
+      "tests": ["npm run build", "npx playwright test"],
+      "reviews": ["security", "quality", "performance", "designer"]
+    },
+    {
+      "match": "apps/mobile/**",
+      "nature": "mobile",
+      "tests": ["npm run -w apps/mobile typecheck", "npm run -w apps/mobile test"],
+      "reviews": ["quality", "algorithm", "performance", "designer"]
+    },
+    {
+      "match": ["*.md", "**/messages/**", "**/i18n/**"],
+      "nature": "docs-i18n",
+      "tests": [],
+      "reviews": ["quality"]
+    }
+  ],
+
+  "i18n": {
+    "configPath": ".claude/i18n-parity.config.json"
+  },
+
+  "modelRouting": {
+    "$comment": "Optional. Override the base pyramid or the risk-gated upgrades. Tier names map onto your environment's model lineup.",
+    "base": {
+      "design": "high",
+      "review": "high",
+      "implement": "mid",
+      "docs": "low"
+    }
+  }
+}

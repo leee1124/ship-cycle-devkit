@@ -1,0 +1,20 @@
+{
+  "name": "ship-cycle-devkit",
+  "displayName": "Ship-Cycle DevKit",
+  "version": "0.1.0",
+  "description": "A gated, constitution-enforcing development lifecycle: requirements → design → review → test → implement → verify → PR, with risk-based model routing. Framework-agnostic; project specifics come from an overlay config.",
+  "author": { "name": "leee1124" },
+  "repository": "https://github.com/leee1124/ship-cycle-devkit",
+  "homepage": "https://github.com/leee1124/ship-cycle-devkit#readme",
+  "license": "MIT",
+  "keywords": ["ship-cycle", "lifecycle", "code-review", "tdd", "model-routing", "orchestration"],
+  "skills": "./skills/",
+  "userConfig": {
+    "projectConfig": {
+      "type": "string",
+      "title": "Project overlay config path",
+      "description": "Path (relative to project root) to the ship-cycle overlay JSON that supplies repo-specific paths, VCS, and i18n settings.",
+      "default": ".claude/ship-cycle.config.json"
+    }
+  }
+}
