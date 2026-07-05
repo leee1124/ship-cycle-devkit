@@ -47,26 +47,6 @@ Hard stops, not suggestions. Each lists the excuses agents reach for — all rej
 Run in order; a gate must pass before the next stage. On failure, loop back per the gate table.
 **Loop cap: 3 per gate** — beyond that, return to `sc-design` and notify the user.
 
-Between **every** stage a **relay** (`sc-relay`, low tier) carries the prior stage's output to the next — see below.
-
-## Relay (`sc-relay`, low tier) — inter-stage handoff
-
-At every stage transition, a cheap, fast agent (low tier, e.g. Haiku) hands the previous stage's output
-(design doc, test results, review findings) to the next stage's agent, so the orchestrator doesn't have
-to hold every artifact in its own context — the relay moves it instead.
-
-- **It does NOT compress, summarize, or edit — pass the artifact through verbatim (hard rule).** The
-  relay runs on a weak model *precisely because* its job needs no judgment; a weak model asked to
-  summarize may compress wrong and silently drop an unresolved critic objection, a gate blocker, or
-  failing evidence. So it is never asked to. Carry the artifact whole.
-- **Why a weak/low tier is enough**: the job is pure mechanical carrying + bookkeeping, not reasoning.
-  The moment a step needs judgment, that judgment belongs to the next stage's agent — never the relay.
-- **Why every transition (always on)**: branching on "is this handoff big enough to bother relaying"
-  is more overhead, and a worse failure mode, than just always running one fast cheap pass. Uniform and
-  robust — nothing slips through un-relayed.
-- **Its only side work**: update the state file (`.claude/.ship-cycle-state.json`) and emit a one-line
-  progress note to the user. It never touches the artifact's content.
-
 ## Stage 0 — PREFLIGHT
 
 1. **Branch guard**: if on a protected branch (overlay `vcs.protectedBranches`), create `feature/*`|`fix/*`.
@@ -116,7 +96,7 @@ Write it at every transition; read it at PREFLIGHT to **resume** and to enforce 
 Assign models by **cost-of-being-wrong × cost-of-verification**, not by role name.
 
 - **Base pyramid**: *high* on design & security/quality review; *mid* on implement/QA; *low* on
-  docs/style/plumbing and the inter-stage relay (`sc-relay`).
+  docs/style/plumbing.
 - **Risk-gated upgrade**: high-risk changes bump the *single matching role* to *top* —
   auth/payment→security review, schema/API-contract→design, complex algorithm→algorithm review.
   Match the *kind* of risk, not always the same role. Usually 0–1 upgrades per run.
