@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.9 — waved execution: blast-radius control; visual QA: cheaper CDD tier
+
+Refinements to 0.2.8 after review:
+- **Atomic contract-change rule needs blast-radius control** (`sc-implement`): with dozens of call sites,
+  the naive "each parallel agent runs `tsc` in its loop" backfires in a *shared* working tree — a
+  whole-project typecheck sees other agents' half-finished edits and misattributes/"fixes" foreign files.
+  Added: land **contract (signature/type) changes + their call sites as a serial micro-wave, verified once**,
+  before the parallel leaf waves; and if kept parallel on a shared tree, on barrier failure **bisect errors
+  → owning file → re-dispatch only that owner** instead of stalling the wave. In-loop self-verify is only
+  safe under worktree isolation.
+- **Visual QA has a cheaper tier** (`sc-qa`): component isolation (CDD — a Storybook via react-native-web,
+  screenshot in a headless browser) verifies component/layout/token regressions with no native build/
+  emulator. Two caveats recorded: it **complements, not replaces** the emulator pass (native fidelity gaps),
+  and the real token sink is **loop discipline** — use the vision loop for render/regression verification,
+  not subjective aesthetic nudging (pin aesthetics in tokens up front).
+
 ## 0.2.8 — mobile visual-QA harness + waved cross-cutting execution
 
 Learned from a real large mobile UI reskin run:

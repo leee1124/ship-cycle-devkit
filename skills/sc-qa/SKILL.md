@@ -45,6 +45,15 @@ mobile nature:
   Loop: change → reload → capture → read → assess.
 - **Auth-gated screens**: get past the gate with the real backend's signup/login to obtain a token — a
   shell can't inject a token into the device's encrypted store. Snapshot the authed state to reuse.
+- **Cheaper tier — component isolation (CDD).** Booting the whole app per iteration is the expensive path.
+  For component/layout/token regressions, render components **in isolation** (e.g. a Storybook via
+  react-native-web) and screenshot them in a **headless browser** — no native build, no emulator, far
+  cheaper per shot. Two caveats: (1) it **complements, not replaces** the emulator pass — react-native-web
+  drops native-only modules and isn't pixel-identical to native, so whole-app/native visual QA stays an
+  occasional top tier; (2) the real token sink is **loop discipline**, not the harness — use the vision loop
+  to verify *"does it render / did we break it"*, **not** to iterate subjective aesthetics ("nudge left,
+  darker", which doesn't converge and burns tokens). Pin aesthetics in design tokens + acceptance criteria
+  up front, where they settle cheaply.
 - Still not verifiable this way: camera/scanner, platform health APIs, push, native share/file pickers →
   those go on the on-device manual checklist below. Fall back to that checklist entirely only when **no**
   emulator/simulator can be stood up.
