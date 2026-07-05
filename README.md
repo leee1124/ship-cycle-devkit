@@ -73,6 +73,12 @@ It supplies:
 
 If the overlay is absent, ship-cycle falls back to built-in heuristics and logs that defaults are used.
 
+> **Commands run from the repo root.** `changeNature[].tests`/`build` execute at the repository root, so use
+> root-relative forms — `cd apps/api && ./gradlew test`, `npm run test -w apps/web`, `npx tsc --noEmit -p apps/mobile` —
+> not a bare `./gradlew` that assumes a subdir cwd.
+> **Gitignore the run state.** Add `.claude/.ship-cycle-state.json` to your `.gitignore` — it's per-run
+> orchestration state, not meant to be committed (the overlay config *is*).
+
 ## Model routing (token efficiency)
 
 Models are assigned by **cost-of-being-wrong × cost-of-verification**, not by role name:

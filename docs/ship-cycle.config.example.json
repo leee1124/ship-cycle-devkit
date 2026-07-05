@@ -16,8 +16,8 @@
     {
       "match": "apps/backend/**/*.java",
       "nature": "backend",
-      "tests": ["./gradlew test"],
-      "build": ["./gradlew build"],
+      "tests": ["cd apps/backend && ./gradlew test"],
+      "build": ["cd apps/backend && ./gradlew build"],
       "reviews": ["security", "quality", "performance", "algorithm"]
     },
     {
@@ -29,7 +29,7 @@
     {
       "match": "apps/mobile/**",
       "nature": "mobile",
-      "tests": ["npm run -w apps/mobile typecheck", "npm run -w apps/mobile test"],
+      "tests": ["npx tsc --noEmit -p apps/mobile", "npm run test -w apps/mobile"],
       "reviews": ["quality", "algorithm", "performance", "designer"]
     },
     {

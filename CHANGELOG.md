@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.2.3 — second-dogfood feedback (mobile bug-fix cycle)
+
+Learned from a React Native (Expo) bug-fix run on a monorepo:
+- **Lens → agent fallback** (`sc-review`): review lens names are *roles*, not fixed agent types. If no
+  dedicated reviewer exists (many envs have no `performance-reviewer`/`algorithm-reviewer`), spawn a
+  `general-purpose`/`code-reviewer` with the lens's anti-patterns as focus — verify the type exists first,
+  never abort on a missing agent. Scale fan-out to the host (sequential on constrained machines).
+- **Device-only QA without an emulator** (`sc-qa`): for visual/native changes with no front↔back seam and
+  no device available, automated QA = full-suite regression + integration checks + typecheck/bundle, then
+  **emit a concrete on-device manual checklist** into the PR as a pre-merge gate. The checklist is the
+  honest deferral — don't fake a visual pass or silently skip.
+- **No UI/component test harness** (`sc-tdd`): when the stack can't unit-test rendered output (RN without a
+  component lib), extract pure logic (formatters, selectors, time/geometry math, i18n) and write Red there;
+  thin UI wiring is covered by the designer lens + the on-device checklist, not faked component tests.
+- **Overlay commands run from repo root + gitignore run state** (README / example): use root-relative test
+  commands (`cd apps/x && ./gradlew …`, `npm run test -w …`, `npx tsc --noEmit -p …`); add
+  `.claude/.ship-cycle-state.json` to `.gitignore`.
+
 ## 0.2.2 — first-dogfood feedback
 
 Improvements learned from the first real end-to-end run (a web dashboard feature):

@@ -16,6 +16,15 @@ next stage makes them pass. Rejected excuses: "trivial" · "just once" · "I'll 
 3. **Run them and read the output.** Confirm they **fail for the intended reason** (missing behavior),
    not a compile error or typo. A test that passes now, or errors for the wrong reason, is not Red.
 
+## When the stack has no UI/component test harness
+Some stacks can't unit-test rendered output (e.g. React Native without a component-testing lib, or any UI
+with no render harness). Don't skip Red, and don't bolt on a heavy harness just to satisfy it: **extract the
+change's pure logic** — formatters, calculators, selectors/reducers, time/geometry math, i18n resolution —
+into testable modules and write the failing tests there. The thin UI wiring that remains (props, layout,
+event handlers) is covered by `sc-review` (designer lens) + the `sc-qa` on-device checklist, not by faked
+component tests. If a fix genuinely has **no** extractable logic, say so explicitly and route its
+verification to review/QA rather than writing a vacuous test.
+
 ## Don't
 - Don't implement the feature to make them pass — that's `sc-implement`.
 - Don't write vacuous tests (asserting trivialities) to fake Red.
