@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.5 — state-file handoff between stages
+
+- **State-file handoff rule** (orchestration plumbing, **not an agent**): each stage writes its output
+  to a file under the run's artifact dir; the next stage reads it; the orchestrator passes only pointers
+  (paths) in the state file, never a full artifact through its own context.
+- **Verbatim by construction — zero cost, zero distortion**: files carry artifacts whole. This is
+  deliberate — summarizing between stages risks silently dropping an unresolved objection, a gate
+  blocker, or failing evidence, and verbatim carrying is a code job, not a model's, so no agent is spent
+  on it. (Earlier drafts modeled this as a cheap "relay" agent; a truly-verbatim LLM pass is redundant
+  with plain file passing, so it's plumbing, not a role.)
+- **Put a model in a handoff only for a trusted transformation** (extract acceptance criteria, reformat
+  for the next tool) — then pick the tier that transformation demands, not a blanket cheap summarize.
+
 ## 0.2.4 — parity-audit discipline
 
 Adds a new à-la-carte skill, learned from a real cross-platform integration miss:

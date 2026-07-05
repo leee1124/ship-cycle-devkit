@@ -47,6 +47,27 @@ Hard stops, not suggestions. Each lists the excuses agents reach for — all rej
 Run in order; a gate must pass before the next stage. On failure, loop back per the gate table.
 **Loop cap: 3 per gate** — beyond that, return to `sc-design` and notify the user.
 
+Between **every** stage, artifacts pass through the **state-file handoff rule** (plumbing, not an agent) — see below.
+
+## State-file handoff — inter-stage artifact passing
+
+Each stage **writes its output to a file** (design doc, test results, review findings) under the run's
+artifact dir; the next stage **reads that file**. The orchestrator passes only **pointers (paths)**,
+tracked in the state file — it never carries a full artifact through its own context. This is plain
+orchestration plumbing (code + files), **not an LLM step**.
+
+- **Verbatim by construction — zero cost, zero distortion.** Files carry artifacts whole: no
+  summarizing, no token spend, no drift. This is deliberate. Summarizing between stages risks silently
+  dropping an unresolved critic objection, a gate blocker, or failing evidence — and a model asked to
+  condense might do exactly that. Passing the file verbatim removes the risk entirely, and verbatim
+  carrying is a **code** job, not a model's — so no agent is spent on it.
+- **Always on, every transition.** No branching on "is this handoff big enough": every stage persists
+  its artifact and records the pointer, uniformly.
+- **State** (`.claude/.ship-cycle-state.json`): tracks each stage's artifact path + a one-line status.
+- **When to put a model in a handoff instead**: only when you genuinely want a *trusted transformation*
+  (extract acceptance criteria, reformat for the next tool). Then pick the tier that transformation's
+  difficulty demands — never a blanket cheap "just summarize everything" pass.
+
 ## Stage 0 — PREFLIGHT
 
 1. **Branch guard**: if on a protected branch (overlay `vcs.protectedBranches`), create `feature/*`|`fix/*`.
@@ -96,7 +117,7 @@ Write it at every transition; read it at PREFLIGHT to **resume** and to enforce 
 Assign models by **cost-of-being-wrong × cost-of-verification**, not by role name.
 
 - **Base pyramid**: *high* on design & security/quality review; *mid* on implement/QA; *low* on
-  docs/style/plumbing.
+  docs/style/plumbing. (Inter-stage handoff is not a model step — see the state-file handoff rule.)
 - **Risk-gated upgrade**: high-risk changes bump the *single matching role* to *top* —
   auth/payment→security review, schema/API-contract→design, complex algorithm→algorithm review.
   Match the *kind* of risk, not always the same role. Usually 0–1 upgrades per run.
