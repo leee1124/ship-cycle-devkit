@@ -22,6 +22,12 @@ implementers wrote.
   fake a pass** — degrade G9 to **contract-level seam verification** (assert the front↔back DTO shapes
   match by reading both sides) and **log the deferral**. Contract verification catches the most common
   multi-stack defect (field/type drift) even without a running system.
+- **Device-only UI, no emulator**: when a change's real behavior is visual/native (timer tick, chart/ring
+  render, gesture, navigation) with **no front↔back seam**, and no device/emulator is available, automated
+  QA = **full-suite regression + integration checks** (real i18n/store/data resolution — not mocks) +
+  **typecheck/bundle**. Then **emit a concrete on-device manual checklist** — one observable behavior per fix —
+  into the PR and mark it a **pre-merge manual gate**. The checklist IS the honest deferral: don't fake a
+  visual pass, and don't silently skip.
 
 ## When to run / skip
 - **Run** for real features and any change that crosses a seam.

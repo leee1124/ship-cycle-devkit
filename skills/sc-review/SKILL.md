@@ -24,6 +24,14 @@ as **separate agents in parallel** — each is blind to the others, so they catc
 - **algorithm** (when logic is non-trivial): correctness of the core computation vs. the spec.
 - **designer** (UI changes only): typography/spacing/hierarchy/consistency/accessibility/branding.
 
+## Running the lenses (agent mapping + fallback)
+Lens names are **roles, not fixed agent types**. Map each to whatever your environment provides, and
+**verify the agent type exists before spawning**. If no dedicated reviewer exists for a lens (many setups
+have no `performance-reviewer`/`algorithm-reviewer`), spawn a `general-purpose` (or `code-reviewer`) agent
+with that lens's anti-patterns pasted in as the focus — **never skip the lens or abort on a missing agent
+type**. Scale fan-out to the host: parallel by default, but on a resource-constrained machine run the
+lenses in smaller batches (or sequentially) rather than all at once.
+
 ## Output & severity discipline (each lens)
 Every lens returns, in this shape:
 - **Strengths** — specific, with file refs. Mandatory: it forces real code comprehension and calibrates
