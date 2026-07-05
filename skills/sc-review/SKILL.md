@@ -53,3 +53,8 @@ actually reach the bug? is it already mitigated elsewhere?). Keep only findings 
 ## Model routing
 security/quality/algorithm review run at the **high** tier; upgrade the matching lens to **top** for
 high-risk changes (auth/payment → security; complex algorithm → algorithm). style/designer may run lower.
+
+**Pass `model = state.models['review']` on every lens agent** (resolved at PREFLIGHT) — this is the
+stage the default-model trap bit in practice: spawning a `quality-reviewer`/`security-reviewer` without
+`model=` runs the review on that type's cheaper default instead of the intended high/top tier, silently.
+Never rely on the agent-type default (Iron Law 6).

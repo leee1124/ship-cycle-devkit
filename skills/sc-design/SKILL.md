@@ -45,3 +45,6 @@ doc for a widget.
 ## Model routing
 architect + critic run at the **high** tier; upgrade to **top** if PREFLIGHT flagged this change as a
 schema migration or public-API/architecture-boundary change (see the orchestrator's model routing).
+
+**Pass `model = state.models['design']` on the architect and critic calls** — it was resolved at
+PREFLIGHT (tier + risk upgrade). Never rely on the agent type's default model (Iron Law 6).

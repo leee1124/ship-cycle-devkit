@@ -39,3 +39,6 @@ implementers wrote.
 
 ## Model routing
 qa-tester + verifier run at the **mid** tier.
+
+**Pass `model = state.models['qa']` on the qa-tester/verifier calls** (resolved at PREFLIGHT) — never the
+agent type's default model (Iron Law 6).

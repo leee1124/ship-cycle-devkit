@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.6 — model routing, actually enforced
+
+Closes the gap where tier→model routing was *documented* but silently skipped at runtime — a review
+meant for the high tier ran on a specialized agent type's cheaper default model, unnoticed.
+
+- **Iron Law 6 (new)**: never spawn a stage agent on a default model. Resolve tier→model at PREFLIGHT and
+  pass `model=` explicitly. It names the exact trap: a specialized agent type (`quality-reviewer`,
+  `security-reviewer`, `architect`, …) carries its *own* default that silently overrides your tier when
+  `model=` is omitted.
+- **PREFLIGHT pre-resolves per-stage models** into `state.models` (risk upgrades applied) and **prints
+  them** (auditable). This turns "remember to bridge the tierMap" into "copy a concrete value" — the
+  difference that makes it actually happen.
+- **Every stage skill** now carries a point-of-use line: `Pass model = state.models['<stage>']` at the
+  spawn site, not buried in a routing section.
+- State schema gains `models`; the tier→model bridge doc spells out the default-model trap and how
+  mixed-tier stages (e.g. `sc-ship`) resolve per-role.
+
 ## 0.2.5 — state-file handoff between stages
 
 - **State-file handoff rule** (orchestration plumbing, **not an agent**): each stage writes its output

@@ -36,3 +36,6 @@ authz from the principal only, DTOs not entities, whitelist validation, no N+1, 
 ## Model routing
 executor + build-fixer run at the **mid** tier. Cheap path first: implement on mid → verify → escalate
 only the failing fix (or a risk-zone diff) to a higher tier.
+
+**Pass `model = state.models['implement']` on the executor/build-fixer calls** (resolved at PREFLIGHT) —
+never the agent type's default (Iron Law 6). An escalated fix passes the higher tier explicitly too.

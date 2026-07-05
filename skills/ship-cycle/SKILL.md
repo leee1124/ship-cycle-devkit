@@ -30,6 +30,11 @@ Hard stops, not suggestions. Each lists the excuses agents reach for — all rej
 3. **NO PR WITHOUT A PASSING PRE-PR REVIEW.** Rejected: "small change" · "I reviewed while writing".
 4. **NEVER COMMIT ON A PROTECTED BRANCH.** Branch first, always.
 5. **STAY IN SCOPE.** Unrelated work → a new branch.
+6. **NEVER SPAWN A STAGE AGENT ON A DEFAULT MODEL.** Resolve tier→model at PREFLIGHT and pass `model=`
+   explicitly on every stage agent call. Rejected: "the agent type has a sensible default" (a specialized
+   type like `quality-reviewer` carries its own model that silently overrides your tier — this is exactly
+   how a top/high-tier review ends up running on a cheap default) · "low-risk, doesn't matter" (then it
+   resolves to a cheap tier anyway — still pass it, so the choice is auditable not accidental).
 
 ## Pipeline (one skill per stage)
 
@@ -83,7 +88,12 @@ orchestration plumbing (code + files), **not an LLM step**.
    **most-specific glob wins**; docs/i18n-only diffs prefer the docs rule. **Print the resolved routing**
    (which tests/reviews will run) so it's auditable.
 5. **Classify risk** (for model routing, below).
-6. **Init state**: write `.claude/.ship-cycle-state.json`.
+6. **Resolve per-stage models now (not per-spawn)**: for each stage, resolve its tier → a concrete model
+   via overlay `modelRouting.tierMap` (base pyramid + any risk upgrade). Write the result to state
+   `models` and **print it** (auditable, e.g. `review→opus, implement→sonnet`). Every stage then spawns
+   with `model = state.models[<stage>]` — never an agent type's default. This turns "remember to bridge
+   the tierMap" into "copy a concrete value", which is the difference that makes it actually happen.
+7. **Init state**: write `.claude/.ship-cycle-state.json` (including `models`).
 
 ## State (real, not a metaphor)
 
@@ -91,10 +101,15 @@ orchestration plumbing (code + files), **not an LLM step**.
 ```json
 { "goal": "...", "branch": "...", "worktreePath": "...", "stage": "sc-design",
   "gates": { "G1": "pass", "G2": "pass" }, "loops": { "G8": 1 },
-  "nature": ["backend"], "risk": ["auth"] }
+  "nature": ["backend"], "risk": ["auth"],
+  "models": { "brainstorm": "opus", "design": "opus", "tdd": "sonnet", "implement": "sonnet",
+              "review": "opus", "qa": "sonnet", "ship": "sonnet" } }
 ```
 Write it at every transition; read it at PREFLIGHT to **resume** and to enforce the loop cap
-(don't count loops in your head).
+(don't count loops in your head). `models` is resolved once at PREFLIGHT (§Stage 0.6) with risk
+upgrades already applied — every stage reads its model from here rather than re-deriving it. A stage
+whose roles span tiers (e.g. `sc-ship`: writer=low, verifier=high, git-master=mid) records its dominant
+tier here; the stage skill resolves the per-role exceptions from the same tierMap.
 
 ## Gate criteria
 
@@ -122,8 +137,13 @@ Assign models by **cost-of-being-wrong × cost-of-verification**, not by role na
   auth/payment→security review, schema/API-contract→design, complex algorithm→algorithm review.
   Match the *kind* of risk, not always the same role. Usually 0–1 upgrades per run.
 - **Tier → model bridge (required to execute)**: read overlay `modelRouting.tierMap`
-  (e.g. `{"top":"opus","high":"opus","mid":"sonnet","low":"haiku"}`) and **pass `model=<resolved>` on
-  each `Task` call**. Without a tierMap, tiers are advisory only.
+  (e.g. `{"top":"opus","high":"opus","mid":"sonnet","low":"haiku"}`), resolve every stage's tier at
+  PREFLIGHT into `state.models` (§Stage 0.6), and **pass `model = state.models[<stage>]` on each stage's
+  agent call**. Without a tierMap, tiers are advisory only. **The trap (Iron Law 6)**: a specialized
+  agent type — `quality-reviewer`, `security-reviewer`, `architect`, etc. — carries its *own* default
+  model that **silently overrides your tier** when you omit `model=`. That is precisely how a review
+  intended for the top/high tier ends up on a cheaper default without anyone noticing. Pre-resolving into
+  `state.models` and passing it explicitly is the fix — never trust the agent-type default.
 - **Bigger levers first**: prompt caching (cache the repo/diff/design doc), an effort dial, and
   "cheap path first" for implementation (mid tier → verify → escalate only the failing fix). **Exception**:
   for inherently complex work (novel algorithms, intricate UI like SVG/canvas), start at the higher tier —

@@ -94,6 +94,9 @@ Models are assigned by **cost-of-being-wrong × cost-of-verification**, not by r
   not always the same role.
 - **Bigger levers than tier choice**: prompt caching, an effort dial, and "cheap path first" for
   implementation.
+- **Enforced, not just documented**: PREFLIGHT pre-resolves each stage's tier into a concrete model
+  (`state.models`) and every stage passes `model=` explicitly. Iron Law 6 forbids spawning on an agent
+  type's default — a specialized type (`quality-reviewer`, …) otherwise silently overrides your tier.
 
 Tier names (top/high/mid/low) map onto whatever model lineup your environment offers.
 

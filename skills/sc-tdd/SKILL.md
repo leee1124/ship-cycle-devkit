@@ -35,3 +35,6 @@ verification to review/QA rather than writing a vacuous test.
 
 ## Model routing
 test-engineer runs at the **mid** tier.
+
+**Pass `model = state.models['tdd']` on the test-engineer call** (resolved at PREFLIGHT) — never the
+agent type's default model (Iron Law 6).

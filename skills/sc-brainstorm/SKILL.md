@@ -30,3 +30,8 @@ expensive outcome. This stage ends when the user accepts a design direction — 
 
 ## Lightweight
 For a trivial, unambiguous change, compress this to a one-line restatement + acceptance criteria and proceed.
+
+## Model routing
+Requirements/discovery (analyst) runs at the **high** tier — getting the problem wrong propagates
+everywhere. Often the orchestrator does this inline with the user; **if you spawn an agent, pass
+`model = state.models['brainstorm']`** (resolved at PREFLIGHT) — never the agent type's default (Iron Law 6).

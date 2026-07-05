@@ -11,3 +11,6 @@ node_modules/
 **/ship-cycle.config.json
 **/*.local.json
 .env
+
+# Claude Code 세션 아티팩트 (플러그인 개발 시 생기는 로컬 상태 — 커밋 대상 아님)
+.claude/

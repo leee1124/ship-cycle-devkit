@@ -33,3 +33,6 @@ finished issues immediately.
 
 ## Model routing
 writer runs at the **low** tier; verifier at **high** (evidence judgment); git-master at **mid**.
+
+**Pass `model = state.models['ship']` on these calls** (resolved at PREFLIGHT) — never the agent type's
+default model (Iron Law 6). (If a stage splits roles across tiers, resolve each from the same tierMap.)
