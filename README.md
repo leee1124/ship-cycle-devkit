@@ -24,6 +24,7 @@ Composable skills — a thin orchestrator that chains one short skill per stage 
 | `sc-review` | `skills/sc-review/` | Multi-lens parallel review (security/quality/perf/algorithm/designer) |
 | `sc-qa` | `skills/sc-qa/` | Integration/E2E + front↔back seam contracts |
 | `sc-ship` | `skills/sc-ship/` | Docs + evidence verify + PR + branch/worktree cleanup |
+| `sc-audit` (à la carte) | `skills/sc-audit/` | Cross-surface parity audit: gap matrix + risks + cutover/ship verdict (not in the default chain) |
 | Engineering constitution | `docs/engineering-constitution.md` | The rules the gates enforce (SOLID/OWASP/DDD/TDD/…) |
 | Impl prompt templates | `prompts/impl-{backend,web,mobile}.md` | Stack-specific implementation prompts (adapt to your stack) |
 | Overlay config + schema | `docs/ship-cycle.config.{example,schema}.json` | The per-project config and its JSON Schema |
@@ -69,6 +70,8 @@ It supplies:
   run. This is what routes a `.java` change to JUnit + a security review, a `.tsx` change to Playwright
   + a designer review, etc.
 - **`i18n`** — optional path to an i18n-parity config (the i18n hook ships separately).
+- **`audit`** — optional inputs for the à-la-carte `sc-audit` skill: the `sourceOfTruth` contract, the
+  consumer `surfaces` checked against it, domain `modules`, and `reportDir`. Omit to derive from `changeNature`.
 - **`modelRouting`** — optional overrides of the base pyramid / risk-gated upgrades.
 
 If the overlay is absent, ship-cycle falls back to built-in heuristics and logs that defaults are used.

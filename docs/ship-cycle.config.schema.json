@@ -44,6 +44,32 @@
       "type": "object",
       "properties": { "configPath": { "type": "string" } }
     },
+    "audit": {
+      "type": "object",
+      "properties": {
+        "sourceOfTruth": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "paths": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "surfaces": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "routes": { "type": "array", "items": { "type": "string" } },
+              "client": { "type": "array", "items": { "type": "string" } }
+            },
+            "required": ["name"]
+          }
+        },
+        "modules": { "type": "array", "items": { "type": "string" } },
+        "reportDir": { "type": "string" }
+      }
+    },
     "modelRouting": {
       "type": "object",
       "properties": {
