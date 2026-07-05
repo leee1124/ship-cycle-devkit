@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.5 — inter-stage relay
+
+- **`sc-relay`** (new, low tier): a relay woven into **every** stage transition. It carries the prior
+  stage's output (design doc, test results, review findings) to the next stage's agent so the
+  orchestrator doesn't hold every artifact in its own context.
+- **Verbatim only — no compress/summarize/edit (hard rule)**: the relay runs on a weak/fast model, and
+  a weak model asked to summarize may compress wrong and silently drop an unresolved objection, a gate
+  blocker, or failing evidence. Its job is mechanical carrying + bookkeeping (state file + a one-line
+  progress note), never judgment — judgment belongs to the next stage's agent.
+- **Always on, every transition**: branching on "is this handoff big enough to relay" is more overhead
+  and a worse failure mode than one uniform fast pass; nothing slips through un-relayed.
+- Named in the model-routing low tier alongside docs/style/plumbing.
+
 ## 0.2.4 — parity-audit discipline
 
 Adds a new à-la-carte skill, learned from a real cross-platform integration miss:
