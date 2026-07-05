@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.2.7 — delegation criteria + high-stakes lightweight review
+
+Learned from a real EAS build-fix run:
+- **Delegate vs act inline** (`ship-cycle`, new section): the orchestrator is *not* a pure conductor —
+  spawning a subagent isn't free (boot + re-brief + re-read), so a trivial edit is cheaper done inline
+  even on the orchestrator's pricier, session-fixed model. Delegate only when it buys **independence**
+  (adversarial stages — a reviewer can't be the author), **tier savings on substantial work**,
+  **context hygiene** (the orchestrator is long-lived; hand off context-heavy reads to a read-and-discard
+  subagent), or **parallelism**. The line is "does delegation buy something", not diff size.
+- **Lightweight path drops tiers — except small-but-high-stakes** (`ship-cycle`): trivial work runs
+  mid/low, but keep the higher review tier when cost-of-being-wrong is high or verification is expensive
+  (build/release config, dependency/lockfile, contracts, data-loss, security). Tier by
+  cost-of-being-wrong × verification-difficulty, not diff size — a high-tier review of a 10-line dep bump
+  caught a stale-lockfile defect a cheap pass would likely have missed.
+- **Lockfile sync** (`sc-implement`): changing a dependency manifest that has a committed lockfile
+  requires regenerating the lockfile in the same change — CI/release installs from the lockfile
+  (`npm ci`, `--frozen-lockfile`), so a manifest-only edit is inert or re-breaks the build.
+
 ## 0.2.6 — model routing, actually enforced
 
 Closes the gap where tier→model routing was *documented* but silently skipped at runtime — a review

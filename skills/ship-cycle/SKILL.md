@@ -21,6 +21,26 @@ pack), the stages use them for real adversarial separation. **On stock Claude Co
 Do **not** collapse stages into "I'll just do it myself"; the point of a separate reviewer is that it
 is not the author.
 
+## Delegate vs act inline (orchestrator)
+
+The orchestrator is **not a pure conductor** — spawning a subagent isn't free (it boots, gets re-briefed,
+and **re-reads** the files), so delegating a trivial edit costs *more* (latency + tokens) than just doing
+it inline. Delegate only when it **buys** something:
+
+- **Independence (adversarial stages)** — an author can't review their own work. sc-design's critic,
+  sc-review's lenses, and sc-qa **must** be separate agents; a fresh set of eyes is the whole point (it's
+  what catches the author's blind spots). Non-negotiable.
+- **Tier savings on substantial work** — mechanical work big enough that running it on a cheaper tier (a
+  mid/low executor) beats doing it inline on the orchestrator's own (pricier, session-fixed) model.
+- **Context hygiene** — the orchestrator is a **long-lived context**; everything it reads inline stays
+  for the whole run. Hand off work that would dump a lot into it (reading large files, multi-step
+  exploration) to a subagent that reads-and-discards and returns only the conclusion.
+- **Parallelism** — independent work that can run concurrently.
+
+Otherwise **act inline**: trivial + low-context + no independence needed (a few-line edit, a quick check).
+The dividing line is **"does delegation buy something", not diff size** — a small but context-heavy or
+high-stakes step can still warrant a subagent; a small trivial one does not.
+
 ## Iron Laws (non-negotiable)
 
 Hard stops, not suggestions. Each lists the excuses agents reach for — all rejected.
@@ -152,5 +172,13 @@ Assign models by **cost-of-being-wrong × cost-of-verification**, not by role na
 ## Lightweight path
 
 Trivial changes (config/docs/one-liner): collapse brainstorm/design/review into one check, substitute
-heavy suites with self-tests/link checks, reduce review to quality+security. **Never skip build/test
-verification or the pre-PR review.**
+heavy suites with self-tests/link checks, reduce review to quality+security, and **drop the model tiers**
+(mid/low instead of high). **Never skip build/test verification or the pre-PR review.**
+
+**Exception — small but high-stakes.** Keep the higher review tier even for a tiny diff when
+cost-of-being-wrong is high or verification is expensive: build/release config, **dependency/lockfile
+changes**, API/data contracts, data-loss paths, security. Tier by cost-of-being-wrong ×
+verification-difficulty, **not by diff size** — e.g. a 10-line dependency bump can silently waste an
+expensive cloud rebuild, so its review earns the high tier though it "looks" trivial. (Real run: a
+high-tier review of exactly such a bump caught a stale-lockfile defect a cheaper pass would likely
+have missed.)
