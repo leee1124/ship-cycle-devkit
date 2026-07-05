@@ -30,6 +30,16 @@ a layer), worktree-per-stack doesn't apply — the collision risk is *within* th
 - **Atomic contract-change rule**: the owner that changes a shared symbol's signature/type also updates
   that symbol's **call sites in the same wave** — otherwise the barrier's global typecheck goes red between
   waves. Pre-plan which call-site files each signature change reaches.
+- **Shrink the blast radius — contract changes in a serial micro-wave.** With dozens of call sites the risk
+  isn't the leaf reskins, it's the few edits that touch shared contracts. Land **signature/type changes and
+  their call-site updates as their own serial step, verified once**, *before* the parallel leaf waves start
+  — then a parallel agent literally can't red the types. (The atomic rule, pushed one step further.)
+- **"Verify in the loop" has a precondition.** Forcing each parallel agent to run `tsc`/build inside its own
+  loop is only safe when agents are **worktree-isolated** — in a *shared* working tree a whole-project
+  typecheck sees every agent's half-finished edits and flags errors in files the agent doesn't own (false
+  alarms; agents may "fix" each other). So either isolate (`isolation: worktree`, costly at high fan-out)
+  and self-verify, or keep a shared tree with a **single barrier typecheck** and, on failure, **bisect —
+  map each error to its owning file → re-dispatch only that owner**, rather than stalling the whole wave.
 - **Resource-aware concurrency**: cap concurrent agents to what the machine sustains — with a heavy local
   process up (emulator/simulator/device for visual QA), too many parallel agents can exhaust RAM and freeze
   the box.
