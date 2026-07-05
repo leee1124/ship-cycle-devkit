@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.2.8 — mobile visual-QA harness + waved cross-cutting execution
+
+Learned from a real large mobile UI reskin run:
+- **Mobile visual QA can be automated** (`sc-qa`): an emulator/simulator screenshot loop ("agent sees the
+  UI and iterates") is viable — not just a manual checklist. Two setup traps that eat hours, both with
+  generic fixes: a managed prebuild can pin a build tool **too new** for the framework's own plugins (build
+  fails before any render), and bundler↔device networking across namespaces sends the device to the wrong
+  host (empty-stream error). Capture via `adb exec-out screencap`; get past auth gates with the real
+  backend's signup/login.
+- **Waved execution for large single-stack cross-cutting changes** (`sc-implement`): worktree-per-stack
+  doesn't help when collisions are *within* one stack (a design-system reskin). Serial foundation wave
+  (tokens/shared wrappers/i18n) → parallel waves over **exclusive file-ownership partitions** → **atomic
+  contract-change rule** (a signature change updates its call sites in the same wave, keeping the barrier
+  typecheck green) → resource-aware concurrency (cap agents when a heavy local process is up).
+- **Fail-closed hooks block parallel agents** (`sc-design`): a turn-end fail-closed gate (i18n symmetry,
+  lint) blocks *parallel* implementers on the shared resource — identify at design time and pre-register/
+  freeze it in the serial foundation step.
+
 ## 0.2.7 — delegation criteria + high-stakes lightweight review
 
 Learned from a real EAS build-fix run:

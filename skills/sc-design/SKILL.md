@@ -42,6 +42,13 @@ naturally under a **designer**: the "design" is the component/interaction design
 code. Keep the critic pass (accessibility/contract), but don't force a separate READ-ONLY architecture
 doc for a widget.
 
+## Fail-closed hooks are a parallelization hazard
+If the repo has a **fail-closed turn-end hook** (an i18n-symmetry gate, a lint/format gate that blocks a
+turn until satisfied), it will block **parallel** implementers — each agent's turn fails on the shared
+resource. Identify such hooks at design time and plan to **pre-register/freeze** what they guard (e.g. add
+the needed i18n keys symmetrically) in the serial foundation step (`sc-implement` Wave 0), so the parallel
+waves never trip them.
+
 ## Model routing
 architect + critic run at the **high** tier; upgrade to **top** if PREFLIGHT flagged this change as a
 schema migration or public-API/architecture-boundary change (see the orchestrator's model routing).

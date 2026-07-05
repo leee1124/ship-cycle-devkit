@@ -29,6 +29,26 @@ implementers wrote.
   into the PR and mark it a **pre-merge manual gate**. The checklist IS the honest deferral: don't fake a
   visual pass, and don't silently skip.
 
+## Mobile visual QA — emulator/simulator screenshot loop
+Native UI changes **can** be verified automatically when an emulator/simulator is available: drive the
+app, capture the screen, and let a vision agent read it — a real "agent sees the UI and iterates" loop,
+not just a manual checklist. Two setup traps eat hours if unanticipated — surface them in PREFLIGHT for a
+mobile nature:
+- **Local dev-client build toolchain pin.** A managed-workflow prebuild can emit a build tool (e.g.
+  Gradle) **too new** for the framework's own plugins, which reference an API the newer tool removed → the
+  build fails before any screen renders. Pin the build tool to the version the framework supports.
+- **Bundler ↔ device networking.** When the dev env and the emulator live in different network namespaces
+  (e.g. a Linux dev env + a host-run emulator), the standard `adb reverse`/localhost path can point the
+  device at the wrong host and the client gets an empty-stream error. Bind the bundler to all interfaces
+  and point the dev client at the dev env's reachable IP directly.
+- **Capture**: `adb exec-out screencap -p > shot.png` (binary-safe) → the vision agent reads the PNG.
+  Loop: change → reload → capture → read → assess.
+- **Auth-gated screens**: get past the gate with the real backend's signup/login to obtain a token — a
+  shell can't inject a token into the device's encrypted store. Snapshot the authed state to reuse.
+- Still not verifiable this way: camera/scanner, platform health APIs, push, native share/file pickers →
+  those go on the on-device manual checklist below. Fall back to that checklist entirely only when **no**
+  emulator/simulator can be stood up.
+
 ## When to run / skip
 - **Run** for real features and any change that crosses a seam.
 - **Skip** for trivial/isolated changes (log the skip reason).

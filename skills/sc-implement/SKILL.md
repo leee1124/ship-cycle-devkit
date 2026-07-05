@@ -18,6 +18,22 @@ own isolation:
   first**, then parallelize.
 - After merge, clean up worktrees: `git worktree remove <path>`.
 
+## Large cross-cutting change — waved execution (single stack)
+When one change touches **many files of the same stack** (a design-system reskin, a codemod/rename across
+a layer), worktree-per-stack doesn't apply — the collision risk is *within* the stack. Wave it:
+- **Wave 0 (serial foundation)**: the shared single-file bottlenecks everything else imports — tokens/
+  theme, shared wrappers, motion/util infra, **pre-registered i18n keys**. One agent; must land before any
+  parallel wave.
+- **Waves 1..N (parallel)**: partition the remaining files into **exclusive ownership sets (zero overlap)**
+  — one agent per set, so N run concurrently without touching the same file. Barrier between waves; verify
+  (typecheck/build) at each barrier.
+- **Atomic contract-change rule**: the owner that changes a shared symbol's signature/type also updates
+  that symbol's **call sites in the same wave** — otherwise the barrier's global typecheck goes red between
+  waves. Pre-plan which call-site files each signature change reaches.
+- **Resource-aware concurrency**: cap concurrent agents to what the machine sustains — with a heavy local
+  process up (emulator/simulator/device for visual QA), too many parallel agents can exhaust RAM and freeze
+  the box.
+
 ## Implement (executor — fresh context)
 Give the implementer **only the plan, the failing tests, and the conventions** (not the whole prior
 conversation) to avoid context contamination. Use the stack prompt template:
