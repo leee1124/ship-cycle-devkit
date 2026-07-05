@@ -16,6 +16,9 @@ Produce a design doc, not an implementation:
   surface as runtime crashes (a real dogfood run passed `{exerciseName,weight}` when the endpoint
   returned a JPA entity `{exerciseId,estimated1rm}` → the widget crashed). If the backend returns a raw
   entity, flag it (constitution #6) and design the frontend against the *actual* serialization.
+  This is the per-feature guard; for a **first cross-surface integration or a large/ahead-of-backend
+  surface**, run the macro sweep (`sc-audit`) first — a whole surface can drift on assumed contracts and
+  stay green until the first real integration.
 - **Tradeoffs & alternatives**: at least one alternative considered, with why the chosen one wins.
 - **Constitution fit**: layered separation (Controller/Service/Repository/DTO); depend on interfaces;
   business logic **inside the domain** (no anemic model). See

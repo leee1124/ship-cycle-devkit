@@ -44,6 +44,17 @@
     "configPath": ".claude/i18n-parity.config.json"
   },
 
+  "audit": {
+    "$comment": "Optional. Used by the à-la-carte sc-audit skill. sourceOfTruth = the authoritative contract; surfaces = the consumers checked against it; modules = domain groupings for the parity matrix. Omit to let sc-audit derive these from changeNature and log that defaults are used.",
+    "sourceOfTruth": { "name": "backend", "paths": ["apps/backend/**/*Controller.java"] },
+    "surfaces": [
+      { "name": "web", "routes": ["apps/web/src/app/**"], "client": ["apps/web/src/lib/api.ts"] },
+      { "name": "mobile", "routes": ["apps/mobile/app/**"], "client": ["apps/mobile/src/repositories/**"] }
+    ],
+    "modules": ["auth", "onboarding", "program", "workout-log", "nutrition", "settings"],
+    "reportDir": "docs/audits"
+  },
+
   "modelRouting": {
     "$comment": "Optional. tierMap bridges tier names → real model ids the Task tool accepts; the skill passes model=<resolved> per call. base overrides which tier each role runs at.",
     "tierMap": {

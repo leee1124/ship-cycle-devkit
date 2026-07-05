@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.2.4 — parity-audit discipline
+
+Adds a new à-la-carte skill, learned from a real cross-platform integration miss:
+- **`sc-audit`** (new, not in the default chain): a static **cross-surface parity audit**. Compares every
+  consumer surface (web, mobile, CLI, SDK, another service) against a single source-of-truth contract and
+  emits a module-by-module gap matrix + cross-cutting risk checks (authz/paywall leak, entity-return,
+  data drift, i18n, file/export) + P0/P1/P2 priorities + a **cutover/ship verdict**
+  (parallel-run only / cutover-ready / ship-ready).
+- **Why it's separate from `sc-design`**: sc-design verifies the contract *for the feature in hand*; an
+  entire surface can be built on assumed contracts and stay green until the first real integration, when
+  most screens break at once. A dogfood run shipped a whole web app that "deployed" but almost nothing
+  worked end-to-end — the class of failure a per-feature guard can't see. sc-audit is the macro sweep;
+  run it before a first cross-surface integration or on a large/ahead-of-backend surface.
+- **Core rule carried over**: "endpoint exists ≠ integrated" — only ✅ when the surface actually calls it
+  with the real serialized shape; check the composition root for which implementation is wired in.
+- **Overlay**: new optional `audit` section (`sourceOfTruth` / `surfaces` / `modules` / `reportDir`);
+  falls back to `changeNature` globs and logs when defaults are used. Schema + example updated.
+
 ## 0.2.3 — second-dogfood feedback (mobile bug-fix cycle)
 
 Learned from a React Native (Expo) bug-fix run on a monorepo:
