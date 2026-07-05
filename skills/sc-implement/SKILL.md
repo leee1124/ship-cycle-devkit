@@ -30,6 +30,12 @@ authz from the principal only, DTOs not entities, whitelist validation, no N+1, 
   read the output (Iron Law #2).
 - **G6**: all tests for the nature are green; core coverage ≥80%. On failure, attach a debugger and loop.
 - **G7**: if the change ships an artifact (APK/IPA/binary), run the **real packaging build**.
+- **Lockfile sync**: if you changed a dependency **manifest** (`package.json`, `go.mod`, `Gemfile`,
+  `Cargo.toml`, …) that has a **committed lockfile**, regenerate the lockfile in the same change. CI and
+  release builds install from the **lockfile** (`npm ci`, `--frozen-lockfile`, …), so a manifest-only edit
+  is inert — or reinstalls the old version and re-breaks the very build you fixed. (`npm install
+  --package-lock-only` regenerates the lockfile without touching `node_modules`.) In a workspace, keep the
+  single root lockfile; delete stray per-package ones.
 - Do **not** commit or open a PR here — that's `sc-ship`, after review.
 - Set `gates.G5/G6/G7` in state.
 
