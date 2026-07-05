@@ -16,7 +16,7 @@ Composable skills — a thin orchestrator that chains one short skill per stage 
 
 | Component | Path | Purpose |
 |---|---|---|
-| `ship-cycle` (orchestrator) | `skills/ship-cycle/` | PREFLIGHT + worktree + routing + state + gate chaining + model routing |
+| `ship-cycle` (orchestrator) | `skills/ship-cycle/` | PREFLIGHT + worktree + routing + state + gate chaining + model routing + inter-stage relay (`sc-relay`) |
 | `sc-brainstorm` | `skills/sc-brainstorm/` | Discovery: clarify a vague goal, propose a design, get acceptance |
 | `sc-design` | `skills/sc-design/` | Architect design + adversarial critic review |
 | `sc-tdd` | `skills/sc-tdd/` | Write failing tests first (Red) |
