@@ -54,7 +54,10 @@ authz from the principal only, DTOs not entities, whitelist validation, no N+1, 
 ## Verify (this stage owns build + tests, separate from review)
 - **G5**: build succeeds and the **new tests pass** (Green). Run the nature's build/test commands and
   read the output (Iron Law #2).
-- **G6**: all tests for the nature are green; core coverage ≥80%. On failure, attach a debugger and loop.
+- **G6**: no failures **new vs `state.baseline`** (the base-branch reds captured at PREFLIGHT don't
+  block — don't make each implementer re-derive "mine or pre-existing?" by stash-and-compare; diff the
+  run against `state.baseline.failing`), core coverage ≥80%. On a genuinely new failure, attach a
+  debugger and loop.
 - **G7**: if the change ships an artifact (APK/IPA/binary), run the **real packaging build**.
 - **Lockfile sync**: if you changed a dependency **manifest** (`package.json`, `go.mod`, `Gemfile`,
   `Cargo.toml`, …) that has a **committed lockfile**, regenerate the lockfile in the same change. CI and

@@ -25,9 +25,27 @@ Produce a design doc, not an implementation:
   `${CLAUDE_PLUGIN_ROOT}/docs/engineering-constitution.md` (#3, #7).
 - **Risk & data**: schema/migration impact, authz/ownership rules, failure modes.
 
+### Split the architect by axis on large/cross-cutting/full-stack designs
+One architect over a wide change produces a shallow doc and misses the seams. For a cross-cutting or
+full-stack change, run **N architects in parallel, partitioned by axis** — e.g. *trigger/flow/store* vs
+*data adapter*, or *frontend contract* vs *backend endpoint* vs *migration* — each with an **exclusive
+slice** and each required to **state the seam contract** it exposes to the others (function names,
+input/output types). Then **one** critic reviews the **union** of their docs (it must, so it catches
+*inter-axis* contradictions — mismatched seam signatures, one axis's "no schema change" colliding with
+another's "persist a new field"). This is the design-stage analogue of `sc-implement`'s partitioning:
+same "exclusive slices + explicit seams" discipline, applied to the read-only design. Keep it to one
+architect for a single-axis change — splitting there is pure overhead.
+
 ## Design review (critic)
-A separate agent attacks the design:
+A separate agent attacks the design (the **union** of all architect docs when the axis was split):
 - Hidden assumptions, unhandled failure modes, contract mismatches, security/authz gaps, scaling/N+1.
+- **Inter-axis seam mismatches**: when architects were split, the critic's first job is to check their
+  seams line up (names, signatures, who-owns-what) and that no two axes made contradictory scope
+  assumptions.
+- **Scope discovered here loops back.** If the critic (or an architect) finds the change actually needs a
+  stack/axis PREFLIGHT didn't classify — a mobile-only design that turns out to need a backend endpoint —
+  that is a **re-classification event, not an in-stage patch**: tell the orchestrator to re-run change-nature
+  + model routing (Stage 0.4) and add the missing implementer axis, then finish the design for the true scope.
 - Return a list of objections. Iterate design ↔ review until the list is **empty**.
 
 ## Gate G2/G3 (to advance to `sc-tdd`)

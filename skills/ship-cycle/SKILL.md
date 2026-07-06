@@ -49,7 +49,10 @@ Hard stops, not suggestions. Each lists the excuses agents reach for — all rej
 2. **NEVER CLAIM DONE WITHOUT RUNNING VERIFICATION AND READING ITS OUTPUT.** Rejected: "should work".
 3. **NO PR WITHOUT A PASSING PRE-PR REVIEW.** Rejected: "small change" · "I reviewed while writing".
 4. **NEVER COMMIT ON A PROTECTED BRANCH.** Branch first, always.
-5. **STAY IN SCOPE.** Unrelated work → a new branch.
+5. **STAY IN SCOPE.** Unrelated work → a new branch. A real defect you find **outside** the current
+   scope (a latent bug, a dead-code path never wired up, a data error) → **file it** (issue/tracker) and
+   keep going; do **not** fix it in this branch (scope creep) and do **not** silently drop it. The
+   disposition is "found, filed, not fixed here."
 6. **NEVER SPAWN A STAGE AGENT ON A DEFAULT MODEL.** Resolve tier→model at PREFLIGHT and pass `model=`
    explicitly on every stage agent call. Rejected: "the agent type has a sensible default" (a specialized
    type like `quality-reviewer` carries its own model that silently overrides your tier — this is exactly
@@ -106,14 +109,24 @@ orchestration plumbing (code + files), **not an LLM step**.
    **Malformed JSON / schema-invalid** → stop and report; do not silently fall back.
 4. **Classify change nature**: map changed paths via overlay `changeNature`. Overlapping globs →
    **most-specific glob wins**; docs/i18n-only diffs prefer the docs rule. **Print the resolved routing**
-   (which tests/reviews will run) so it's auditable.
-5. **Classify risk** (for model routing, below).
-6. **Resolve per-stage models now (not per-spawn)**: for each stage, resolve its tier → a concrete model
+   (which tests/reviews will run) so it's auditable. **Classification is not one-shot**: if a later stage
+   (especially `sc-design`) discovers the change touches a stack or axis the initial diff didn't show —
+   e.g. a "mobile-only" change that design reveals needs a new backend endpoint — **re-run this
+   classification and the model routing**, update state, and add the missing implementer axis. A scope
+   that grows at the design gate is normal, not a failure; route for the scope you actually have.
+5. **Capture a test baseline** (so "no new failures" is mechanical, not a judgment call): run the
+   nature's test suite on the **base commit once** and record the pass/fail set in state (`baseline`).
+   Pre-existing failures on the base branch otherwise force every later stage (sc-tdd/implement/qa) — and
+   every parallel implementer — to re-derive "is this my regression or was it already red?" by hand
+   (repeatedly, via stash-and-compare). With a baseline recorded, gates G6/G9 diff against it: a failure
+   already in `baseline` is not a regression; only a **new** one blocks. Skip only on the lightweight path.
+6. **Classify risk** (for model routing, below).
+7. **Resolve per-stage models now (not per-spawn)**: for each stage, resolve its tier → a concrete model
    via overlay `modelRouting.tierMap` (base pyramid + any risk upgrade). Write the result to state
    `models` and **print it** (auditable, e.g. `review→opus, implement→sonnet`). Every stage then spawns
    with `model = state.models[<stage>]` — never an agent type's default. This turns "remember to bridge
    the tierMap" into "copy a concrete value", which is the difference that makes it actually happen.
-7. **Init state**: write `.claude/.ship-cycle-state.json` (including `models`).
+8. **Init state**: write `.claude/.ship-cycle-state.json` (including `models` and `baseline`).
 
 ## State (real, not a metaphor)
 
@@ -122,11 +135,17 @@ orchestration plumbing (code + files), **not an LLM step**.
 { "goal": "...", "branch": "...", "worktreePath": "...", "stage": "sc-design",
   "gates": { "G1": "pass", "G2": "pass" }, "loops": { "G8": 1 },
   "nature": ["backend"], "risk": ["auth"],
+  "baseline": { "capturedOn": "<base-sha>", "failing": ["suiteA#case", "..."] },
   "models": { "brainstorm": "opus", "design": "opus", "tdd": "sonnet", "implement": "sonnet",
               "review": "opus", "qa": "sonnet", "ship": "sonnet" } }
 ```
 Write it at every transition; read it at PREFLIGHT to **resume** and to enforce the loop cap
-(don't count loops in your head). `models` is resolved once at PREFLIGHT (§Stage 0.6) with risk
+(don't count loops in your head). **State lifecycle across runs**: if the state file already exists
+from a **prior finished cycle** (`stage: complete` or `failed`), don't resume or hand-clobber it —
+**archive** it (e.g. rename to `.ship-cycle-state.<goal-slug>.json`) and initialize a fresh state for
+the new goal. Only a state whose `stage` is a mid-pipeline stage is a resume candidate. This is what
+lets one repo run **sequential cycles** (finish one goal, start the next) without the operator manually
+overwriting stale state each time. `models` is resolved once at PREFLIGHT (§Stage 0.6) with risk
 upgrades already applied — every stage reads its model from here rather than re-deriving it. A stage
 whose roles span tiers (e.g. `sc-ship`: writer=low, verifier=high, git-master=mid) records its dominant
 tier here; the stage skill resolves the per-role exceptions from the same tierMap.
@@ -139,10 +158,10 @@ tier here; the stage skill resolves the per-role exceptions from the same tierMa
 | G2/G3 | interfaces specified + 0 unresolved critic objections | re-design |
 | G4 | failing tests exist for core logic (Red evidence) | reject |
 | G5 | build succeeds + new tests pass (Green) | build-fixer |
-| G6 | all tests for the nature green, core coverage ≥80% | debugger → sc-implement |
+| G6 | no failures **new vs `state.baseline`** (pre-existing base-branch reds don't block), core coverage ≥80% | debugger → sc-implement |
 | G7 | (if an artifact ships) real build succeeds | build-fixer |
 | G8 | 0 Critical/High (authz, paywall, anemic, N+1). UI → designer passes | → sc-implement (design flaw → sc-design) |
-| G9 | 0 new defects in integration/E2E; seams reproduced | → sc-implement |
+| G9 | 0 new defects in integration/E2E (new vs `state.baseline`); seams reproduced | → sc-implement |
 | G10 | docs matching the change exist | writer |
 | G11 | every claim mapped 1:1 to a test/build/QA log | rework |
 | G12 | build+test+review+QA passed; base = overlay `vcs.defaultBase` | — |

@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.2.10 — multi-cycle robustness: test baseline, state lifecycle, axis-split design, scope re-classification
+
+Lessons from running the lifecycle repeatedly on one repo (sequential cycles) and on a change that grew
+full-stack at the design gate:
+- **Test baseline at PREFLIGHT** (`ship-cycle`): when the base branch already has failing tests, every
+  later stage — and every parallel implementer — wastes effort re-deriving "is this my regression or was
+  it already red?" (stash-and-compare, over and over). Added: run the suite on the **base commit once**,
+  record the pass/fail set in `state.baseline`, and have gates **G6/G9 diff against it** — only a *new*
+  failure blocks. `sc-implement` G6 now says the same, so implementers stop re-litigating pre-existing reds.
+- **State lifecycle across runs** (`ship-cycle`): a state file left at `stage: complete`/`failed` from a
+  finished cycle was being hand-clobbered to start the next one. Added: PREFLIGHT **archives** a finished
+  state and initializes fresh; only a mid-pipeline `stage` is a resume candidate. This is what makes
+  **sequential cycles** on one repo clean.
+- **Split the architect by axis** (`sc-design`): for cross-cutting/full-stack designs, run N architects in
+  parallel on **exclusive slices** (each stating its seam contract), then **one** critic reviews the
+  **union** — so it catches *inter-axis* contradictions (mismatched seam signatures, one axis's "no schema
+  change" vs another's "persist a new field"). The design-stage analogue of `sc-implement`'s partitioning.
+- **Scope can be re-classified at the design gate** (`ship-cycle` + `sc-design`): change-nature/model
+  routing is **not one-shot**. When design reveals a stack/axis the initial diff didn't show (a
+  "frontend-only" change that needs a new backend endpoint), re-run classification, add the implementer
+  axis, and route for the true scope — a design-gate scope growth is normal, not a failure.
+- **Out-of-scope defect disposition** (Iron Law 5): a real defect found *outside* the current scope (a
+  latent bug, dead-code path, data error) → **file it and keep going**; don't fix it in this branch (scope
+  creep) and don't silently drop it. "Found, filed, not fixed here."
+
 ## 0.2.9 — waved execution: blast-radius control; visual QA: cheaper CDD tier
 
 Refinements to 0.2.8 after review:
