@@ -28,8 +28,19 @@ passing test/build/QA log. Zero claims without evidence. If anything is unproven
 - Body summarizes the review + QA results and **links the tracked issue**: `Closes #NN` (fully done →
   auto-close on merge) or `Refs #NN` (partial → progress comment, keep open). Assign the milestone if
   `vcs.tracker.milestones` is on.
+- **Verify the closing token actually landed (don't trust that you wrote it).** After opening the PR,
+  **re-fetch the created body** and assert it contains the exact intended token for **every** tracked issue
+  in `state`: `Closes #NN` when that issue is fully done, `Refs #NN` when partial. A bare mention (`#NN`,
+  `(#NN)` in the title, or a prose heading like `#NN —`) does **not** auto-close on merge — the host only
+  honors the `Closes`/`Fixes`/`Resolves` keyword, and a per-issue keyword is required (`Closes #90, closes
+  #91` — not `Closes #90, #91`). If a fully-done issue's token is missing or keyword-less, **patch the body**
+  before merge (or, if already merged, `comment + close` the issue). This is the same failure class the cold
+  lens guards against: the narrative body reads complete while the machine-readable token silently leaked,
+  leaving a finished issue open and polluting the backlog.
 - If `vcs.tracker` defines a board, move the item **In Progress → Done** as work completes.
-- Gate: build + test + review + QA all passed **and the branch merges cleanly into the base**.
+- Gate: build + test + review + QA all passed, **the branch merges cleanly into the base**, and the opened
+  PR body carries the correct `Closes`/`Refs` token for every tracked issue (re-fetched and asserted, not
+  assumed).
 
 ## Cleanup (Stage 13)
 - After merge: delete the branch **local + remote** (constitution #9); never delete protected branches.

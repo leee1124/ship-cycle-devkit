@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.13 — sc-ship: verify the issue-closing token actually landed in the PR body
+
+One framework-agnostic `sc-ship` hardening from a live cycle where a fully-done issue stayed open after
+its PR merged:
+- **Re-fetch and assert the closing token, don't trust that you wrote it** (`sc-ship` G12 + gate): the
+  rule to link the tracked issue with `Closes #NN` already existed, but nothing verified it landed. A PR
+  whose body summarized the work in prose (a `#NN —` heading) but omitted the `Closes` keyword merged
+  clean and left the finished issue **open** — the host only auto-closes on the `Closes`/`Fixes`/`Resolves`
+  keyword, and it must be repeated per issue (`Closes #90, closes #91`, not `Closes #90, #91`). Added: after
+  opening the PR, re-fetch the created body and assert the exact intended token for **every** tracked issue
+  in state (`Closes` when fully done, `Refs` when partial); a bare mention or title `(#NN)` does not count.
+  Missing/keyword-less → patch the body before merge, or `comment + close` if already merged. The gate now
+  includes this assertion. Same failure class as the cold lens: the narrative reads complete while the
+  machine-readable token silently leaked.
+
+Docs-only; framework-agnostic; no behavioral code.
+
 ## 0.2.12 — sc-audit: surface-type drift (phantom fields) + "wired ≠ works" target validation
 
 Two framework-agnostic `sc-audit` hardenings from live parity-migration recon (from #14, #15):
