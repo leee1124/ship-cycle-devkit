@@ -14,7 +14,9 @@ implementers wrote.
   not mocked.
 - **Seam checks**: verify the front↔back **contract** — field names, types, status codes, error shapes,
   pagination, auth headers. Contract mismatches between separately-built stacks are the #1 seam defect.
-- **Exploration + regression**: probe edge cases and adjacent flows the change could have broken.
+- **Exploration + regression**: probe edge cases and adjacent flows the change could have broken —
+  including the **N≥2 / batch case**: a defect that only surfaces with multiple rows/items (ordering,
+  dedup/merge, pagination, generated-key linking) is invisible when you exercise just one.
 - Headless is fully feasible for backend (boot + curl) and web (dev server + an E2E driver); native
   mobile is partial (device/emulator screenshot → a vision agent, or a UI-automation CLI).
 - **E2E prerequisites**: a live backend + an **authenticated session + seeded data** are needed to
