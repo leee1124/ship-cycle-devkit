@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.12 — sc-audit: surface-type drift (phantom fields) + "wired ≠ works" target validation
+
+Two framework-agnostic `sc-audit` hardenings from live parity-migration recon (from #14, #15):
+- **Surface-type drift / phantom fields** (Step 3 cross-cutting): cross-reference each surface's
+  **self-declared** types against the source-of-truth schema and report fields present in one but not the
+  other — **surface-only** = phantom/stale (exists in no backend DTO; renders always-`false`/`undefined`, a
+  dead conditional new features inherit), **source-only** = unmodelled. Structural drift the behavioral
+  matrix misses — catches "the type is wrong *before* you build on it."
+- **"Wired ≠ works"** (Step 1 inventory): in a migration audit, don't treat a legacy source screen as a
+  real feature just because it's menu-registered + call-wired. Flag **"possibly non-functional"** when
+  handlers are stubs / there's no live data path (no real backend call, hardcoded data, dead submit), and
+  **ask the domain owner to confirm it actually functioned** before it becomes a build/parity target —
+  rebuilding a never-worked screen is pure waste.
+
+Docs-only; framework-agnostic; no behavioral code. Adopted from issues #14, #15.
+
 ## 0.2.11 — lifecycle hardening: plural-case tests, spec-blind cold review, pre-PR merge verification
 
 Three framework-agnostic hardenings distilled from live cycles (consolidated from separate branches):
