@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.2.11 — lifecycle hardening: plural-case tests, spec-blind cold review, pre-PR merge verification
+
+Three framework-agnostic hardenings distilled from live cycles (consolidated from separate branches):
+- **Cover the plural case (N≥2)** (`sc-tdd` + `sc-qa`): a test that exercises **one** item passes while a
+  bug that only manifests with **two or more** hides — off-by-one/ordering, batch writes, dedup/merge,
+  pagination, and multi-row inserts whose driver returns only one generated key (so an in-memory
+  "keys → child rows" link silently cross-wires at ≥2 rows). When the change touches a collection / batch /
+  id-key assignment / ordering / any for-each path, write the N≥2 case and **assert the cross-item
+  relationship** (row A links to A, B to B), and have `sc-qa` exploration probe the batch case explicitly.
+- **Spec-blind "cold" review lens + real-world-state floor** (`sc-review`): a heavy multi-lens review still
+  ships bugs an outside reviewer catches first-pass, because every lens is anchored to the author's spec —
+  a wrong premise gets rated "as-designed" by all of them. Added an always-on **cold lens** that gets
+  **only the diff** (no design doc/canonical) and assumes nothing the author claims; a cross-cutting
+  **real-world-state probe** (legacy/pre-existing rows, empty & N≥2, unsaved/no-id-yet, re-run/partial-save);
+  and a **data-integrity floor** — a change that can persist wrong/duplicate/lost/orphaned data is at least
+  **High**, even if it "matches the spec" or "replicates a legacy quirk" ("the old system did it too" is a
+  parity note, not a severity downgrade).
+- **Verify clean merge before opening a PR + robust worktree teardown** (`sc-ship` G12 + cleanup): the PR
+  stage never checked mergeability — a branch cut before a sibling merged, or one that merely *appends* to
+  shared files (i18n bundles, lockfiles), opens **dirty** and only conflicts at merge time. Added a pre-push
+  `git merge-tree` conflict probe + post-push `mergeable` poll ("merge base + resolve, re-verify" on
+  conflict; re-check open PRs on request). Teardown now uses `git worktree remove --force` + a
+  `git worktree prune` fallback (a build tool holding file handles — `node_modules` on Windows — no longer
+  aborts cleanup); a failed directory delete is a **warning, not a gate**.
+
+Docs-only; framework-agnostic; no behavioral code. Consolidated from #13, #16, #17.
+
 ## 0.2.10 — multi-cycle robustness: test baseline, state lifecycle, axis-split design, scope re-classification
 
 Lessons from running the lifecycle repeatedly on one repo (sequential cycles) and on a change that grew

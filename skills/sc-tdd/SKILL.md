@@ -16,6 +16,15 @@ next stage makes them pass. Rejected excuses: "trivial" · "just once" · "I'll 
 3. **Run them and read the output.** Confirm they **fail for the intended reason** (missing behavior),
    not a compile error or typo. A test that passes now, or errors for the wrong reason, is not Red.
 
+## Cover the plural case (N≥2), not just the singular
+A test that exercises **one** item passes while a bug that only manifests with **two or more** hides:
+off-by-one/index bugs, ordering & sort assumptions, batch operations, dedup/merge, pagination, and (a
+real example) a **multi-row insert whose DB driver returns only one generated key** — so an in-memory
+"keys → child rows" link silently cross-wires once there are ≥2 rows. If the change touches a collection,
+a batch write, id/key assignment, ordering, or any "for each" path, **write the N≥2 case and assert the
+cross-item relationship** (row A links to A, row B to B — not "some row got linked"). The single-item test
+is a false-confidence trap; the plural case is where the design's correctness actually lives.
+
 ## When the stack has no UI/component test harness
 Some stacks can't unit-test rendered output (e.g. React Native without a component-testing lib, or any UI
 with no render harness). Don't skip Red, and don't bolt on a heavy harness just to satisfy it: **extract the
