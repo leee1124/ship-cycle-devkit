@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased — sc-ship: pre-PR conflict verification + robust worktree teardown
+
+Lessons from running the lifecycle as many **sequential cycles on one repo**, where several PRs are open
+against the same base at once:
+- **Verify the branch merges cleanly before opening a PR** (`sc-ship` G12): the PR stage opened a PR
+  against the base but never checked mergeability. A branch cut before a sibling PR merged — or one that
+  merely *appends* to the same files (i18n/message bundles, lockfiles) — opens **dirty**, and the conflict
+  only surfaces at merge time. Added to G12: a pre-push `git merge-tree` conflict probe + a post-push
+  `mergeable` poll, with "merge base + resolve, then re-verify" on conflict, and "re-check open PRs on
+  request" (a concurrently-merged sibling can dirty an already-open PR). Framework-agnostic — any git host.
+- **Robust worktree teardown** (`sc-ship` cleanup): `git worktree remove` can fail when a build tool still
+  holds file handles (`node_modules` on Windows), which was aborting cleanup mid-cycle. Now
+  `git worktree remove --force` + a `git worktree prune` fallback; a failed directory delete is a
+  **warning, not a gate**.
+
+Docs-only; framework-agnostic; no behavioral code.
+
 ## 0.2.10 — multi-cycle robustness: test baseline, state lifecycle, axis-split design, scope re-classification
 
 Lessons from running the lifecycle repeatedly on one repo (sequential cycles) and on a change that grew
