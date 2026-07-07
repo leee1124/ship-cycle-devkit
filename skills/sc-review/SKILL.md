@@ -1,6 +1,6 @@
 ---
 name: sc-review
-description: Stage 5 of ship-cycle. Multi-lens parallel code review — security, quality, performance, algorithm (and designer on UI changes) as separate agents, each checking named anti-patterns. Blocks the PR until zero Critical/High findings survive verification.
+description: Stage 5 of ship-cycle. Multi-lens parallel code review — security, quality, performance, algorithm (and designer on UI changes) plus a spec-blind adversarial "cold" lens (diff-only, assumes nothing the author claims) — as separate agents, each checking named anti-patterns and real-world state (legacy rows, N≥2, unsaved-id). Blocks the PR until zero Critical/High findings survive verification.
 ---
 
 # sc-review — multi-lens code review (Stage 5)
@@ -14,6 +14,13 @@ as **separate agents in parallel** — each is blind to the others, so they catc
   wrong thing" here, not at final verify. (A defect-only review misses a widget that was never built.)
 - **Production readiness** (when the change touches contracts/schema/public surface): backward
   compatibility (does it break existing clients?), migration safety, and whether docs were updated.
+- **Real-world state, not just the happy path**: does it still hold for **pre-existing / legacy rows**
+  (data that predates this feature, with fields unset/null), the **empty case and the N≥2 / batch case**
+  (off-by-one, ordering, dedup/merge, generated-key linking — a single-item test *passes and hides* these),
+  the **unsaved / no-id-yet lifecycle** (client-side rows before their first persist), and **re-run /
+  partial-save / idempotence**? The spec's edge coverage is not the world's — most shipped corruption lives
+  in a state the canonical never enumerated. A green test on a hand-built fixture that skips these is false
+  confidence: require the test to use the **real construction path**, not a favorable synthetic row.
 
 ## Lenses (each names its anti-patterns)
 - **security**: authz/ownership bypass (IDOR), paywall/entitlement leak, injection (SQLi/XSS), secrets,
@@ -23,6 +30,15 @@ as **separate agents in parallel** — each is blind to the others, so they catc
 - **performance**: N+1, unbounded queries / load-all-then-filter, missing indexes, needless re-render.
 - **algorithm** (when logic is non-trivial): correctness of the core computation vs. the spec.
 - **designer** (UI changes only): typography/spacing/hierarchy/consistency/accessibility/branding.
+- **cold / spec-blind** (adversarial — always run one on a non-trivial change): this lens gets **only the
+  diff** — NOT the design doc, canonical spec, or acceptance criteria — and is told to *assume nothing the
+  author claims* and find what's wrong from first principles, hunting hardest in the real-world states above
+  (legacy rows, N≥2, unsaved-id, re-run). Every other lens is anchored to the author's plan (right for
+  "built the right thing"); this one exists because **an author's own reviewers inherit the author's blind
+  spots** — a wrong assumption baked into the spec gets rated "as-designed" by every spec-anchored lens, and
+  only a reviewer with **no stake in the framing** catches it. It is the in-pipeline stand-in for an outside
+  reviewer; when a fresh external reviewer keeps finding what your fleet waved through, this is the missing
+  lens.
 
 ## Running the lenses (agent mapping + fallback)
 Lens names are **roles, not fixed agent types**. Map each to whatever your environment provides, and
@@ -38,6 +54,11 @@ Every lens returns, in this shape:
   severity (a problems-only reviewer inflates). "Solid" is a valid finding.
 - **Issues** — by **actual** severity (Critical/High/Medium/Low), with file:line, *why it matters*, and a
   fix. Don't mark nitpicks as Critical; don't bury a Critical as a nit.
+- **Data-integrity floor**: a change that can persist **wrong / duplicate / lost / orphaned** data is at
+  least **High** — even if it *matches the spec* or *replicates a legacy/upstream quirk*. "The old system
+  did it too" is a parity note, **not** a severity downgrade; surface it as fix-or-explicit-owner-decision,
+  never a silent Low. This is the exact trap where real corruption gets waved through as "as-designed /
+  faithful" — and the one an outside reviewer reliably re-flags.
 - **Verdict** — a clear merge call: **Yes / No / With-Fixes**, plus 1–2 sentences of reasoning.
 - No verdict without having actually read the code.
 
