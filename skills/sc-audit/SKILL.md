@@ -40,6 +40,14 @@ log that defaults are in use). **Presence is not integration**: a file existing 
 check the composition root / DI / client factory for which implementation is actually injected
 (real client vs. local/stub/mock).
 
+**Wired ≠ works — validate parity *targets*, not just consumers.** In a migration audit (a legacy source
+surface → a modern one), don't treat a source screen as a real feature just because it's menu-registered
+and call-wired. Flag it **"possibly non-functional"** when its handlers are stubs, it has no live data
+path (no real backend call, hardcoded data, a dead submit handler), and **ask the domain owner to confirm
+the feature actually functioned in production before it becomes a build/parity target** — that's knowledge
+the code can't reveal, and rebuilding a screen that never worked is pure waste. Surface the flag in the gap
+report; do not equate *present/wired* with *working*.
+
 ### 2. Module-by-module parity matrix
 Group the contract into domain modules (from overlay `audit.modules`, else derive from the API and log
 it). Reconcile the full endpoint inventory against the module list so **no endpoint is unclassified**
@@ -60,6 +68,13 @@ See `${CLAUDE_PLUGIN_ROOT}/docs/engineering-constitution.md`:
   content leaking through a list/summary DTO.
 - **Contract shape (#6)**: source-of-truth returning raw entities instead of DTOs; any surface built
   against a guessed shape rather than the real serialization.
+- **Surface-type drift (phantom fields)**: cross-reference each surface's **self-declared** types/
+  contracts against the source-of-truth schema and report **fields present in one but not the other** —
+  **surface-only** = likely phantom/stale (the field exists in no backend DTO/table/mapper; it renders as
+  always-`false`/`undefined`, a dead conditional every new feature built on the type silently inherits),
+  **source-only** = unmodelled. This is *structural* drift the behavioral matrix misses — it catches "the
+  type is wrong **before** you build on it." Generalizes to any surface with self-declared types checked
+  against a schema/DTO source of truth.
 - **Data integrity**: local/stub schema ↔ backend entity drift → migration risk on cutover.
 - **i18n**: key symmetry across locales/namespaces; raw keys / `???` reaching the screen. If the project
   provides an i18n-parity config (overlay `i18n.configPath`), use it.
