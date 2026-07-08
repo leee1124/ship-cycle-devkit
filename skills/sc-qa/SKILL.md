@@ -24,6 +24,16 @@ implementers wrote.
   fake a pass** — degrade G9 to **contract-level seam verification** (assert the front↔back DTO shapes
   match by reading both sides) and **log the deferral**. Contract verification catches the most common
   multi-stack defect (field/type drift) even without a running system.
+- **Reachability precheck — "the record exists but *this* user can't get to it" is a first-class outcome,
+  not a skip.** A live backend + auth is not enough: an owner/writer/role-gated feature needs the test user
+  to actually own or be permitted to reach the target record, or the detail endpoint returns empty/not-found
+  and the affordance never renders — so the flow **cannot be driven live** no matter how healthy the stack
+  is. Before driving a flow, check the precondition (can this user reach the record/affordance the change
+  touches?). If not: **name it "reachability-blocked"**, degrade that criterion to contract/review-only
+  verification, and record *why* (which ownership/role/flag gate blocked it) — carried into sc-ship's claim
+  map as a **review-only** label. Do this **once, mechanically**, instead of improvising a "review-verified"
+  note by hand every cycle. The blocked state is honest and expected for owner-gated features; hiding it as
+  a clean pass is the failure.
 - **Device-only UI, no emulator**: when a change's real behavior is visual/native (timer tick, chart/ring
   render, gesture, navigation) with **no front↔back seam**, and no device/emulator is available, automated
   QA = **full-suite regression + integration checks** (real i18n/store/data resolution — not mocks) +
