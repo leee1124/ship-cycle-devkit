@@ -44,6 +44,14 @@
       "type": "object",
       "properties": { "configPath": { "type": "string" } }
     },
+    "design": {
+      "type": "object",
+      "properties": {
+        "tokens": { "type": "array", "items": { "type": "string" } },
+        "components": { "type": "array", "items": { "type": "string" } },
+        "guide": { "type": "string" }
+      }
+    },
     "audit": {
       "type": "object",
       "properties": {

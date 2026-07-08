@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.2.15 — Design-consistency gate: reuse before create
+
+Consistency is decided at design time, not caught at review time — so a crude, uncoordinated surface
+(three different empty states, a bespoke spinner where a progress component exists, ad-hoc spacing) is
+almost always "invented instead of reused." Framework-agnostic; the overlay supplies *which* tokens and
+components exist, the plugin enforces *reuse* of whatever they are.
+- **Overlay `design` contract** (`ship-cycle.config` example + schema): declare the project's design
+  source of truth — `tokens`, `components`, and an optional design-system `guide`. Optional; omit to have
+  the designer inventory the repo ad hoc.
+- **sc-design reuse-before-create gate** (UI changes): the design must consume the design source of truth
+  and resolve every color/spacing/type-scale/empty-loading-error state/progress indicator/icon from an
+  existing token or component. A **new** visual primitive needs a one-line justification of why no
+  existing one serves it ("faster to inline it" is not one). Name the canonical pattern per recurring
+  surface so the implementer wires the shared one, not a new copy.
+- **sc-review designer lens → named anti-patterns** (was a vibe check): hardcoded design values that
+  bypass tokens; a reinvented empty/loading/error/card/button where a canonical component exists;
+  decorative-not-informative indicators (a fixed spinner where a fill/ring belongs); off-scale type/space;
+  the accessibility floor (touch target, labels, contrast, modal focus); emoji-as-icon.
+- **Design-consistency floor** (sc-review severity): a change that reinvents an existing
+  token/component/pattern is at least a finding even when it "looks fine" in isolation — the cost is
+  cumulative fragmentation, paid one diff at a time. Surface it as reuse-or-justify, never a silent pass.
+
 ## 0.2.14 — Iron Law mechanization: evidence strength, reachability, model pinning, sibling-PR & artifact guards
 
 Five framework-agnostic hardenings distilled from a long continuous-ship run, each turning an
