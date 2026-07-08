@@ -29,7 +29,19 @@ as **separate agents in parallel** — each is blind to the others, so they catc
   getter/setter bags — constitution #7), SOLID violations, dead code, silent `catch {}`.
 - **performance**: N+1, unbounded queries / load-all-then-filter, missing indexes, needless re-render.
 - **algorithm** (when logic is non-trivial): correctness of the core computation vs. the spec.
-- **designer** (UI changes only): typography/spacing/hierarchy/consistency/accessibility/branding.
+- **designer** (UI changes only): named anti-patterns, not a vibe check —
+  - **hardcoded design values**: raw hex/px/font-size/shadow that bypass the token layer (must resolve
+    from tokens — a stray literal is how theming/dark-mode silently breaks);
+  - **reinvented pattern**: a bespoke empty/loading/error state, card, or button where a canonical
+    component exists (N one-off copies *are* the fragmented surface); duplicate/near-duplicate labels;
+  - **decorative-not-informative indicator**: a "progress" element that doesn't encode progress (a fixed
+    spinner where a fill/ring belongs), or a chart that misreads (wrong axis, legend showing internal keys);
+  - **off-scale**: type sizes/spacing not on the defined scale;
+  - **accessibility floor**: touch target below the platform minimum, missing labels, contrast below AA,
+    no focus management/trap on modals;
+  - **emoji-as-icon** where a vector icon system exists.
+  When the overlay declares a `design` source of truth, check the change against it — did it reuse, or
+  reinvent?
 - **cold / spec-blind** (adversarial — always run one on a non-trivial change): this lens gets **only the
   diff** — NOT the design doc, canonical spec, or acceptance criteria — and is told to *assume nothing the
   author claims* and find what's wrong from first principles, hunting hardest in the real-world states above
@@ -76,6 +88,11 @@ Every lens returns, in this shape:
   did it too" is a parity note, **not** a severity downgrade; surface it as fix-or-explicit-owner-decision,
   never a silent Low. This is the exact trap where real corruption gets waved through as "as-designed /
   faithful" — and the one an outside reviewer reliably re-flags.
+- **Design-consistency floor**: a change that **reinvents an existing token/component/pattern** (a new
+  bespoke empty state, an inlined color, a hand-rolled spinner) is at least a **finding**, even when it
+  "looks fine" in isolation — the cost is cumulative fragmentation, paid invisibly one diff at a time.
+  Surface it as **reuse-or-justify**, never a silent pass. This is the review-side backstop for
+  sc-design's reuse-before-create gate.
 - **Verdict** — a clear merge call: **Yes / No / With-Fixes**, plus 1–2 sentences of reasoning.
 - No verdict without having actually read the code.
 

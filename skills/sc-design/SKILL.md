@@ -60,6 +60,24 @@ naturally under a **designer**: the "design" is the component/interaction design
 code. Keep the critic pass (accessibility/contract), but don't force a separate READ-ONLY architecture
 doc for a widget.
 
+### Design-consistency gate — reuse before create
+Consistency isn't a review afterthought; it is decided **here**, when the UI change is designed. A crude,
+uncoordinated surface — three different empty states, a bespoke spinner where a progress component exists,
+ad-hoc spacing — is almost always "invented instead of reused." So for any UI change the design must:
+- **Consume the project's design source of truth.** If the overlay declares one (`design.tokens` /
+  `design.components` — a token file, a component inventory, or a design-system doc), read it and design
+  against it. Absent an overlay entry, **inventory the repo's existing tokens/components first** and design
+  against those. Never design a screen in a vacuum.
+- **Reuse before create.** Color, spacing, type scale, empty/loading/error states, progress indicators,
+  icons — resolve each from an existing token/component. A **new** visual primitive is allowed only with a
+  one-line justification of why no existing one serves it. "It was faster to inline it" is not a
+  justification — that is exactly how a surface fragments.
+- **Name the canonical pattern** the change should use for each recurring surface (empty/loading/error,
+  metric, progress), so the implementer wires the shared one, not a new copy.
+
+Framework-agnostic: the overlay supplies *which* tokens/components exist; this gate enforces *reuse* of
+whatever they are. It is the design-time origin of the `designer` review lens's anti-patterns (sc-review).
+
 ## Fail-closed hooks are a parallelization hazard
 If the repo has a **fail-closed turn-end hook** (an i18n-symmetry gate, a lint/format gate that blocks a
 turn until satisfied), it will block **parallel** implementers — each agent's turn fails on the shared

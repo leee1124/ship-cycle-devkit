@@ -44,6 +44,13 @@
     "configPath": ".claude/i18n-parity.config.json"
   },
 
+  "design": {
+    "$comment": "Optional. Feeds sc-design's reuse-before-create gate and sc-review's designer lens: point at the design source of truth so UI changes reuse existing tokens/components instead of reinventing them (bespoke empty states, inlined colors, hand-rolled spinners). Omit to have the designer inventory the repo ad hoc.",
+    "tokens": ["apps/mobile/src/theme/**", "apps/web/src/styles/**"],
+    "components": ["apps/mobile/src/components/**", "apps/web/src/components/**"],
+    "guide": ".claude/design/design-system.md"
+  },
+
   "audit": {
     "$comment": "Optional. Used by the à-la-carte sc-audit skill. sourceOfTruth = the authoritative contract; surfaces = the consumers checked against it; modules = domain groupings for the parity matrix. Omit to let sc-audit derive these from changeNature and log that defaults are used.",
     "sourceOfTruth": { "name": "backend", "paths": ["apps/backend/**/*Controller.java"] },

@@ -1,7 +1,7 @@
 {
   "name": "ship-cycle-devkit",
   "displayName": "Ship-Cycle DevKit",
-  "version": "0.2.14",
+  "version": "0.2.15",
   "description": "A gated, constitution-enforcing development lifecycle: requirements → design → review → test → implement → verify → PR, with risk-based model routing. Framework-agnostic; project specifics come from an overlay config.",
   "author": { "name": "leee1124" },
   "repository": "https://github.com/leee1124/ship-cycle-devkit",
