@@ -14,8 +14,27 @@ Update README/CHANGELOG/API docs/comments to match the change **in this same cha
 **Run the verification and read the output** (Iron Law #2). Map **each acceptance criterion 1:1** to a
 passing test/build/QA log. Zero claims without evidence. If anything is unproven, loop back — don't ship.
 
+**Tag each claim with its evidence *strength*, not just its evidence.** A criterion driven end-to-end and
+one that could only be review-verified (because live QA was blocked — see sc-qa) both "have evidence" but
+are not equally proven; if they read the same in the PR body, the reader can't tell a validated feature
+from an argued one. Label every claim with one of:
+- **live** — driven end-to-end against the running system (actual API call / E2E driver / emulator).
+- **test** — covered by a unit/integration test (name it).
+- **review-only** — verified by review/inspection because live was unreachable (say *why* it was blocked).
+
+Surface the labels in the PR body's claim map (e.g. `- ✅ rate limit rejects 11th request — **live** (e2e:
+login_spec)` / `- ✅ owner check on delete — **review-only** (dev user can't reach another owner's record)`).
+This makes verification strength auditable and stops a review-only fallback from silently masquerading as a
+live pass. `review-only` is a legitimate outcome, not a failure — but it must be **named as such**.
+
 ## PR (G12)
 - Atomic commits; open the PR against overlay `vcs.defaultBase`.
+- **Never stage generated/CI-built artifacts** listed in overlay `commit.excludePaths` (e.g. a bundle
+  output dir a QA step built locally). Auto-revert / don't-stage them before committing (`git checkout --
+  <path>` + `git clean` the untracked ones) so commits stay **source-only**. Forgetting this is easy — a QA
+  build leaves a large generated diff in the tree — and committing a bundle bloats the PR and rots on the
+  next CI build. When the setting is absent, still skip obvious build outputs (`dist/`, `build/`, bundle
+  dirs) and flag them rather than committing blindly.
 - **Verify the branch merges cleanly into the base — never open a PR you haven't checked.** Before
   pushing, `git fetch` the base and probe for conflicts *without touching the working tree*:
   `git merge-tree --write-tree <base> HEAD` (git ≥2.38; a `CONFLICT` line = conflicts) — or the host's
@@ -25,6 +44,14 @@ passing test/build/QA log. Zero claims without evidence. If anything is unproven
   before a sibling PR merged, or one that appends to the same files (e.g. i18n/message bundles, lockfiles)
   — those conflict on content even when the logic is disjoint, and surface only at merge time otherwise. A
   concurrently-merged sibling can dirty an already-open PR, so **re-check open PRs on request**.
+- **When shipping continuously (not waiting for merges), also probe sibling *open* PRs, not just the base.**
+  The merge-tree check above compares against the base branch only — but two still-open PRs can collide with
+  *each other* even though each merges cleanly into base. The classic case: append-only files where every PR
+  adds new entries at EOF (i18n `.properties`/message bundles, changelogs, barrel exports) — they conflict on
+  the same trailing lines despite disjoint logic. Before opening, list currently-open PRs that **touch any
+  file in this diff** (host API: open PRs → changed files) and, if any overlap, warn in the PR body which
+  sibling PR shares which file so the merge order is a conscious choice (union-merge at merge time, not a
+  surprise). This is a heads-up, not a gate.
 - Body summarizes the review + QA results and **links the tracked issue**: `Closes #NN` (fully done →
   auto-close on merge) or `Refs #NN` (partial → progress comment, keep open). Assign the milestone if
   `vcs.tracker.milestones` is on.

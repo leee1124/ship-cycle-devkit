@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.2.14 — Iron Law mechanization: evidence strength, reachability, model pinning, sibling-PR & artifact guards
+
+Five framework-agnostic hardenings distilled from a long continuous-ship run, each turning an
+operator-discipline step into a mechanical one:
+- **Evidence *strength* per claim** (`sc-ship` G11): mapping a claim to "evidence" isn't enough — a
+  live-driven criterion and a review-only one (live was blocked) read identically unless annotated by hand.
+  Tag every claim **live / test / review-only** and surface it in the PR claim map, so a review-only
+  fallback can't silently masquerade as a live pass. `review-only` is a named, legitimate outcome — not a
+  hidden one.
+- **QA reachability precheck** (`sc-qa`): a live backend + auth still can't drive an **owner/role-gated**
+  flow when the test user can't reach the target record (detail endpoint returns empty → the affordance
+  never renders). Made "reachability-blocked" a first-class outcome — check the precondition, degrade that
+  criterion to contract/review-only, record *why*, and carry it into sc-ship's claim map — done once
+  mechanically instead of hand-writing a "review-verified" note every cycle.
+- **Mechanical model pinning on review lenses** (`sc-review`, Iron Law 6): since lenses are
+  `general-purpose` spawns, the review tier lives only in `model=` and one omission silently downgrades a
+  top-tier review to a cheap default. Added: read `model = state.models.review` on every spawn (resolve
+  once, copy every time), an anti-drift restatement before fan-out, and an **optional** pinned lens-agent
+  path that must degrade gracefully to `general-purpose` + `model=` on hosts without custom agent types
+  (enforcement without trading portability).
+- **Sibling open-PR conflict probe** (`sc-ship` G12): the merge-tree check compares against the base only,
+  but two still-open PRs collide with each other on append-only files (i18n `.properties`/bundles/barrels
+  where each appends at EOF). Added a heads-up that lists open PRs touching any file in the diff so the
+  merge order is a conscious choice, not a merge-time surprise.
+- **Artifact-exclusion on commit** (`sc-ship` G12): overlay `commit.excludePaths` lists generated/CI-built
+  paths (e.g. a bundle dir a QA step built locally) that sc-ship auto-reverts / never stages, keeping
+  commits source-only. Absent the setting, still skip obvious build outputs (`dist/`, `build/`) and flag
+  rather than commit blindly.
+
+Docs-only; framework-agnostic; no behavioral code. Adopted from issues #21, #23, #24, #27, #28.
+
 ## 0.2.13 — sc-ship: verify the issue-closing token actually landed in the PR body
 
 One framework-agnostic `sc-ship` hardening from a live cycle where a fully-done issue stayed open after

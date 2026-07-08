@@ -48,6 +48,23 @@ with that lens's anti-patterns pasted in as the focus — **never skip the lens 
 type**. Scale fan-out to the host: parallel by default, but on a resource-constrained machine run the
 lenses in smaller batches (or sequentially) rather than all at once.
 
+**Pin the model on every lens spawn — mechanically, not from memory (Iron Law 6).** Because lenses are
+`general-purpose` spawns, the review tier lives only in `model=`, and it must be re-applied on *every* spawn.
+One omission silently downgrades a top-tier review to the agent type's cheap default — the exact trap Iron
+Law 6 names, and the easiest to hit across a long run where you spawn lenses dozens of times. Defenses, in
+order of strength:
+- **Resolve once, copy every time.** The tier→model is already resolved into `state.models.review` at
+  PREFLIGHT. Read that value and pass `model = state.models.review` on each lens `Task` call — never type a
+  model name from memory, never rely on the agent type's default.
+- **Anti-drift check.** Before fanning out, restate the resolved review model (e.g. "review lenses →
+  opus") in one line; if any lens call omits `model=`, that restatement makes the omission visible instead
+  of silent.
+- **Optional: pinned lens agent definitions.** If your environment supports custom agent types, defining
+  real lens agents (`sc-cold-reviewer`, `sc-security-reviewer`, …) with the model **baked into the
+  definition** removes the per-spawn discipline entirely. Ship these as *optional* — they must **degrade
+  gracefully** to `general-purpose` + explicit `model=` on hosts (stock Claude Code) that don't provide
+  custom agent types, so portability isn't traded for enforcement.
+
 ## Output & severity discipline (each lens)
 Every lens returns, in this shape:
 - **Strengths** — specific, with file refs. Mandatory: it forces real code comprehension and calibrates
