@@ -76,6 +76,9 @@ live pass. `review-only` is a legitimate outcome, not a failure — but it must 
   handles — common on Windows), fall back to `git worktree prune` to drop the registry entry and leave the
   directory for later deletion. A failed directory delete is a **warning, not a gate**.
 - Sync the base branch.
+- **Gate**: once the branch is deleted, the worktree removed (if one was created), and the base synced,
+  set `gates.G13 = pass` in state — the run's terminal gate. Cleanup is best-effort: a locked
+  worktree/directory is a **warning, not a blocker**, so record the warning and still mark G13 `pass`.
 
 ## Issue-tracker hygiene
 Don't add third-party/competitor product names or "learning/practice" items to the tracker. Close
