@@ -21,8 +21,15 @@ but should not weaken them. Framework-agnostic.
 
 ## 3. Architecture & design (SOLID & Clean Code)
 - Keep layers separated (Controller, Service, Repository, DTO).
-- Small methods with a single responsibility; meaningful names.
+- Small methods with a single responsibility; meaningful, domain-language names for methods, variables,
+  **and constants** — no unexplained literals (see the no-magic-numbers rule below).
 - Depend on interfaces/abstractions, not concrete classes, so change stays cheap.
+- **No magic numbers/strings**: extract any literal with domain meaning into a named constant. A closed,
+  related set becomes an `enum` (Java) / a union literal type or an `as const` object (TS — **not**
+  `enum`, whose runtime cost and `isolatedModules`/bundler pitfalls make the union the idiom) /
+  `Object.freeze({...})` (JS). Where such a set carries behavior, put the behavior on it (a method on the
+  enum, a lookup on the frozen object) rather than scattering `switch`es — an anemic constant bag repeats
+  the anemic-model smell (#7).
 
 ## 4. Input validation & security (OWASP Top 10)
 - Validate external input with framework features and regex on a **whitelist** basis.

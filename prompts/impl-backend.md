@@ -28,6 +28,9 @@ switch branches). Do not touch the front end ({webPath}, {mobilePath}) — separ
   traces / DB errors to the client (normalized errors via a global exception handler only).
 - **Input validation**: validate external input on a whitelist basis (`@Valid`/`@Pattern`). Prevent
   SQLi with JPA/parameterized queries only (no string concatenation).
+- **No magic numbers/strings**: extract domain literals (thresholds, limits, status codes) into named
+  constants or a domain constants source; a closed set → a Java `enum`, with behavior on the enum where
+  it has any (no anemic constant bag). Reuse the existing constants source, don't re-declare literals.
 - **Exceptions**: don't swallow with empty catch — log.
 - **i18n** (if applicable): add new message keys **symmetrically across all configured locales**
   (a parity check may block otherwise). Read-only GETs usually need no new messages.

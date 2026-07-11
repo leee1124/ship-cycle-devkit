@@ -26,7 +26,9 @@ as **separate agents in parallel** — each is blind to the others, so they catc
 - **security**: authz/ownership bypass (IDOR), paywall/entitlement leak, injection (SQLi/XSS), secrets,
   unsafe deserialization, missing input validation.
 - **quality**: logic defects, **anemic domain model** (business logic stranded in services, entities as
-  getter/setter bags — constitution #7), SOLID violations, dead code, silent `catch {}`.
+  getter/setter bags — constitution #7), **magic numbers/strings** (unnamed literals with domain meaning;
+  a closed set not modeled as an enum / union / frozen object — #3), SOLID violations, dead code, silent
+  `catch {}`.
 - **performance**: N+1, unbounded queries / load-all-then-filter, missing indexes, needless re-render.
 - **algorithm** (when logic is non-trivial): correctness of the core computation vs. the spec.
 - **designer** (UI changes only): named anti-patterns, not a vibe check —
