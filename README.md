@@ -28,6 +28,7 @@ Composable skills — a thin orchestrator that chains one short skill per stage 
 | Engineering constitution | `docs/engineering-constitution.md` | The rules the gates enforce (SOLID/OWASP/DDD/TDD/…) |
 | Impl prompt templates | `prompts/impl-{backend,web,mobile}.md` | Stack-specific implementation prompts (adapt to your stack) |
 | Overlay config + schema | `docs/ship-cycle.config.{example,schema}.json` | The per-project config and its JSON Schema |
+| Observability commands | `commands/` | User-invokable `/status` · `/resume` · `/ship` slash commands (read-only by default) |
 
 ## Install
 
@@ -55,6 +56,18 @@ Trigger the skill on any goal:
 /ship-cycle-devkit:ship-cycle  add rate limiting to the login endpoint
 ```
 (or say "ship it" / "run the lifecycle" for `{goal}`)
+
+### Observability commands
+
+User-invokable slash commands for inspecting or steering an in-flight run (read the state file at
+`.claude/.ship-cycle-state.json`):
+
+- `/ship-cycle-devkit:status` — print the current stage, gate table (G1–G13), loop counts, resolved model
+  routing, and worktree. Read-only.
+- `/ship-cycle-devkit:resume` — resume an interrupted run from its last incomplete stage (doesn't restart
+  completed stages).
+- `/ship-cycle-devkit:ship` — jump to the ship stage when the required upstream gates (G1–G9) are green;
+  refuses if any gate is unmet.
 
 ## Project overlay (make it yours)
 

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.2.18 — Observability commands (status / resume / ship)
+
+The cycle state file (`.claude/.ship-cycle-state.json`) existed but there was no quick way to inspect a
+run mid-flight, resume an interrupted one, or jump to ship once gates pass. Adds a `commands/` surface
+(auto-discovered alongside `skills/` — no manifest change) with three user-invokable, read-only-by-default
+commands (closes #25):
+- **`/ship-cycle-devkit:status`** — print stage, gate table (G1–G13), loop counts, resolved model routing,
+  and worktree. Read-only.
+- **`/ship-cycle-devkit:resume`** — resume from the last incomplete stage via the ship-cycle PREFLIGHT
+  resume path; never restarts completed stages or re-inits state.
+- **`/ship-cycle-devkit:ship`** — jump to `sc-ship` only when the required upstream gates (G1–G9) are
+  green; refuses and points back to the owning stage otherwise (Iron Law #3).
+
+Note: the `/sc:` short prefix from the issue isn't used — Claude Code derives the command namespace from
+the plugin `name`, so commands are `/ship-cycle-devkit:*` (renaming the plugin would break existing
+installs). Commands are declarative markdown prompts, not executable code.
+
+Framework-agnostic; declarative commands, no behavioral code.
 ## 0.2.17 — Audit follow-ups: prompt symmetry, gate & SSOT consistency
 
 Four small consistency fixes from the 0.2.16 audit (closes #32, #33, #34, #35):
