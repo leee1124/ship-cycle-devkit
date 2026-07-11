@@ -92,6 +92,21 @@
         },
         "base": { "type": "object" }
       }
+    },
+    "env": {
+      "type": "object",
+      "properties": {
+        "reuseDevServer": {
+          "type": "object",
+          "properties": {
+            "port": { "type": "integer" },
+            "healthPath": { "type": "string" }
+          },
+          "required": ["port"]
+        },
+        "sharedNodeModules": { "type": "boolean" },
+        "reuseE2EInstall": { "type": "boolean" }
+      }
     }
   }
 }

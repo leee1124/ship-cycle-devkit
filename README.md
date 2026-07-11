@@ -86,6 +86,9 @@ It supplies:
 - **`audit`** — optional inputs for the à-la-carte `sc-audit` skill: the `sourceOfTruth` contract, the
   consumer `surfaces` checked against it, domain `modules`, and `reportDir`. Omit to derive from `changeNature`.
 - **`modelRouting`** — optional overrides of the base pyramid / risk-gated upgrades.
+- **`env`** — optional per-cycle cost knobs for continuous runs: reuse a running dev server, share
+  `node_modules` across worktrees, reuse one e2e install. Opt-in; correctness always wins (boots clean
+  when a change needs isolation).
 
 If the overlay is absent, ship-cycle falls back to built-in heuristics and logs that defaults are used.
 
