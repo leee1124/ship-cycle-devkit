@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.2.20 — Proportional strictness: env graceful-degrade + the outcomes/ceremony bright line
+
+Ran the kit's own design cycle (brainstorm → design → adversarial critic) on "make strictness
+risk-proportional." The critic descoped it hard, and correctly: in a docs-only kit the "load-bearing vs
+skippable" call is an LLM eyeballing an *unvalidated* config, so a nuanced degrade taxonomy would *reduce*
+safety. What survived:
+- **One narrow PREFLIGHT carve-out**: a schema-invalid `env` block (a pure cost knob whose documented
+  fallback is "spin up fresh") emits `SC-DEGRADE-ENV` and continues instead of aborting the cycle. Every
+  other section — and any unparseable file — still fails closed. `env` only, because it can never touch a
+  correctness floor.
+- **The bright line, stated once** (Lightweight path): *ceremony* (stage count, tier, worktree, lens
+  breadth, QA-skip, TDD-harness form) is dialable; *outcomes* (verification ran + read, fresh-eyes review,
+  the fail-closed floors, a failing test first) are never dialed. When unsure, it's an outcome.
+- **Monotonic risk re-escalation** (PREFLIGHT step 6): the risk label dials ceremony only, never an
+  outcome; a later stage that reveals a higher-stakes axis re-escalates — adding ceremony back, never
+  removing an outcome.
+
+Explicitly rejected by the cycle: inverting the default to proportional-by-default (it removes the
+fail-safe default), a multi-section degrade allowlist, and documenting a risk→lightweight-path dial that
+doesn't exist. **strict-by-default is unchanged.**
+
+Docs-only; framework-agnostic; no behavioral code.
+
 ## 0.2.19 — Per-cycle env-cost knobs (opportunistic reuse)
 
 In a continuous ship run, every cycle re-pays worktree → dep install → server boot → e2e install; over

@@ -108,7 +108,14 @@ orchestration plumbing (code + files), **not an LLM step**.
    each doesn't re-install the full tree — see sc-qa's per-cycle cost note.
 3. **Load overlay**: read `${CLAUDE_PROJECT_DIR}/<projectConfig>` (plugin `projectConfig` setting;
    default `.claude/ship-cycle.config.json`). **Absent** → built-in heuristics + log "defaults in use".
-   **Malformed JSON / schema-invalid** → stop and report; do not silently fall back.
+   **Malformed → fail closed: stop and report; do not silently fall back.** *One* narrow carve-out: if the
+   file parses and the only problem is a **schema-invalid `env`** block — a purely opportunistic cost knob
+   whose documented fallback is "spin up fresh" (see sc-qa) — emit `SC-DEGRADE-ENV` (name the section + the
+   fallback), ignore `env`, and continue. `env` only, because it can never touch a correctness floor; every
+   other section (`vcs`, `changeNature`, `modelRouting`, `i18n`, `design`) and any unparseable file still
+   halts. (A docs-only kit has no validator — the "safe to skip?" call is an LLM eyeballing an unvalidated
+   file, so it's kept to one always-safe section, not a taxonomy that could misclassify a load-bearing block
+   as skippable.)
 4. **Classify change nature**: map changed paths via overlay `changeNature`. Overlapping globs →
    **most-specific glob wins**; docs/i18n-only diffs prefer the docs rule. **Print the resolved routing**
    (which tests/reviews will run) so it's auditable. **Classification is not one-shot**: if a later stage
@@ -122,7 +129,12 @@ orchestration plumbing (code + files), **not an LLM step**.
    every parallel implementer — to re-derive "is this my regression or was it already red?" by hand
    (repeatedly, via stash-and-compare). With a baseline recorded, gates G6/G9 diff against it: a failure
    already in `baseline` is not a regression; only a **new** one blocks. Skip only on the lightweight path.
-6. **Classify risk** (for model routing, below).
+6. **Classify risk** (for model routing, below). The label dials **ceremony only** — the model tier and
+   which role is upgraded — **never an outcome**: verification, fresh-eyes review, and the fail-closed
+   floors run regardless of the label. **Not one-shot (mirrors step 4):** if a later stage reveals a
+   higher-stakes axis the initial diff didn't show (a token lifetime, a migration, an API contract),
+   re-classify and re-resolve routing. Re-escalation is **monotonic** — it may add ceremony back (restore a
+   dropped tier, reinstate a lens or QA) but never removes an outcome.
 7. **Resolve per-stage models now (not per-spawn)**: for each stage, resolve its tier → a concrete model
    via overlay `modelRouting.tierMap` (base pyramid + any risk upgrade). Write the result to state
    `models` and **print it** (auditable, e.g. `review→opus, implement→sonnet`). Every stage then spawns
@@ -196,6 +208,12 @@ Assign models by **cost-of-being-wrong × cost-of-verification**, not by role na
 Trivial changes (config/docs/one-liner): collapse brainstorm/design/review into one check, substitute
 heavy suites with self-tests/link checks, reduce review to quality+security, and **drop the model tiers**
 (mid/low instead of high). **Never skip build/test verification or the pre-PR review.**
+
+**The bright line — dial ceremony, never an outcome.** *Ceremony* (dialable by risk/triviality): stage
+count, model tier, worktree-or-not, lens breadth, QA-skip-for-trivial, TDD-harness form. *Outcomes* (never
+dialed, for a typo fix and an auth change alike): verification actually ran and its output was read,
+review by fresh eyes before any PR, the fail-closed floors (security/data/contract), a failing test before
+prod code. When unsure which side something is on, it is an outcome — keep it.
 
 **Exception — small but high-stakes.** Keep the higher review tier even for a tiny diff when
 cost-of-being-wrong is high or verification is expensive: build/release config, **dependency/lockfile
