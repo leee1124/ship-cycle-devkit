@@ -105,7 +105,7 @@ actually reach the bug? is it already mitigated elsewhere?). Keep only findings 
 ## Gate G8 (to advance to `sc-qa`)
 - **0 Critical/High** after verification. Address survivors in `sc-implement`, then re-review.
 - If a finding is a **design flaw** (not an impl bug), loop back to `sc-design`, not `sc-implement`.
-- Set `gates.G8` and loop count in state (cap 3).
+- Set `gates.G8` and loop count in state (respect the orchestrator's loop cap).
 
 ## Model routing
 security/quality/algorithm review run at the **high** tier; upgrade the matching lens to **top** for

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.2.17 — Audit follow-ups: prompt symmetry, gate & SSOT consistency
+
+Four small consistency fixes from the 0.2.16 audit (closes #32, #33, #34, #35):
+- **TDD symmetry in impl prompts** (#32): `impl-web` and `impl-mobile` gained a `## Testing (TDD —
+  required)` section — test-first (Red→Green), extract pure logic for render-less UI, no vacuous test —
+  matching `impl-backend` and constitution §8 / Iron Law #1.
+- **G13 defined** (#33): the gate table listed only G1–G12 while the pipeline row claimed G10–G13. Added
+  the G13 row (merged branch deleted local+remote, worktree removed if present, base synced), relabeled
+  sc-ship's "Cleanup (Stage 13)" → "Cleanup (G13)" (stages are 0–7; cleanup is a gate, not a 13th stage),
+  and wired sc-ship to set `gates.G13 = pass` after cleanup so the gate is actually tracked in state.
+- **Loop-cap SSOT** (#34): dropped the duplicated literal "3" from `sc-design` and `sc-review`; both now
+  say "respect the orchestrator's loop cap" — the value lives only in `ship-cycle`.
+- **impl-mobile parity** (#35): added the no-silent-`catch {}`/log rule (§6, matching `impl-web`) and a
+  "consume the actual serialized DTO shape" rule (mirrors the shape-verification language in
+  `sc-design`/`sc-audit`; complements `impl-backend`'s "never return entities").
+
+Docs-only; framework-agnostic; no behavioral code.
+
 ## 0.2.16 — No-magic-numbers / named-constant coding standard
 
 The kit reached for the narrow design-token/i18n cousins of this rule (no hardcoded colors/spacing/copy)
