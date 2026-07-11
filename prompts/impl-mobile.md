@@ -24,7 +24,8 @@ switch branches). Do not touch backend/web — separate agents own those.
   strings, intervals) into named constants; a closed set → a union literal type or an `as const` object,
   **not a TS `enum`**.
 - **Component reuse**: reuse Card/Button/Badge/etc.; avoid one-off inline styles.
-- **State design**: empty/loading/error. Center empty states with flex, not magic padding.
+- **State design**: empty/loading/error. Center empty states with flex, not magic padding. No silent
+  `catch {}` — surface a retryable error state and log (constitution #6).
 
 ## Accessibility
 - Every interactive element gets `accessibilityLabel`/`accessibilityRole`/`accessibilityState`
@@ -47,6 +48,14 @@ switch branches). Do not touch backend/web — separate agents own those.
 
 ## Data
 - Use the repository pattern (Local/Api/OfflineFirst — check the wiring in index). Persist stores.
+- Consume the API's **actual serialized DTO shape** (real field names/types) via the repository — never a
+  guessed shape; if the backend returns a raw entity, flag it (constitution #6).
+
+## Testing (TDD — required)
+- Tests come first (Red), then implementation (Green). For UI with no render harness, extract pure logic
+  (formatters, selectors/reducers, i18n resolution, time/geometry math) into testable modules and write
+  the failing tests there; thin view wiring is covered by the designer lens + sc-qa. If a change has no
+  extractable logic, say so explicitly and route verification to review/QA — don't write a vacuous test.
 
 ## Done criteria
 - `tsc`/lint green (incl. a11y lint), no console/type errors. (Release artifact build is via EAS.)

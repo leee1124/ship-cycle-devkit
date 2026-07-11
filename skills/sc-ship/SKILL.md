@@ -69,13 +69,16 @@ live pass. `review-only` is a legitimate outcome, not a failure — but it must 
   PR body carries the correct `Closes`/`Refs` token for every tracked issue (re-fetched and asserted, not
   assumed).
 
-## Cleanup (Stage 13)
+## Cleanup (G13)
 - After merge: delete the branch **local + remote** (constitution #9); never delete protected branches.
 - **Remove the feature worktree**: `git worktree remove --force <state.worktreePath>`. Teardown must not
   block the cycle: if removal fails because files are locked (a `node_modules`/build process still holding
   handles — common on Windows), fall back to `git worktree prune` to drop the registry entry and leave the
   directory for later deletion. A failed directory delete is a **warning, not a gate**.
 - Sync the base branch.
+- **Gate**: once the branch is deleted, the worktree removed (if one was created), and the base synced,
+  set `gates.G13 = pass` in state — the run's terminal gate. Cleanup is best-effort: a locked
+  worktree/directory is a **warning, not a blocker**, so record the warning and still mark G13 `pass`.
 
 ## Issue-tracker hygiene
 Don't add third-party/competitor product names or "learning/practice" items to the tracker. Close
