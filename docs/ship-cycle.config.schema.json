@@ -92,6 +92,28 @@
         },
         "base": { "type": "object" }
       }
+    },
+    "env": {
+      "type": "object",
+      "properties": {
+        "reuseDevServer": {
+          "description": "Reuse an already-running dev server for QA. A bare port number, an object with an explicit health check, or true to auto-detect a running server.",
+          "oneOf": [
+            { "type": "integer", "description": "Port to health-check and reuse." },
+            {
+              "type": "object",
+              "properties": {
+                "port": { "type": "integer" },
+                "healthPath": { "type": "string" }
+              },
+              "required": ["port"]
+            },
+            { "const": true, "description": "Auto-detect: reuse whatever dev server is already up." }
+          ]
+        },
+        "sharedNodeModules": { "type": "boolean" },
+        "reuseE2EInstall": { "type": "boolean" }
+      }
     }
   }
 }

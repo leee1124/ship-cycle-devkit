@@ -41,6 +41,22 @@ implementers wrote.
   into the PR and mark it a **pre-merge manual gate**. The checklist IS the honest deferral: don't fake a
   visual pass, and don't silently skip.
 
+## Cut per-cycle spin-up cost (opportunistic, overlay-gated)
+In a continuous run, a fresh worktree → dep install → server boot → e2e install *every cycle* dominates
+wall-clock. When overlay `env` opts in, reuse instead of re-spinning — but never at the cost of a real
+check:
+- **Reuse a running dev server** (`env.reuseDevServer` — a bare port, `{port, healthPath}`, or `true` to
+  auto-detect): if a server is already healthy, drive QA against it instead of booting a fresh one. Boot
+  clean only when the change needs isolation (schema/migration, a server-config or dependency change) or
+  the health check fails.
+- **Share the dep store across worktrees** (`env.sharedNodeModules`): a pnpm store or a linked
+  `node_modules` so each per-stack worktree doesn't re-download the full tree (see PREFLIGHT).
+- **Reuse one e2e install** (`env.reuseE2EInstall`): Playwright browser binaries are cached — reuse a
+  single e2e package install rather than `npm ci`-ing it per worktree.
+
+These are **speed knobs, not correctness ones**: if a reused server or its residual state could mask the
+change under test, boot clean and say so. Absent the `env` section, always spin up fresh.
+
 ## Mobile visual QA — emulator/simulator screenshot loop
 Native UI changes **can** be verified automatically when an emulator/simulator is available: drive the
 app, capture the screen, and let a vision agent read it — a real "agent sees the UI and iterates" loop,

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.2.19 — Per-cycle env-cost knobs (opportunistic reuse)
+
+In a continuous ship run, every cycle re-pays worktree → dep install → server boot → e2e install; over
+many cycles that overhead dominates wall-clock. Adds an optional overlay `env` section and the guidance to
+honor it — opt-in, and always subordinate to correctness (closes #22):
+- **`env.reuseDevServer`** (a bare port, `{port, healthPath}`, or `true` to auto-detect): sc-qa drives
+  against an already-healthy server instead of booting a fresh one — booting clean only when the change
+  needs isolation or the health check fails.
+- **`env.sharedNodeModules`**: PREFLIGHT shares one dep store (pnpm store / linked `node_modules`) across
+  worktrees so each doesn't re-download the full tree.
+- **`env.reuseE2EInstall`**: reuse one Playwright/e2e install (browser binaries are cached) instead of
+  `npm ci` per worktree.
+
+These are speed knobs, not correctness ones — absent the `env` section, the plugin always spins up fresh.
+The plugin is docs-only: it *instructs* the reuse; the actual caching lives in the operator's harness.
+
+Framework-agnostic; docs-only; no behavioral code.
+
 ## 0.2.18 — Observability commands (status / resume / ship)
 
 The cycle state file (`.claude/.ship-cycle-state.json`) existed but there was no quick way to inspect a

@@ -103,7 +103,9 @@ orchestration plumbing (code + files), **not an LLM step**.
    the change is split across stacks (backend/web/mobile) or runs parallel implementers, where
    `git worktree add ../<repo>-<branch> -b <branch>` lets them work **without collisions**. For a
    single-track change (one platform, sequential), a plain feature branch is enough — worktree is pure
-   overhead. Record the worktree path in state when used.
+   overhead. Record the worktree path in state when used. When several worktrees are created and overlay
+   `env.sharedNodeModules` is set, share one dep store across them (pnpm store / linked `node_modules`) so
+   each doesn't re-install the full tree — see sc-qa's per-cycle cost note.
 3. **Load overlay**: read `${CLAUDE_PROJECT_DIR}/<projectConfig>` (plugin `projectConfig` setting;
    default `.claude/ship-cycle.config.json`). **Absent** → built-in heuristics + log "defaults in use".
    **Malformed JSON / schema-invalid** → stop and report; do not silently fall back.
