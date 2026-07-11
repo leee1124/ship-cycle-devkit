@@ -79,7 +79,7 @@
   },
 
   "env": {
-    "$comment": "Optional. Cuts per-cycle spin-up cost in continuous runs. reuseDevServer: reuse a server already healthy on this port for QA instead of booting a fresh one each cycle. sharedNodeModules: share one dep store across worktrees (pnpm store or linked node_modules) so each doesn't re-install. reuseE2EInstall: reuse one Playwright/e2e install (browser binaries are cached) instead of re-installing per worktree. These are speed knobs — the plugin still boots clean when a change needs isolation.",
+    "$comment": "Optional. Cuts per-cycle spin-up cost in continuous runs. reuseDevServer: reuse an already-running dev server for QA instead of booting a fresh one each cycle — a bare port (3000), an object {port, healthPath}, or true to auto-detect. sharedNodeModules: share one dep store across worktrees (pnpm store or linked node_modules) so each doesn't re-install. reuseE2EInstall: reuse one Playwright/e2e install (browser binaries are cached) instead of re-installing per worktree. These are speed knobs — the plugin still boots clean when a change needs isolation.",
     "reuseDevServer": { "port": 3000, "healthPath": "/api/health" },
     "sharedNodeModules": true,
     "reuseE2EInstall": true

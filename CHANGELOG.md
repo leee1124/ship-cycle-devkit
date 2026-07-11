@@ -5,9 +5,9 @@
 In a continuous ship run, every cycle re-pays worktree → dep install → server boot → e2e install; over
 many cycles that overhead dominates wall-clock. Adds an optional overlay `env` section and the guidance to
 honor it — opt-in, and always subordinate to correctness (closes #22):
-- **`env.reuseDevServer`** (`port`, optional `healthPath`): sc-qa drives against a server already healthy
-  on that port instead of booting a fresh one — booting clean only when the change needs isolation or the
-  health check fails.
+- **`env.reuseDevServer`** (a bare port, `{port, healthPath}`, or `true` to auto-detect): sc-qa drives
+  against an already-healthy server instead of booting a fresh one — booting clean only when the change
+  needs isolation or the health check fails.
 - **`env.sharedNodeModules`**: PREFLIGHT shares one dep store (pnpm store / linked `node_modules`) across
   worktrees so each doesn't re-download the full tree.
 - **`env.reuseE2EInstall`**: reuse one Playwright/e2e install (browser binaries are cached) instead of

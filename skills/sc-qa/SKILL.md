@@ -45,9 +45,10 @@ implementers wrote.
 In a continuous run, a fresh worktree → dep install → server boot → e2e install *every cycle* dominates
 wall-clock. When overlay `env` opts in, reuse instead of re-spinning — but never at the cost of a real
 check:
-- **Reuse a running dev server** (`env.reuseDevServer.port`, optional `healthPath`): if a server is already
-  healthy on that port, drive QA against it instead of booting a fresh one. Boot clean only when the change
-  needs isolation (schema/migration, a server-config or dependency change) or the health check fails.
+- **Reuse a running dev server** (`env.reuseDevServer` — a bare port, `{port, healthPath}`, or `true` to
+  auto-detect): if a server is already healthy, drive QA against it instead of booting a fresh one. Boot
+  clean only when the change needs isolation (schema/migration, a server-config or dependency change) or
+  the health check fails.
 - **Share the dep store across worktrees** (`env.sharedNodeModules`): a pnpm store or a linked
   `node_modules` so each per-stack worktree doesn't re-download the full tree (see PREFLIGHT).
 - **Reuse one e2e install** (`env.reuseE2EInstall`): Playwright browser binaries are cached — reuse a
