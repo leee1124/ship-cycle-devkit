@@ -52,7 +52,7 @@ A separate agent attacks the design (the **union** of all architect docs when th
 - G2: interfaces are specified concretely.
 - G3: the critic's unresolved-objection list is **empty** (not "addressed later" — resolved).
 - Set `gates.G2 = pass`, `gates.G3 = pass`. On unresolved objections, loop within this stage
-  (respect the orchestrator's loop cap of 3).
+  (respect the orchestrator's loop cap).
 
 ## UI-only changes
 For a pure UI change (new component/screen, no new domain logic), this stage and `sc-implement` merge

@@ -69,7 +69,7 @@ live pass. `review-only` is a legitimate outcome, not a failure — but it must 
   PR body carries the correct `Closes`/`Refs` token for every tracked issue (re-fetched and asserted, not
   assumed).
 
-## Cleanup (Stage 13)
+## Cleanup (G13)
 - After merge: delete the branch **local + remote** (constitution #9); never delete protected branches.
 - **Remove the feature worktree**: `git worktree remove --force <state.worktreePath>`. Teardown must not
   block the cycle: if removal fails because files are locked (a `node_modules`/build process still holding

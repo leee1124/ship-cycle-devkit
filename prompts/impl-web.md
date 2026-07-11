@@ -26,7 +26,7 @@ branches). Do not touch backend/mobile — separate agents own those.
   mobile drawer.
 - **Component consistency**: reuse `components/ui` (Card/Tabs/Badge); avoid one-off inline styles.
 - **State design**: design empty/loading(skeleton)/error. No silent `catch {}` — surface error+retry to
-  the user, and log.
+  the user, and log (constitution #6).
 
 ## Accessibility
 - Keep `focus-visible` rings (don't just remove outline), aria-*, semantic HTML, keyboard nav, modal
@@ -42,6 +42,12 @@ branches). Do not touch backend/mobile — separate agents own those.
 - Call the backend via a single API client and consume its DTOs. Handle loading/empty/error.
 - Charts: label axes; put differently-scaled series on dual axes or split; localize legends;
   centralize tooltip config (no duplicated definitions).
+
+## Testing (TDD — required)
+- Tests come first (Red), then implementation (Green). For UI with no render harness, extract pure logic
+  (formatters, selectors/reducers, i18n resolution, time/geometry math) into testable modules and write
+  the failing tests there; thin view wiring is covered by the designer lens + sc-qa. If a change has no
+  extractable logic, say so explicitly and route verification to review/QA — don't write a vacuous test.
 
 ## Done criteria
 - `npm run build` (or `tsc`) + lint green, no console errors. E2E (e.g. Playwright) passing where

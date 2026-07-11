@@ -165,6 +165,7 @@ tier here; the stage skill resolves the per-role exceptions from the same tierMa
 | G10 | docs matching the change exist | writer |
 | G11 | every claim mapped 1:1 to a test/build/QA log | rework |
 | G12 | build+test+review+QA passed; base = overlay `vcs.defaultBase`; **branch merges cleanly into base** (merge-tree probe + host `mergeable`) | merge base + resolve, re-verify |
+| G13 | merged branch deleted (local + remote); feature worktree removed if one was created; base synced | — |
 
 ## Model routing (token efficiency)
 
