@@ -19,6 +19,9 @@ branches). Do not touch backend/mobile — separate agents own those.
   sidebar/buttons/tabs.
 - **Design tokens**: don't hardcode color/spacing/typography. Define semantic tokens (brand/surface-*,
   etc.) and use them. Extract repeated inline style objects into a shared lib.
+- **No magic numbers/strings in logic**: beyond design tokens, extract literals with domain meaning
+  (thresholds, status strings, retry counts) into named constants; model a closed set as a union literal
+  type or an `as const` object — **avoid TS `enum`** (runtime cost, `isolatedModules`/bundler pitfalls).
 - **Responsive**: mobile/tablet/desktop. Fixed-width layouts (sidebars) get breakpoint branches + a
   mobile drawer.
 - **Component consistency**: reuse `components/ui` (Card/Tabs/Badge); avoid one-off inline styles.

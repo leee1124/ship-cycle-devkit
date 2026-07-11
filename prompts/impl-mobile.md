@@ -20,6 +20,9 @@ switch branches). Do not touch backend/web — separate agents own those.
   free). Replace emoji/text icons (▼▶›‹✓○ …) in tab bar/buttons/arrows.
 - **Theme tokens**: use colors/spacing/typography tokens from a theme module. No raw-px magic numbers
   or hardcoded colors → add tokens/semantic tokens.
+- **No magic numbers/strings in logic**: beyond theme tokens, extract domain literals (thresholds, status
+  strings, intervals) into named constants; a closed set → a union literal type or an `as const` object,
+  **not a TS `enum`**.
 - **Component reuse**: reuse Card/Button/Badge/etc.; avoid one-off inline styles.
 - **State design**: empty/loading/error. Center empty states with flex, not magic padding.
 

@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.16 — No-magic-numbers / named-constant coding standard
+
+The kit reached for the narrow design-token/i18n cousins of this rule (no hardcoded colors/spacing/copy)
+but never stated the general one, so a literal with domain meaning (a `≥60` deload threshold, a status
+string, a `setInterval` period) was authored, reviewed, and shipped with no rule naming it. Added as a
+framework-agnostic Clean-Code baseline, language-aware and enforced at review:
+- **Constitution §3**: no magic numbers/strings — extract any domain literal to a named constant; a
+  closed, related set becomes an `enum` (Java) / a union literal type or an `as const` object (TS —
+  **not** `enum`) / `Object.freeze` (JS), with behavior on the set where it has any (an anemic constant
+  bag repeats the anemic-model smell, #7). Constants now join the "meaningful names" rule.
+- **sc-review quality lens**: magic numbers/strings is now a named anti-pattern — a rule no lens checks is
+  dead — including a closed set not modeled as an enum/union/frozen object.
+- **impl prompts** (backend/web/mobile): each states the rule in its stack idiom — Java enum-with-behavior;
+  TS union / `as const`, **avoiding `enum`** — on top of the existing design/theme-token rules.
+
+Docs-only; framework-agnostic; no behavioral code.
+
 ## 0.2.15 — Design-consistency gate: reuse before create
 
 Consistency is decided at design time, not caught at review time — so a crude, uncoordinated surface
