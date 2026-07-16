@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.2.21 — Two silent-failure guards from a real 2-cycle field run (#41)
+
+Field notes from an external user running two ship-cycles concurrently on a Spring Boot + MyBatis repo
+surfaced two ways the cycle could *look* green while a floor silently failed. Both fixed as guidance +
+overlay wiring (docs-only, framework-agnostic):
+
+- **No false-green from a piped exit code (#41 proposal 3).** `cmd | grep | tail` reports the tail's exit
+  status, so a failing build/test — or a `command not found` from a toolchain that never reached `PATH` —
+  reads green. Iron Law #2 now forbids judging pass/fail from a piped exit code; sc-implement (G5/G6) and
+  sc-ship (G11) require the command's own exit status (or `set -o pipefail`) or the machine-readable report
+  (surefire/JUnit XML, runner JSON), never scraped stdout.
+- **Security reviews can't land on a security-refusing model (#41 proposal 2).** Risk-based routing could
+  send a security/authz review to a frontier model that refuses security analysis, which then silently
+  no-ops. Overlay `modelRouting` gains `securityReviewModel` (forced substitute) and `mustNotUse`
+  (per-risk-axis model denylist); PREFLIGHT §0.7 swaps a denied model (logging `SC-ROUTE-AVOID`) or halts
+  fail-closed if none allowed remains — a security review that quietly checks nothing is worse than a stop.
+
+Also captured from the same field run: "reviewer != author" adversarial separation and STAY-IN-SCOPE →
+file-out-of-scope both earned their keep and are unchanged. Deferred to follow-ups: per-cycle state for
+concurrent cycles (#41 proposal 1) and requiring integration tests to *execute*, not just compile (#41
+proposal 4).
+
+Docs-only; framework-agnostic; no behavioral code.
+
 ## 0.2.20 — Proportional strictness: env graceful-degrade + the outcomes/ceremony bright line
 
 Ran the kit's own design cycle (brainstorm → design → adversarial critic) on "make strictness
