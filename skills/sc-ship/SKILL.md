@@ -11,8 +11,10 @@ Update README/CHANGELOG/API docs/comments to match the change **in this same cha
 "no docs needed" reason.
 
 ## Verify (G11)
-**Run the verification and read the output** (Iron Law #2). Map **each acceptance criterion 1:1** to a
-passing test/build/QA log. Zero claims without evidence. If anything is unproven, loop back — don't ship.
+**Run the verification and read the output** (Iron Law #2). Read pass/fail from the command's own exit
+code or its machine-readable report (surefire/JUnit XML, runner JSON) — **never a piped/tailed stdout line**,
+which reports the pipe's last exit status and turns a red run green. Map **each acceptance criterion 1:1** to
+a passing test/build/QA log. Zero claims without evidence. If anything is unproven, loop back — don't ship.
 
 **Tag each claim with its evidence *strength*, not just its evidence.** A criterion driven end-to-end and
 one that could only be review-verified (because live QA was blocked — see sc-qa) both "have evidence" but

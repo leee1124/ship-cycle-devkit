@@ -46,7 +46,12 @@ high-stakes step can still warrant a subagent; a small trivial one does not.
 Hard stops, not suggestions. Each lists the excuses agents reach for — all rejected.
 
 1. **NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST.** Rejected: "trivial" · "just once" · "test after".
-2. **NEVER CLAIM DONE WITHOUT RUNNING VERIFICATION AND READING ITS OUTPUT.** Rejected: "should work".
+2. **NEVER CLAIM DONE WITHOUT RUNNING VERIFICATION AND READING ITS OUTPUT — AND NEVER JUDGE PASS/FAIL FROM
+   A PIPED EXIT CODE.** Rejected: "should work" · "the grep said no failures". `cmd | grep | tail` reports
+   the *tail's* exit status, so a failed build/test — or a `command not found` from a toolchain that never
+   got onto `PATH` — reads green. Run the command as its own step and check *its* exit code (or `set -o
+   pipefail`), or read the **machine-readable report** (surefire/JUnit XML, runner JSON), never scraped
+   stdout.
 3. **NO PR WITHOUT A PASSING PRE-PR REVIEW.** Rejected: "small change" · "I reviewed while writing".
 4. **NEVER COMMIT ON A PROTECTED BRANCH.** Branch first, always.
 5. **STAY IN SCOPE.** Unrelated work → a new branch. A real defect you find **outside** the current

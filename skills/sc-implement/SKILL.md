@@ -58,6 +58,12 @@ authz from the principal only, DTOs not entities, whitelist validation, no N+1, 
   block — don't make each implementer re-derive "mine or pre-existing?" by stash-and-compare; diff the
   run against `state.baseline.failing`), core coverage ≥80%. On a genuinely new failure, attach a
   debugger and loop.
+- **No false-green (how you read G5/G6)**: judge pass/fail from the command's **own exit status or its
+  machine-readable report** (surefire/JUnit XML, runner JSON) — never from a piped/tailed/grepped stdout
+  line. `mvn test | grep -i fail | tail` returns the *pipeline's last* exit code (the tail's `0`), so a red
+  build reads green; a `command not found` (toolchain not on `PATH` after sourcing the env) is swallowed
+  the same way. Run build/test as their own step and check `$?`; if you must filter the output, capture the
+  exit code first (`set -o pipefail`). (Iron Law #2.)
 - **G7**: if the change ships an artifact (APK/IPA/binary), run the **real packaging build**.
 - **Lockfile sync**: if you changed a dependency **manifest** (`package.json`, `go.mod`, `Gemfile`,
   `Cargo.toml`, …) that has a **committed lockfile**, regenerate the lockfile in the same change. CI and
