@@ -90,7 +90,19 @@
             "low": { "type": "string" }
           }
         },
-        "base": { "type": "object" }
+        "base": { "type": "object" },
+        "securityReviewModel": {
+          "type": "string",
+          "description": "Model id forced for security/authz reviews, overriding tierMap for that role, so a risk-gated security review can never land on a model that refuses security analysis. PREFLIGHT uses it as the substitute when a resolved model is denied by mustNotUse."
+        },
+        "mustNotUse": {
+          "type": "object",
+          "description": "Per-risk-axis denylist of model ids (keys: 'security', 'auth', 'authz', or any risk axis). When PREFLIGHT resolves a role tied to that axis and tierMap yields a denied model, it substitutes securityReviewModel (or the nearest allowed tier) and logs the swap; if no allowed model remains it fails closed (halts).",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
       }
     },
     "env": {

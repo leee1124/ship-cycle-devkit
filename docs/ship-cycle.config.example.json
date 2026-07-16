@@ -63,7 +63,7 @@
   },
 
   "modelRouting": {
-    "$comment": "Optional. tierMap bridges tier names → real model ids the Task tool accepts; the skill passes model=<resolved> per call. base overrides which tier each role runs at.",
+    "$comment": "Optional. tierMap bridges tier names → real model ids the Task tool accepts; the skill passes model=<resolved> per call. base overrides which tier each role runs at. securityReviewModel + mustNotUse guard against a model that refuses security analysis silently landing on a security/authz review: mustNotUse denylists model ids per risk axis, securityReviewModel is the forced substitute; PREFLIGHT swaps (logging SC-ROUTE-AVOID) or fails closed. Replace the placeholder id below with the actual model your setup must avoid.",
     "tierMap": {
       "top": "opus",
       "high": "opus",
@@ -75,6 +75,11 @@
       "review": "high",
       "implement": "mid",
       "docs": "low"
+    },
+    "securityReviewModel": "opus",
+    "mustNotUse": {
+      "security": ["some-model-that-refuses-security-analysis"],
+      "auth": ["some-model-that-refuses-security-analysis"]
     }
   },
 

@@ -145,6 +145,13 @@ orchestration plumbing (code + files), **not an LLM step**.
    `models` and **print it** (auditable, e.g. `review→opus, implement→sonnet`). Every stage then spawns
    with `model = state.models[<stage>]` — never an agent type's default. This turns "remember to bridge
    the tierMap" into "copy a concrete value", which is the difference that makes it actually happen.
+   **Routing guard — a security review must never land on a model that refuses it.** After resolving
+   tier→model, apply overlay `modelRouting.mustNotUse` / `securityReviewModel`: for any role tied to a risk
+   axis (`security`/`auth`/`authz`/…), if the resolved model is listed in `mustNotUse[axis]`, substitute
+   `securityReviewModel` (or the nearest allowed tier) and **print the swap** —
+   `SC-ROUTE-AVOID: review <denied>→<sub> (security)`. If no allowed model remains, **halt** — never
+   silently run *or* skip a security review on a refusing model. This is a fail-closed floor, not ceremony:
+   a security review that quietly no-ops is worse than a loud stop.
 8. **Init state**: write `.claude/.ship-cycle-state.json` (including `models` and `baseline`).
 
 ## State (real, not a metaphor)
@@ -203,6 +210,11 @@ Assign models by **cost-of-being-wrong × cost-of-verification**, not by role na
   model that **silently overrides your tier** when you omit `model=`. That is precisely how a review
   intended for the top/high tier ends up on a cheaper default without anyone noticing. Pre-resolving into
   `state.models` and passing it explicitly is the fix — never trust the agent-type default.
+- **Security-refusing-model guard**: some frontier models **refuse security analysis**, so a risk-gated
+  security/authz review can silently land on one and no-op — the review "ran" but checked nothing. Overlay
+  `modelRouting.securityReviewModel` pins the model for those reviews and `modelRouting.mustNotUse`
+  denylists model ids per risk axis; PREFLIGHT enforces both when it resolves tiers→models (§Stage 0.7),
+  substituting with a printed `SC-ROUTE-AVOID` line — or halting fail-closed if no allowed model remains.
 - **Bigger levers first**: prompt caching (cache the repo/diff/design doc), an effort dial, and
   "cheap path first" for implementation (mid tier → verify → escalate only the failing fix). **Exception**:
   for inherently complex work (novel algorithms, intricate UI like SVG/canvas), start at the higher tier —
