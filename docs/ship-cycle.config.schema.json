@@ -90,7 +90,11 @@
             "low": { "type": "string" }
           }
         },
-        "base": { "type": "object" }
+        "base": { "type": "object" },
+        "securityReviewModel": {
+          "type": "string",
+          "description": "Model id the 'security' and 'authz' review lenses MUST use, overriding their tier-resolved model. Set it when your top/high tier resolves to a model that refuses security analysis — such a review silently no-ops. Pin the most capable model that WILL do security review, at your HIGHEST security-review tier — note auth/payment risk upgrades that lens to 'top', and the pin overrides that upgrade too. Enforced when sc-review spawns those lenses; PREFLIGHT records it as models['review.security'] and logs SC-ROUTE-AVOID when the pin differs from the tier-resolved model. Opt-in: absent, the security lens uses its tier model."
+        }
       }
     },
     "env": {

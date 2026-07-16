@@ -115,3 +115,8 @@ high-risk changes (auth/payment → security; complex algorithm → algorithm). 
 stage the default-model trap bit in practice: spawning a `quality-reviewer`/`security-reviewer` without
 `model=` runs the review on that type's cheaper default instead of the intended high/top tier, silently.
 Never rely on the agent-type default (Iron Law 6).
+
+**Security-refusing-model guard.** If PREFLIGHT set `models["review.security"]` (overlay
+`modelRouting.securityReviewModel` — §ship-cycle Stage 0.7), spawn the **`security` and `authz` lenses with
+that model**, not `models['review']`. Some models refuse security analysis and a review routed to one
+silently no-ops; this pin guarantees the security lens runs on a model that will actually do it.
