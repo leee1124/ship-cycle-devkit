@@ -62,8 +62,9 @@ authz from the principal only, DTOs not entities, whitelist validation, no N+1, 
   machine-readable report** (surefire/JUnit XML, runner JSON) — never from a piped/tailed/grepped stdout
   line. `mvn test | grep -i fail | tail` returns the *pipeline's last* exit code (the tail's `0`), so a red
   build reads green; a `command not found` (toolchain not on `PATH` after sourcing the env) is swallowed
-  the same way. Run build/test as their own step and check `$?`; if you must filter the output, capture the
-  exit code first (`set -o pipefail`). (Iron Law #2.)
+  the same way. Run build/test as their **own** step, check `$?`, then read the report. `set -o pipefail`
+  alone does **not** rescue a `grep`-in-the-pipe check — `grep` exits `1` on no match, so a *passing* build
+  turns false-RED; drop the pipe, don't just add pipefail. (Iron Law #2.)
 - **G7**: if the change ships an artifact (APK/IPA/binary), run the **real packaging build**.
 - **Lockfile sync**: if you changed a dependency **manifest** (`package.json`, `go.mod`, `Gemfile`,
   `Cargo.toml`, …) that has a **committed lockfile**, regenerate the lockfile in the same change. CI and

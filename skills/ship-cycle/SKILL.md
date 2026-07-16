@@ -47,11 +47,10 @@ Hard stops, not suggestions. Each lists the excuses agents reach for — all rej
 
 1. **NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST.** Rejected: "trivial" · "just once" · "test after".
 2. **NEVER CLAIM DONE WITHOUT RUNNING VERIFICATION AND READING ITS OUTPUT — AND NEVER JUDGE PASS/FAIL FROM
-   A PIPED EXIT CODE.** Rejected: "should work" · "the grep said no failures". `cmd | grep | tail` reports
-   the *tail's* exit status, so a failed build/test — or a `command not found` from a toolchain that never
-   got onto `PATH` — reads green. Run the command as its own step and check *its* exit code (or `set -o
-   pipefail`), or read the **machine-readable report** (surefire/JUnit XML, runner JSON), never scraped
-   stdout.
+   A PIPED EXIT CODE.** Rejected: "should work" · "the grep said no failures". `cmd | grep | tail` returns
+   the *tail's* status, so a failed build (or a `command not found`) reads green. Check the command's **own**
+   exit status, or read the **machine-readable report** (surefire/JUnit XML, runner JSON) — never scraped
+   stdout. (See sc-implement G5/G6 for why `pipefail` alone doesn't rescue a `grep`-in-the-pipe check.)
 3. **NO PR WITHOUT A PASSING PRE-PR REVIEW.** Rejected: "small change" · "I reviewed while writing".
 4. **NEVER COMMIT ON A PROTECTED BRANCH.** Branch first, always.
 5. **STAY IN SCOPE.** Unrelated work → a new branch. A real defect you find **outside** the current
@@ -145,13 +144,15 @@ orchestration plumbing (code + files), **not an LLM step**.
    `models` and **print it** (auditable, e.g. `review→opus, implement→sonnet`). Every stage then spawns
    with `model = state.models[<stage>]` — never an agent type's default. This turns "remember to bridge
    the tierMap" into "copy a concrete value", which is the difference that makes it actually happen.
-   **Routing guard — a security review must never land on a model that refuses it.** After resolving
-   tier→model, apply overlay `modelRouting.mustNotUse` / `securityReviewModel`: for any role tied to a risk
-   axis (`security`/`auth`/`authz`/…), if the resolved model is listed in `mustNotUse[axis]`, substitute
-   `securityReviewModel` (or the nearest allowed tier) and **print the swap** —
-   `SC-ROUTE-AVOID: review <denied>→<sub> (security)`. If no allowed model remains, **halt** — never
-   silently run *or* skip a security review on a refusing model. This is a fail-closed floor, not ceremony:
-   a security review that quietly no-ops is worse than a loud stop.
+   **Routing guard — a security review must never run on a model that refuses security analysis** (it would
+   silently no-op — "ran" but checked nothing). If overlay `modelRouting.securityReviewModel` is set, the
+   **`security` and `authz` review lenses use that model**, overriding their tier-resolved model — record it
+   in state alongside `models.review` (as `models["review.security"]`, a flat key sibling to `review`) so
+   sc-review spawns those lenses with it (§sc-review); when the pin differs from the tier-resolved model,
+   **print** `SC-ROUTE-AVOID: security-lens <tier-model>→<securityReviewModel>` (no log on a no-op pin). This is
+   a fail-closed floor, not ceremony: a security review that quietly no-ops is worse than a loud stop. (Absent
+   the setting, the security lens uses its tier model as before — the guard is opt-in, since only the operator
+   knows which model refuses.)
 8. **Init state**: write `.claude/.ship-cycle-state.json` (including `models` and `baseline`).
 
 ## State (real, not a metaphor)
@@ -171,10 +172,12 @@ from a **prior finished cycle** (`stage: complete` or `failed`), don't resume or
 **archive** it (e.g. rename to `.ship-cycle-state.<goal-slug>.json`) and initialize a fresh state for
 the new goal. Only a state whose `stage` is a mid-pipeline stage is a resume candidate. This is what
 lets one repo run **sequential cycles** (finish one goal, start the next) without the operator manually
-overwriting stale state each time. `models` is resolved once at PREFLIGHT (§Stage 0.6) with risk
+overwriting stale state each time. `models` is resolved once at PREFLIGHT (§Stage 0.7) with risk
 upgrades already applied — every stage reads its model from here rather than re-deriving it. A stage
 whose roles span tiers (e.g. `sc-ship`: writer=low, verifier=high, git-master=mid) records its dominant
-tier here; the stage skill resolves the per-role exceptions from the same tierMap.
+tier here; the stage skill resolves the per-role exceptions from the same tierMap. (§Stage 0.7 is
+PREFLIGHT list item 7, "Resolve per-stage models".) The map also carries `review.security` (a flat key,
+sibling to `review`, absent unless overlay `modelRouting.securityReviewModel` is set — §Stage 0.7).
 
 ## Gate criteria
 
@@ -204,17 +207,17 @@ Assign models by **cost-of-being-wrong × cost-of-verification**, not by role na
   Match the *kind* of risk, not always the same role. Usually 0–1 upgrades per run.
 - **Tier → model bridge (required to execute)**: read overlay `modelRouting.tierMap`
   (e.g. `{"top":"opus","high":"opus","mid":"sonnet","low":"haiku"}`), resolve every stage's tier at
-  PREFLIGHT into `state.models` (§Stage 0.6), and **pass `model = state.models[<stage>]` on each stage's
+  PREFLIGHT into `state.models` (§Stage 0.7), and **pass `model = state.models[<stage>]` on each stage's
   agent call**. Without a tierMap, tiers are advisory only. **The trap (Iron Law 6)**: a specialized
   agent type — `quality-reviewer`, `security-reviewer`, `architect`, etc. — carries its *own* default
   model that **silently overrides your tier** when you omit `model=`. That is precisely how a review
   intended for the top/high tier ends up on a cheaper default without anyone noticing. Pre-resolving into
   `state.models` and passing it explicitly is the fix — never trust the agent-type default.
-- **Security-refusing-model guard**: some frontier models **refuse security analysis**, so a risk-gated
-  security/authz review can silently land on one and no-op — the review "ran" but checked nothing. Overlay
-  `modelRouting.securityReviewModel` pins the model for those reviews and `modelRouting.mustNotUse`
-  denylists model ids per risk axis; PREFLIGHT enforces both when it resolves tiers→models (§Stage 0.7),
-  substituting with a printed `SC-ROUTE-AVOID` line — or halting fail-closed if no allowed model remains.
+- **Security-refusing-model guard**: some models **refuse security analysis**, so a security/authz review
+  routed to one silently no-ops — it "ran" but checked nothing. Overlay `modelRouting.securityReviewModel`
+  pins the model the `security`/`authz` lenses use, overriding their tier (§Stage 0.7 → spawned in
+  sc-review) — set it to the most capable model that will actually *do* security review. A fail-closed
+  floor, not dialable ceremony.
 - **Bigger levers first**: prompt caching (cache the repo/diff/design doc), an effort dial, and
   "cheap path first" for implementation (mid tier → verify → escalate only the failing fix). **Exception**:
   for inherently complex work (novel algorithms, intricate UI like SVG/canvas), start at the higher tier —

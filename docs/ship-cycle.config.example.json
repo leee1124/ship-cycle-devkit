@@ -63,7 +63,7 @@
   },
 
   "modelRouting": {
-    "$comment": "Optional. tierMap bridges tier names → real model ids the Task tool accepts; the skill passes model=<resolved> per call. base overrides which tier each role runs at. securityReviewModel + mustNotUse guard against a model that refuses security analysis silently landing on a security/authz review: mustNotUse denylists model ids per risk axis, securityReviewModel is the forced substitute; PREFLIGHT swaps (logging SC-ROUTE-AVOID) or fails closed. Replace the placeholder id below with the actual model your setup must avoid.",
+    "$comment": "Optional. tierMap bridges tier names → real model ids the Task tool accepts; the skill passes model=<resolved> per call. base overrides which tier each role runs at. securityReviewModel pins the model the 'security'/'authz' review lenses use, overriding their tier — set it when your top/high tier resolves to a model that refuses security analysis (such a review silently no-ops); pin the most capable model that WILL do security review, at your highest security-review tier — auth/payment upgrades that lens to top, which the pin also overrides. Omit it to use the tier model.",
     "tierMap": {
       "top": "opus",
       "high": "opus",
@@ -76,11 +76,7 @@
       "implement": "mid",
       "docs": "low"
     },
-    "securityReviewModel": "opus",
-    "mustNotUse": {
-      "security": ["some-model-that-refuses-security-analysis"],
-      "auth": ["some-model-that-refuses-security-analysis"]
-    }
+    "securityReviewModel": "opus"
   },
 
   "env": {
