@@ -21,7 +21,8 @@ one that could only be review-verified (because live QA was blocked — see sc-q
 are not equally proven; if they read the same in the PR body, the reader can't tell a validated feature
 from an argued one. Label every claim with one of:
 - **live** — driven end-to-end against the running system (actual API call / E2E driver / emulator).
-- **test** — covered by a unit/integration test (name it).
+- **test** — covered by a unit/integration test that **actually ran and passed** (name it; a
+  compiled-but-unrun or `@Disabled` test is not evidence — see sc-qa G9).
 - **review-only** — verified by review/inspection because live was unreachable (say *why* it was blocked).
 
 Surface the labels in the PR body's claim map (e.g. `- ✅ rate limit rejects 11th request — **live** (e2e:
