@@ -17,6 +17,15 @@ implementers wrote.
 - **Exploration + regression**: probe edge cases and adjacent flows the change could have broken —
   including the **N≥2 / batch case**: a defect that only surfaces with multiple rows/items (ordering,
   dedup/merge, pagination, generated-key linking) is invisible when you exercise just one.
+- **Written ≠ run — integration/seam tests must EXECUTE against the real dependency (or an equivalent) and
+  pass.** A test that only **compiles** is not coverage: a DB integration test can compile green and fail on
+  first real execution — a sequence/identity key `useGeneratedKeys` never populated (so the test binds
+  `null`), a NOT-NULL column left unseeded, a migration not applied. `@Disabled`, a suite skipped because
+  DDL/seed/auth wasn't provisioned, or "it builds" all read as *done* while covering nothing — the same
+  false-green class as a masked exit code (Iron Law #2). Require the actual **run log** (executed count > 0,
+  all green) as evidence; a **zero-executed or skipped** suite is a FAIL/deferral, not a pass. If the env
+  genuinely can't run them, take the honest degrade below (contract-level + log the deferral) — never bank a
+  compiled-but-unrun suite as verified.
 - Headless is fully feasible for backend (boot + curl) and web (dev server + an E2E driver); native
   mobile is partial (device/emulator screenshot → a vision agent, or a UI-automation CLI).
 - **E2E prerequisites**: a live backend + an **authenticated session + seeded data** are needed to
@@ -99,7 +108,9 @@ unchecked. G9's HTTP bring-up also covers what a `webEnvironment=NONE` context-l
 filters, health endpoint).
 
 ## Gate G9 (to advance to `sc-ship`)
-- Core flows reproduced; **0 new defects**; front↔back contracts hold. On failure, loop to
+- Core flows reproduced; **0 new defects**; front↔back contracts hold; **the integration/seam tests
+  actually ran (executed count > 0) and passed — a compiled-but-unrun or `@Disabled` suite does not satisfy
+  G9** (degrade honestly if the env can't run them, don't bank it as passed). On failure, loop to
   `sc-implement` with a debugger attached. Set `gates.G9` in state.
 
 ## Model routing

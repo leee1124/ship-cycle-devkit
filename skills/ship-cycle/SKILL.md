@@ -77,7 +77,8 @@ Hard stops, not suggestions. Each lists the excuses agents reach for — all rej
 | 7 | `sc-ship` | docs + verify + PR + cleanup | G10–G13 |
 
 Run in order; a gate must pass before the next stage. On failure, loop back per the gate table.
-**Loop cap: 3 per gate** — beyond that, return to `sc-design` and notify the user.
+**Loop cap: 3 per gate** (tracked in *this cycle's* state file, not in your head) — beyond that, return to
+`sc-design` and notify the user.
 
 Between **every** stage, artifacts pass through the **state-file handoff rule** (plumbing, not an agent) — see below.
 
@@ -95,7 +96,7 @@ orchestration plumbing (code + files), **not an LLM step**.
   carrying is a **code** job, not a model's — so no agent is spent on it.
 - **Always on, every transition.** No branching on "is this handoff big enough": every stage persists
   its artifact and records the pointer, uniformly.
-- **State** (`.claude/.ship-cycle-state.json`): tracks each stage's artifact path + a one-line status.
+- **State** (`.claude/ship-cycle/<branch-slug>.json`, one per cycle): tracks each stage's artifact path + a one-line status.
 - **When to put a model in a handoff instead**: only when you genuinely want a *trusted transformation*
   (extract acceptance criteria, reformat for the next tool). Then pick the tier that transformation's
   difficulty demands — never a blanket cheap "just summarize everything" pass.
@@ -103,6 +104,8 @@ orchestration plumbing (code + files), **not an LLM step**.
 ## Stage 0 — PREFLIGHT
 
 1. **Branch guard**: if on a protected branch (overlay `vcs.protectedBranches`), create `feature/*`|`fix/*`.
+   A **detached HEAD** (empty `git branch --show-current`) has **no cycle key** — refuse and ask for a named
+   branch, since state is keyed by branch (§State).
 2. **Worktree isolation (conditional)**: create an isolated worktree **only when it earns its keep** —
    the change is split across stacks (backend/web/mobile) or runs parallel implementers, where
    `git worktree add ../<repo>-<branch> -b <branch>` lets them work **without collisions**. For a
@@ -132,8 +135,9 @@ orchestration plumbing (code + files), **not an LLM step**.
    changes. If a nature looks **context-bearing** (a backend/service stack) but declares **no** `bootCheck`,
    **print a loud one-line prompt every cycle** — "declare `bootCheck` for nature X so boot is gated" — and
    let G7b degrade to a manual checklist; undeclared must never silently mean "no boot floor". (Printed
-   every cycle, not a two-strike block: per-cycle state is archived on completion and carries no cross-cycle
-   memory to remember the earlier nag.)
+   every cycle, not a two-strike block: per-cycle state is per-branch and not carried across cycles (deleted
+   at G13, or overwritten when a branch is reused), so there is no cross-cycle memory to remember the earlier
+   nag.)
 5. **Capture a test baseline** (so "no new failures" is mechanical, not a judgment call): run the
    nature's test suite on the **base commit once** and record the pass/fail set in state (`baseline`).
    Pre-existing failures on the base branch otherwise force every later stage (sc-tdd/implement/qa) — and
@@ -160,11 +164,21 @@ orchestration plumbing (code + files), **not an LLM step**.
    a fail-closed floor, not ceremony: a security review that quietly no-ops is worse than a loud stop. (Absent
    the setting, the security lens uses its tier model as before — the guard is opt-in, since only the operator
    knows which model refuses.)
-8. **Init state**: write `.claude/.ship-cycle-state.json` (including `models` and `baseline`).
+8. **Init state**: write this cycle's `.claude/ship-cycle/<branch-slug>.json` (including `branch`, `models`,
+   `baseline`). First migrate a legacy bare state file if one exists for this branch, and refuse if the
+   target file already belongs to a different `branch` (§State). A **detached HEAD** (empty slug) has no
+   cycle key — that's caught at step 1.
 
 ## State (real, not a metaphor)
 
-`.claude/.ship-cycle-state.json`:
+**One state file per cycle**, keyed by the feature branch: `.claude/ship-cycle/<branch-slug>.json`, where
+`<branch-slug>` is the branch transformed by **exactly** `tr '/' '-'` (no case change, no other substitution
+— binding identically on the writer here and on every reader, so they can never disagree). The file lives in
+the **cycle's own working directory** (its worktree if PREFLIGHT created one, else the main checkout), and
+`/status`/`/resume`/`/ship` run **from that directory** so `git branch --show-current` names *this* cycle.
+So concurrent cycles on different branches — coexisting in one checkout's `.claude/ship-cycle/`, or each in
+its own worktree — never clobber a shared file, and each file owns its `loops` (per-cycle loop caps for
+free). Implementer sub-worktrees carry **no** cycle state — only the orchestrator's cwd does. Shape:
 ```json
 { "goal": "...", "branch": "...", "worktreePath": "...", "stage": "sc-design",
   "gates": { "G1": "pass", "G2": "pass" }, "loops": { "G8": 1 },
@@ -173,13 +187,20 @@ orchestration plumbing (code + files), **not an LLM step**.
   "models": { "brainstorm": "opus", "design": "opus", "tdd": "sonnet", "implement": "sonnet",
               "review": "opus", "qa": "sonnet", "ship": "sonnet" } }
 ```
-Write it at every transition; read it at PREFLIGHT to **resume** and to enforce the loop cap
-(don't count loops in your head). **State lifecycle across runs**: if the state file already exists
-from a **prior finished cycle** (`stage: complete` or `failed`), don't resume or hand-clobber it —
-**archive** it (e.g. rename to `.ship-cycle-state.<goal-slug>.json`) and initialize a fresh state for
-the new goal. Only a state whose `stage` is a mid-pipeline stage is a resume candidate. This is what
-lets one repo run **sequential cycles** (finish one goal, start the next) without the operator manually
-overwriting stale state each time. `models` is resolved once at PREFLIGHT (§Stage 0.7) with risk
+Write it at every transition; read **this cycle's** file at PREFLIGHT to **resume** and to enforce **its**
+loop cap (don't count loops in your head — each cycle's file owns its own `loops`). **Resume/select**: read
+`.claude/ship-cycle/<current-branch-slug>.json` — a mid-pipeline `stage` resumes that cycle; `complete` /
+`failed` / absent means a **fresh** cycle for this branch (init a new file). Because each cycle owns a
+branch-named file there is no shared active file to clobber and no "archive the stale active file" dance —
+concurrent cycles coexist, and sequential ones just leave the finished file behind (deleted at G13 when the
+branch is). **Collision guard**: the slug is lossy (`feat/x` and `feat-x` both → `feat-x`), so the JSON
+`branch` field is the exact record — on init, if the target file already exists with a **different**
+`branch`, refuse/warn rather than clobber another cycle. **Migration (PREFLIGHT-only, one-time)**: if the
+per-branch file is absent and a legacy bare `.claude/.ship-cycle-state.json` exists whose `branch` **equals**
+the current branch, **move** it into the per-branch path (rewrite, then delete the bare file); if its
+`branch` differs, ignore it (never read another branch's state). Reusing one branch for a **new** goal
+overwrites its prior completed file — acceptable: state is gitignored run-state and the PR + git history hold
+the real record. `models` is resolved once at PREFLIGHT (§Stage 0.7) with risk
 upgrades already applied — every stage reads its model from here rather than re-deriving it. A stage
 whose roles span tiers (e.g. `sc-ship`: writer=low, verifier=high, git-master=mid) records its dominant
 tier here; the stage skill resolves the per-role exceptions from the same tierMap. (§Stage 0.7 is
@@ -202,7 +223,7 @@ sibling to `review`, absent unless overlay `modelRouting.securityReviewModel` is
 | G10 | docs matching the change exist | writer |
 | G11 | every claim mapped 1:1 to a test/build/QA log | rework |
 | G12 | build+test+review+QA passed; base = overlay `vcs.defaultBase`; **branch merges cleanly into base** (merge-tree probe + host `mergeable`) | merge base + resolve, re-verify |
-| G13 | merged branch deleted (local + remote); feature worktree removed if one was created; base synced | — |
+| G13 | merged branch deleted (local + remote); feature worktree removed if one was created; **cycle state file deleted**; base synced | — |
 
 ## Model routing (token efficiency)
 

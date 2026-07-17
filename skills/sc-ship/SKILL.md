@@ -21,7 +21,8 @@ one that could only be review-verified (because live QA was blocked — see sc-q
 are not equally proven; if they read the same in the PR body, the reader can't tell a validated feature
 from an argued one. Label every claim with one of:
 - **live** — driven end-to-end against the running system (actual API call / E2E driver / emulator).
-- **test** — covered by a unit/integration test (name it).
+- **test** — covered by a unit/integration test that **actually ran and passed** (name it; a
+  compiled-but-unrun or `@Disabled` test is not evidence — see sc-qa G9).
 - **review-only** — verified by review/inspection because live was unreachable (say *why* it was blocked).
 
 Surface the labels in the PR body's claim map (e.g. `- ✅ rate limit rejects 11th request — **live** (e2e:
@@ -82,6 +83,8 @@ live pass. `review-only` is a legitimate outcome, not a failure — but it must 
   block the cycle: if removal fails because files are locked (a `node_modules`/build process still holding
   handles — common on Windows), fall back to `git worktree prune` to drop the registry entry and leave the
   directory for later deletion. A failed directory delete is a **warning, not a gate**.
+- **Delete this cycle's state file** (`.claude/ship-cycle/<branch-slug>.json`): the branch is gone, so its
+  branch-keyed state is dead — leaving it would show as a phantom active cycle in `/status`.
 - Sync the base branch.
 - **Gate**: once the branch is deleted, the worktree removed (if one was created), and the base synced,
   set `gates.G13 = pass` in state — the run's terminal gate. Cleanup is best-effort: a locked

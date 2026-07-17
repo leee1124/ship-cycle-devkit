@@ -6,10 +6,24 @@ allowed-tools: Bash Read
 
 Show the current ship-cycle run status by reading its state file (read-only — never modify it).
 
-!`cat .claude/.ship-cycle-state.json 2>/dev/null || echo "NO_STATE"`
+!`slug="$(git branch --show-current | tr '/' '-')"; if [ -z "$slug" ]; then echo "NO_BRANCH"; else cat ".claude/ship-cycle/$slug.json" 2>/dev/null || echo "NO_STATE"; fi`
 
-If the output above is `NO_STATE` (the file is missing), report that no ship-cycle run is active in this
-repo — suggest starting one with `/ship-cycle-devkit:ship-cycle <goal>` — and stop.
+All cycles in this working directory (`.claude/ship-cycle/` — this cwd only, not sibling worktrees;
+includes the current branch's own file):
+
+!`ls .claude/ship-cycle/*.json 2>/dev/null || echo "(none)"`
+
+If the first output is `NO_BRANCH`, you are on a **detached HEAD** — ship-cycle state is keyed by branch, so
+there is no run to inspect here; report that and stop.
+
+If it is `NO_STATE` (no file for the current branch), report that no ship-cycle run is active on this branch
+— suggest starting one with `/ship-cycle-devkit:ship-cycle <goal>` — and stop. (Caveat: right after
+upgrading the plugin mid-cycle, a legacy bare `.claude/.ship-cycle-state.json` is migrated only on the next
+PREFLIGHT, so a read-only `/status` may briefly show `NO_STATE` for a live run — `/resume` or the next stage
+migrates and recovers it.)
+
+Use the **All cycles** list to see co-located concurrent cycles (multiple branch files can coexist in one
+`.claude/ship-cycle/`); it does **not** reach sibling worktrees, which hold their own state.
 
 Otherwise parse the JSON and print a compact, scannable status report:
 
