@@ -26,7 +26,8 @@ expensive outcome. This stage ends when the user accepts a design direction — 
 
 ## Gate G1 (to advance to `sc-design`)
 - Acceptance criteria are stated **verifiably** and the user has agreed the direction.
-- Record the agreed problem + acceptance criteria in `.claude/.ship-cycle-state.json`; set `gates.G1 = pass`.
+- Record the agreed problem + acceptance criteria in this cycle's state file
+  (`.claude/ship-cycle/<branch-slug>.json`); set `gates.G1 = pass`.
 
 ## Lightweight
 For a trivial, unambiguous change, compress this to a one-line restatement + acceptance criteria and proceed.

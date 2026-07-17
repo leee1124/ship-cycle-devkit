@@ -59,8 +59,9 @@ Trigger the skill on any goal:
 
 ### Observability commands
 
-User-invokable slash commands for inspecting or steering an in-flight run (read the state file at
-`.claude/.ship-cycle-state.json`):
+User-invokable slash commands for inspecting or steering an in-flight run (read the cycle's state file at
+`.claude/ship-cycle/<branch-slug>.json`, keyed by the current branch — run them from the cycle's own
+working directory; they resolve the branch with `git branch --show-current`, which needs **git ≥ 2.22**):
 
 - `/ship-cycle-devkit:status` — print the current stage, gate table (G1–G13), loop counts, resolved model
   routing, and worktree. Read-only.
@@ -94,9 +95,12 @@ If the overlay is absent, ship-cycle falls back to built-in heuristics and logs 
 
 > **Commands run from the repo root.** `changeNature[].tests`/`build` execute at the repository root, so use
 > root-relative forms — `cd apps/api && ./gradlew test`, `npm run test -w apps/web`, `npx tsc --noEmit -p apps/mobile` —
-> not a bare `./gradlew` that assumes a subdir cwd.
-> **Gitignore the run state.** Add `.claude/.ship-cycle-state.json` to your `.gitignore` — it's per-run
-> orchestration state, not meant to be committed (the overlay config *is*).
+> not a bare `./gradlew` that assumes a subdir cwd. Run the observability commands and stages from **the
+> cycle's own working directory** (its worktree if one was created, else the main checkout): the per-branch
+> state file lives there and is keyed from that cwd's current branch.
+> **Gitignore the run state.** Add the directory `.claude/ship-cycle/` to your `.gitignore` — it holds the
+> per-cycle, per-branch run state, not meant to be committed (the overlay config
+> `.claude/ship-cycle.config.json` *is*).
 
 ## Model routing (token efficiency)
 

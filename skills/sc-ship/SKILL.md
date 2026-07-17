@@ -83,6 +83,8 @@ live pass. `review-only` is a legitimate outcome, not a failure — but it must 
   block the cycle: if removal fails because files are locked (a `node_modules`/build process still holding
   handles — common on Windows), fall back to `git worktree prune` to drop the registry entry and leave the
   directory for later deletion. A failed directory delete is a **warning, not a gate**.
+- **Delete this cycle's state file** (`.claude/ship-cycle/<branch-slug>.json`): the branch is gone, so its
+  branch-keyed state is dead — leaving it would show as a phantom active cycle in `/status`.
 - Sync the base branch.
 - **Gate**: once the branch is deleted, the worktree removed (if one was created), and the base synced,
   set `gates.G13 = pass` in state — the run's terminal gate. Cleanup is best-effort: a locked

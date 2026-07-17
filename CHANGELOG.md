@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.2.23 — Per-cycle state + integration tests must execute (#41 proposals 1 & 4)
+
+Closes the last two field-note items from the concurrent-run report (#41). Docs-only, framework-agnostic.
+
+- **Per-cycle state, keyed by branch (#41 proposal 1).** The single `.claude/.ship-cycle-state.json` +
+  archive-on-finish assumed **sequential** cycles; running several from one working directory clobbered it,
+  forcing hand-tracked state + loop counts in a scratchpad. State now lives at
+  `.claude/ship-cycle/<branch-slug>.json` (slug = branch via **exactly** `tr '/' '-'`, binding on writer and
+  every reader), one file per cycle, in the cycle's own working directory — so concurrent cycles on different
+  branches never clobber and each file owns its `loops` (per-cycle loop caps for free). PREFLIGHT resumes by
+  branch, migrates a legacy bare file **by move** (only when its `branch` matches — never leaks another
+  branch's state), refuses on a detached HEAD (no branch key) or a slug collision (`branch` field
+  disambiguates), and G13 deletes the file when the branch is deleted. `/status` lists co-located active
+  cycles; `/resume` and `/ship` resolve the current branch. (Two worktrees were already isolated — each has
+  its own `.claude/`; this fixes the same-checkout case.) README gitignore guidance now targets the
+  directory `.claude/ship-cycle/`.
+- **Integration tests must EXECUTE, not just compile (#41 proposal 4).** A DB integration test can compile
+  green and fail on first real execution (a `useGeneratedKeys` key never populated → binds `null`, a NOT-NULL
+  column left unseeded, a migration not applied). sc-qa now requires integration/seam tests to actually run
+  against the real dependency (or an equivalent) and pass — run log with executed count > 0; `@Disabled` or a
+  zero-executed/skipped suite is a FAIL/deferral, not a pass (the same false-green class as a masked exit
+  code). G9 and sc-ship's `test` evidence label are tightened to match.
+
 ## 0.2.22 — Full-context boot/context-load smoke gate for framework-wiring changes (#40)
 
 A change can pass **every** gate — Red-first unit tests (hand-assembled collaborators), integration tests

@@ -6,10 +6,16 @@ allowed-tools: Bash Read
 
 Resume a mid-pipeline ship-cycle run.
 
-!`cat .claude/.ship-cycle-state.json 2>/dev/null || echo "NO_STATE"`
+!`slug="$(git branch --show-current | tr '/' '-')"; if [ -z "$slug" ]; then echo "NO_BRANCH"; else cat ".claude/ship-cycle/$slug.json" 2>/dev/null || echo "NO_STATE"; fi`
 
-If the output is `NO_STATE` (missing file): report there is nothing to resume and suggest starting a run
-with `/ship-cycle-devkit:ship-cycle <goal>`; then stop.
+If the output is `NO_BRANCH` (detached HEAD): ship-cycle state is keyed by branch — report there is no
+branch to resume and stop.
+
+If the output is `NO_STATE` (no file for the current branch): a legacy bare `.claude/.ship-cycle-state.json`
+from an older version may still hold this branch's run — invoke the `ship-cycle` PREFLIGHT resume path,
+which **migrates** a branch-matching legacy file (move) and resumes from it (migration is PREFLIGHT-only;
+this command doesn't move files itself). If there is genuinely no state for this branch, report there is
+nothing to resume and suggest starting a run with `/ship-cycle-devkit:ship-cycle <goal>`; then stop.
 
 If the state's `stage` is a terminal value (`complete` / `failed` / `cancelled`): report that the last run
 already finished (name the outcome) and do **not** resume — suggest a fresh run instead.
