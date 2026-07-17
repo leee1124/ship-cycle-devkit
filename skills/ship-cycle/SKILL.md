@@ -71,7 +71,7 @@ Hard stops, not suggestions. Each lists the excuses agents reach for — all rej
 | 1 | `sc-brainstorm` | agreed problem + acceptance criteria | G1 |
 | 2 | `sc-design` | interfaces/boundaries + critic sign-off | G2/G3 |
 | 3 | `sc-tdd` | failing tests for core logic (Red) | G4 |
-| 4 | `sc-implement` | passing code in worktree isolation (Green) + build | G5/G6/G7 |
+| 4 | `sc-implement` | passing code in worktree isolation (Green) + build | G5/G6/G7/G7b |
 | 5 | `sc-review` | multi-lens parallel review, 0 Critical/High | G8 |
 | 6 | `sc-qa` | integration/E2E + seam contracts | G9 |
 | 7 | `sc-ship` | docs + verify + PR + cleanup | G10–G13 |
@@ -127,6 +127,13 @@ orchestration plumbing (code + files), **not an LLM step**.
    e.g. a "mobile-only" change that design reveals needs a new backend endpoint — **re-run this
    classification and the model routing**, update state, and add the missing implementer axis. A scope
    that grows at the design gate is normal, not a failure; route for the scope you actually have.
+   Classification also sets **G7b applicability**: a nature that declares overlay `bootCheck` has a
+   loadable application context, so G7b (sc-implement) runs the boot/context-load smoke on its non-inert
+   changes. If a nature looks **context-bearing** (a backend/service stack) but declares **no** `bootCheck`,
+   **print a loud one-line prompt every cycle** — "declare `bootCheck` for nature X so boot is gated" — and
+   let G7b degrade to a manual checklist; undeclared must never silently mean "no boot floor". (Printed
+   every cycle, not a two-strike block: per-cycle state is archived on completion and carries no cross-cycle
+   memory to remember the earlier nag.)
 5. **Capture a test baseline** (so "no new failures" is mechanical, not a judgment call): run the
    nature's test suite on the **base commit once** and record the pass/fail set in state (`baseline`).
    Pre-existing failures on the base branch otherwise force every later stage (sc-tdd/implement/qa) — and
@@ -189,6 +196,7 @@ sibling to `review`, absent unless overlay `modelRouting.securityReviewModel` is
 | G5 | build succeeds + new tests pass (Green) | build-fixer |
 | G6 | no failures **new vs `state.baseline`** (pre-existing base-branch reds don't block), core coverage ≥80% | debugger → sc-implement |
 | G7 | (if an artifact ships) real build succeeds | build-fixer |
+| G7b | (if the nature declares `bootCheck`) full-context **eager** boot/context-load smoke passes on a non-inert change | build-fixer (env can't load → checklist) |
 | G8 | 0 Critical/High (authz, paywall, anemic, N+1). UI → designer passes | → sc-implement (design flaw → sc-design) |
 | G9 | 0 new defects in integration/E2E (new vs `state.baseline`); seams reproduced | → sc-implement |
 | G10 | docs matching the change exist | writer |

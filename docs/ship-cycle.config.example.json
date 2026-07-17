@@ -14,11 +14,13 @@
 
   "changeNature": [
     {
+      "$comment": "bootCheck: a full-context (eager) load command. Declaring it makes gate G7b required on every non-inert backend change so a framework-wiring break (e.g. a new interface caught by an unchanged @MapperScan) can't pass unit+sliced-IT+review yet fail to boot. Keep it as a standing @SpringBootTest(webEnvironment=NONE) test so most changes pay zero extra cost; expensive full-server boots belong in sc-qa (G9). A selector matching zero tests is a FAIL.",
       "match": "apps/backend/**/*.java",
       "nature": "backend",
       "tests": ["cd apps/backend && ./gradlew test"],
       "build": ["cd apps/backend && ./gradlew build"],
-      "reviews": ["security", "quality", "performance", "algorithm"]
+      "reviews": ["security", "quality", "performance", "algorithm"],
+      "bootCheck": ["cd apps/backend && ./gradlew test --tests '*ContextLoadTest'"]
     },
     {
       "match": "apps/web/**",

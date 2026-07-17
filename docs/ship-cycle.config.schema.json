@@ -35,7 +35,12 @@
           "nature": { "type": "string" },
           "tests": { "type": "array", "items": { "type": "string" } },
           "build": { "type": "array", "items": { "type": "string" } },
-          "reviews": { "type": "array", "items": { "type": "string" } }
+          "reviews": { "type": "array", "items": { "type": "string" } },
+          "bootCheck": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Command(s) that load the FULL application context with EAGER bean creation (or boot to a health endpoint) — e.g. a @SpringBootTest(webEnvironment=NONE) context-load test selector. Declaring it marks the nature as context-bearing and makes gate G7b (sc-implement) required on every NON-inert change to the nature's production sources, catching framework-wiring breaks (a new type caught by an unchanged scan, bean-scope clashes, missing-property conditionals) that unit + sliced-IT + review all pass yet fail to boot. Prefer the cheap eager context-load kept as a standing suite test; an expensive full-server boot belongs in sc-qa (G9). Needs a full-context-capable env (a superset of the sliced ITs'). A selector matching zero tests is a misconfig FAIL, not a pass. Never wire an env-dependent boot into a CI path lacking its deps."
+          }
         },
         "required": ["match", "nature", "reviews"]
       }

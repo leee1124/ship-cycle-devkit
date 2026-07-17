@@ -90,6 +90,14 @@ mobile nature:
 - **Run** for real features and any change that crosses a seam.
 - **Skip** for trivial/isolated changes (log the skip reason).
 
+## Boot smoke (G7b) vs. this stage's bring-up
+G7b already ran the eager context-load back in Green (sc-implement). When this stage does a **full
+bring-up** (a real boot), that bring-up **re-covers** the same context — so don't add a *third* boot
+solely to re-satisfy G7b; note in state that G9's bring-up covered it. G7b stays owned by Green and fires
+**even when QA is skipped** (a non-seam framework-wiring change), so a skipped QA never means boot went
+unchecked. G9's HTTP bring-up also covers what a `webEnvironment=NONE` context-load can't (web layer,
+filters, health endpoint).
+
 ## Gate G9 (to advance to `sc-ship`)
 - Core flows reproduced; **0 new defects**; front↔back contracts hold. On failure, loop to
   `sc-implement` with a debugger attached. Set `gates.G9` in state.
