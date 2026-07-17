@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.2.22 — Full-context boot/context-load smoke gate for framework-wiring changes (#40)
+
+A change can pass **every** gate — Red-first unit tests (hand-assembled collaborators), integration tests
+(sliced context), and multi-lens review (reads code) — and still ship an app that **won't boot**, when the
+defect is in framework wiring. None of those gates load the *full* application context. Real field
+incident: an **unchanged** broad `@MapperScan` proxied a **new plain interface** as a mapper →
+`BindingException` at bean creation → context fails to start; it passed 37 unit tests + a sliced-context IT
++ an opus review. Adds gate **G7b** (docs-only, framework-agnostic):
+
+- **Nature-level trigger, not a per-diff guess.** A `changeNature` entry that declares a project-defined
+  `bootCheck` command marks the nature as having a loadable context; G7b (sc-implement, Green) then runs it
+  on **every non-inert change** to that nature's production sources. Skip only **provably-inert** diffs
+  (docs/comments, tests, non-runtime assets); production resources (`src/main/resources/**`), build/dep
+  manifests, and framework config are **non-inert by default**, and **when unsure → boot**. (An earlier
+  path-glob "touches wiring" trigger was rejected by the kit's own design critic: it would have *skipped*
+  the very incident above — the changed file was an ordinary interface, not a config file.)
+- **An outcome floor, not dialable ceremony.** The only thing dialed is whether a nature has a loadable
+  context at all — UI-leaf natures declare no `bootCheck` and never boot, so leaf changes pay nothing.
+- **Cheap + eager + honest.** Prefer a standing `@SpringBootTest(webEnvironment=NONE)` load (~seconds, often
+  already in the suite); it must force **eager** bean creation (lazy-init can false-pass the eager failure).
+  A selector matching zero tests is a **misconfig FAIL**, not a pass. It proves the DI graph is
+  constructible — the web layer/filters/health stay sc-qa's HTTP bring-up (when QA does a full bring-up it
+  re-covers G7b, so no third boot).
+- **CI-safety caveat.** Needs a full-context-capable env (a superset of the sliced ITs'). The gate lives in
+  the **cycle** (local/pre-PR); never wire an env-dependent boot into a CI path lacking its deps — it
+  red-blocks unrelated PRs, and during an outage blocks the very fix that restores the service. When a
+  context can't be loaded locally, degrade to a named pre-merge checklist item (surfaced by sc-ship), never
+  a silent pass.
+
+Docs-only; framework-agnostic; no behavioral code. Closes #40.
+
 ## 0.2.21 — Two silent-failure guards from a real 2-cycle field run (#41)
 
 Field notes from an external user running two ship-cycles concurrently on a Spring Boot + MyBatis repo

@@ -66,6 +66,41 @@ authz from the principal only, DTOs not entities, whitelist validation, no N+1, 
   alone does **not** rescue a `grep`-in-the-pipe check — `grep` exits `1` on no match, so a *passing* build
   turns false-RED; drop the pipe, don't just add pipefail. (Iron Law #2.)
 - **G7**: if the change ships an artifact (APK/IPA/binary), run the **real packaging build**.
+- **G7b — boot/context-load smoke (nature declares `bootCheck`)**: unit tests hand-assemble collaborators
+  and sliced ITs skip full wiring, so a framework-wiring defect — a new type caught by an **unchanged**
+  bean/mapper/component scan, a bean-scope clash, a missing-property `@Conditional` — passes every other
+  gate yet the app won't boot. If the nature declares `bootCheck`, it **has a loadable context** → **run it
+  on every non-inert change to that nature's production sources** and require it to pass. This is an
+  **outcome floor, not ceremony**: the only thing dialed is whether the nature has a context at all (a
+  UI-leaf nature declares none → never boots).
+  - **Inert = safe to skip, defined narrowly**: literal code comments / Javadoc (**not** annotations —
+    `@Component`/`@Scope`/`@Conditional`/`@MapperScan` edits are wiring changes → always boot), tests, and
+    non-runtime assets (images, README, fixtures). **NON-inert by default (always boot)**: production
+    resources on the runtime classpath (`src/main/resources/**` — `application.yml`/`.properties`,
+    `spring.factories`, `@AutoConfiguration` imports; equivalently a Node DI/container-wiring module, Rails
+    `config/`, `Program.cs`, …), build/dependency manifests + lockfiles, and framework config — these are
+    prime boot-breakers. **When inertness is uncertain, treat as non-inert and boot** (the outcome bright
+    line). "Test-only" = the diff is limited to test paths (`**/*Test.*`, `**/test/**`, `**/*.spec.*`).
+  - **Depth — cheap eager context-load**: prefer the cheap full-context load
+    (`@SpringBootTest(webEnvironment=NONE)` or equivalent), kept as a **standing test in the suite** so most
+    changes pay **zero** extra cost (G5 already runs it). It must force **eager** bean creation — a
+    lazy-init context (`spring.main.lazy-initialization=true`) can load green and still fail on first use,
+    false-passing the eager `BindingException` this gate exists to catch. It proves the **DI graph is
+    constructible**, not the web layer / filters / health endpoint — those stay sc-qa's HTTP bring-up (so
+    G7b and G9 are not redundant). A genuinely expensive full-server/health boot belongs in **sc-qa (G9)**,
+    not as an always-on G7b floor.
+  - **No vacuous green** (Iron Law #2): a `bootCheck` selector that matches **zero** tests exits `0` — treat
+    that as **misconfig → FAIL**, not pass. Assert a non-zero context-load test actually ran (read the
+    report/count); don't trust exit `0`.
+  - **Environment**: `bootCheck` needs a **full-context-capable** env — a **superset** of the sliced ITs'
+    needs (an embedded/stubbed datasource sufficient for **every** bean's deps to resolve). The sliced ITs'
+    rails are by definition **not enough** — that they were sliced is why the incident slipped.
+  - **Can't load a context locally** (no datasource/backing service) → **don't fake a pass**: record a named
+    boot-verification checklist item in state and let **sc-ship** surface it in the PR as a pre-merge gate
+    (like sc-qa's device-gap deferral). **Never wire an env-dependent boot check into a CI path lacking its
+    deps** — it red-blocks unrelated PRs; during an outage, doubly bad (it blocks the fix that restores the
+    service). G7b lives in the **cycle** (local/pre-PR), not as a blanket CI requirement.
+  - Set `gates.G7b` in state (`pass` / `checklist` / `skip`, with the reason).
 - **Lockfile sync**: if you changed a dependency **manifest** (`package.json`, `go.mod`, `Gemfile`,
   `Cargo.toml`, …) that has a **committed lockfile**, regenerate the lockfile in the same change. CI and
   release builds install from the **lockfile** (`npm ci`, `--frozen-lockfile`, …), so a manifest-only edit
@@ -73,7 +108,7 @@ authz from the principal only, DTOs not entities, whitelist validation, no N+1, 
   --package-lock-only` regenerates the lockfile without touching `node_modules`.) In a workspace, keep the
   single root lockfile; delete stray per-package ones.
 - Do **not** commit or open a PR here — that's `sc-ship`, after review.
-- Set `gates.G5/G6/G7` in state.
+- Set `gates.G5/G6/G7/G7b` in state.
 
 ## Model routing
 executor + build-fixer run at the **mid** tier. Cheap path first: implement on mid → verify → escalate

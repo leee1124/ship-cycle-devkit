@@ -57,6 +57,11 @@ live pass. `review-only` is a legitimate outcome, not a failure — but it must 
 - Body summarizes the review + QA results and **links the tracked issue**: `Closes #NN` (fully done →
   auto-close on merge) or `Refs #NN` (partial → progress comment, keep open). Assign the milestone if
   `vcs.tracker.milestones` is on.
+- **Surface any deferred manual checks recorded in state as a pre-merge manual gate.** If a stage could not
+  verify something in this environment and recorded a checklist item — a `gates.G7b: checklist` boot
+  deferral (sc-implement couldn't load a full context locally) or sc-qa's device-gap / reachability-blocked
+  items — list them in the PR body under an explicit **"Pre-merge manual gate"** heading (one observable
+  check per item), so a deferral can't slip in as a silent pass. If none were recorded, say so.
 - **Verify the closing token actually landed (don't trust that you wrote it).** After opening the PR,
   **re-fetch the created body** and assert it contains the exact intended token for **every** tracked issue
   in `state`: `Closes #NN` when that issue is fully done, `Refs #NN` when partial. A bare mention (`#NN`,
