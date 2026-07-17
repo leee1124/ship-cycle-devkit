@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.24 — Genericize domain-specific module names in the example overlay (#44)
+
+The shipped example overlay (`docs/ship-cycle.config.example.json`) had `audit.modules` set to
+domain-specific names derived from one product's domain (`onboarding`, `program`, `workout-log`,
+`nutrition`). The example is what users copy, and the kit is meant to be domain-agnostic. Genericized to
+neutral placeholders (`auth`, `billing`, `catalog`, `orders`, `profile`, `settings`); the `$comment`
+already notes these are illustrative. Docs-only, no schema or behavior change. Closes #44.
+
 ## 0.2.23 — Per-cycle state + integration tests must execute (#41 proposals 1 & 4)
 
 Closes the last two field-note items from the concurrent-run report (#41). Docs-only, framework-agnostic.

@@ -60,7 +60,7 @@
       { "name": "web", "routes": ["apps/web/src/app/**"], "client": ["apps/web/src/lib/api.ts"] },
       { "name": "mobile", "routes": ["apps/mobile/app/**"], "client": ["apps/mobile/src/repositories/**"] }
     ],
-    "modules": ["auth", "onboarding", "program", "workout-log", "nutrition", "settings"],
+    "modules": ["auth", "billing", "catalog", "orders", "profile", "settings"],
     "reportDir": "docs/audits"
   },
 
