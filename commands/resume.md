@@ -26,9 +26,10 @@ Otherwise, resume via the `ship-cycle` skill's PREFLIGHT resume path:
    checked out. If the branch/worktree is gone, say so and stop — don't guess.
 2. Continue from the **last incomplete stage** (`stage`) forward through the remaining gates, honoring the
    recorded `models`, `effort`, `nature`, `risk`, `size`, `baseline` (**including its `unrunnableHere`
-   quarantine** — re-probe before adding to it, never to clear a gate), and per-gate `loops` (respect the
-   orchestrator's loop cap). Keep **appending** to `telemetry` rather than restarting it — a resumed run's
-   cost readout must cover the whole run, not just the part after the resume. If `size` is absent (a run
+   quarantine, which is read-only on resume** — resuming is not an occasion to re-derive it; §ship-cycle
+   Stage 0.5), and per-gate `loops` (respect the orchestrator's loop cap). Keep **appending** to
+   `telemetry` rather than restarting it — a resumed run's cost readout must cover the whole run, not just
+   the part after the resume. If `size` is absent (a run
    started before it was recorded), classify it now per §Stage 0.2 (Change-size tier) — but only **upward**
    from what the completed stages imply: resuming is not an occasion to re-tier a cycle downward.
 3. Do **not** restart already-`pass` stages and do **not** re-initialize the state file — pick up exactly

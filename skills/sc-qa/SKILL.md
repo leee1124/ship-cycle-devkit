@@ -33,8 +33,12 @@ implementers wrote.
   itself** (`@Disabled`, zero-executed, DDL/seed/auth not provisioned) is **still a FAIL/deferral**;
   moving it into `unrunnableHere` mid-cycle to get past this gate is the precise abuse this category must
   not enable, and the pre-committed set plus the probe requirement is what forbids it. And quarantine is
-  not coverage: a criterion whose only evidence is an unrunnable-here suite ships as **`review-only`** on
-  the pre-merge manual gate (§sc-ship G11), never as `test`.
+  not coverage: a criterion whose only evidence is an unrunnable-here suite ships as
+  **`review-only (ci-deferred)`** (§sc-ship G11) on the pre-merge manual gate (§sc-ship G12), never as
+  `test`. And quarantining changes the **label, not the work**: 0.2.23's honest degrade still applies in
+  full — contract-level seam verification for every criterion the quarantined suite was meant to cover,
+  plus the logged deferral. `unrunnableHere` is where you record *why* a suite didn't run; it is never
+  permission to skip the fallback that stands in for it.
 - Headless is fully feasible for backend (boot + curl) and web (dev server + an E2E driver); native
   mobile is partial (device/emulator screenshot → a vision agent, or a UI-automation CLI).
 - **E2E prerequisites**: a live backend + an **authenticated session + seeded data** are needed to
@@ -129,9 +133,14 @@ filters, health endpoint).
   front↔back contracts hold; **every integration/seam suite that *can* run here actually ran (executed
   count > 0) and passed — a compiled-but-unrun or `@Disabled` suite does not satisfy G9** (degrade honestly
   if the env can't run them, don't bank it as passed). A suite in `unrunnableHere` doesn't block this gate
-  and doesn't satisfy it either; **if that set is the *only* coverage for the change, G9 is a named degrade,
-  not a pass** — say so and carry it to the pre-merge manual gate. On failure, loop to
-  `sc-implement` with a debugger attached. Set `gates.G9` in state.
+  and doesn't satisfy it either; **if that set is the *only* coverage for the change, G9 is a `degrade`,
+  not a `pass`.**
+- Set `gates.G9` in state as **`pass` / `degrade` / `fail`, with the reason** — the same three-way shape
+  `gates.G7b` already uses (`pass`/`checklist`/`skip`). A `degrade` is **not** a failure: do **not** loop to
+  `sc-implement` with a debugger that cannot conjure a database, and do **not** write `pass` because the
+  gate had no other value to take. Carry its reason to the pre-merge manual gate, where G12 honors it
+  (§sc-ship G12). A gate with no truthful value is how false-green gets written by an honest agent. On a
+  genuine `fail`, loop to `sc-implement` with a debugger attached.
 
 ## Model routing
 qa-tester + verifier run at the **mid** tier.

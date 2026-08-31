@@ -190,7 +190,11 @@ orchestration plumbing (code + files), **not an LLM step**.
    Pre-existing failures on the base branch otherwise force every later stage (sc-tdd/implement/qa) — and
    every parallel implementer — to re-derive "is this my regression or was it already red?" by hand
    (repeatedly, via stash-and-compare). With a baseline recorded, gates G6/G9 diff against it: a failure
-   already in `baseline` is not a regression; only a **new** one blocks. Skip only on the **Tier S** path.
+   already in `baseline` is not a regression; only a **new** one blocks. Skip only on the **Tier S** path —
+   and a skipped baseline means `unrunnableHere` is **absent, not empty**: the category is *unavailable* on
+   Tier S, because there is no pre-committed set for it to be pre-committed against. A Tier S run that meets
+   a suite it cannot start **re-tiers upward to M** (§Stage 0.2, monotonic) and captures the baseline
+   against the base commit; it never mints a quarantine mid-cycle.
 
    **A third category — `unrunnableHere`.** Pass/fail is binary and some suites are neither: an
    integration/DDL/DB-gated suite this environment **cannot start at all** (no database reachable, a
@@ -198,24 +202,39 @@ orchestration plumbing (code + files), **not an LLM step**.
    It is not a failure to diff against, and 0.2.23 rightly forbids counting it as passed — so today a large
    part of a suite ends up with **no truthful status**, which is how "can't run it here" quietly becomes
    either a fake pass or a fake regression. Record it instead:
-   `baseline.unrunnableHere: [{ suite, reason, probe }]`.
-   - **The boundary is where the suite stops, and it is not a judgment call.** *Unrunnable-here* means the
-     suite **could not start** because a **dependency** is missing. A suite that **starts and fails** is
-     `failing`. A suite that starts and **skips itself** — `@Disabled`, zero-executed, DDL/seed/auth not
-     provisioned — stays 0.2.23's **FAIL/deferral**. This category is **not a laundering route for a
-     disabled test**; it exists only for a dependency the environment refuses to provide.
-   - **A probe, not an assertion.** Record the command you ran and what it returned (`connection refused`,
-     `no such host`, a policy denial) in `probe`. **No probe ⇒ not unrunnable-here** — the claim has to
-     cost something to make. Where the nature declares overlay `envProbe`, run that; otherwise probe the
-     dependency directly.
-   - **Pre-committed, and the set may only shrink.** It is classified **against the base commit, before
-     this change exists**, so it can never be reached for mid-cycle to make a regression disappear. Moving
-     a suite **out** (it became runnable) is free and always welcome. Moving one **in** mid-cycle demands a
-     **fresh probe** and a loud one-line log naming suite + reason — a suite that ran at PREFLIGHT and
-     won't run now is a **finding**, not a quarantine.
+   `baseline.unrunnableHere: [{ suite, reason, startupError, probe, capturedAt }]`. (`failing` is
+   per-case, `unrunnableHere` per-suite — a suite that could not start has no cases to enumerate.)
+   - **The boundary is where the suite stops.** *Unrunnable-here* means the suite **could not start**
+     because a **dependency** is missing. A suite that **starts and fails** is `failing`. A suite that
+     starts and **skips itself** — `@Disabled`, zero-executed, DDL/seed/auth not provisioned — stays
+     0.2.23's **FAIL/deferral**. This category is **not a laundering route for a disabled test**; it exists
+     only for a dependency the environment refuses to provide. Runners blur this: a context-init failure is
+     commonly reported as an *error on every test method* (reads like `failing`) and a container-gated
+     suite as *skipped* (reads like 0.2.23). **When the report is ambiguous it is not unrunnable-here** —
+     record it under whichever stricter category the runner named, and say in one line why.
+   - **Two pieces of evidence, and the dependency probe is the weaker one.** Record (a) `startupError` —
+     the **suite's own attempted run** in this baseline, terminating with an initialization error **before
+     executing any test**; paste the error line — and (b) `probe`, the dependency command and what it
+     returned (`connection refused`, `no such host`, a policy denial). Only (a) says *this suite* could not
+     start; (b) says the environment is missing something, and **one (b) never licenses quarantining a
+     second suite**. **Either piece missing ⇒ not unrunnable-here.** Where the nature declares overlay
+     `envProbe`, run it — a **passing** `envProbe` is a hard bar: nothing under that nature may be
+     quarantined for that dependency. Be honest about what this buys: both pieces are self-reported prose
+     that nothing validates. They are **friction, not proof**. What actually holds this category shut is
+     that it is fixed at the base commit (below) and that it satisfies nothing (further below).
+   - **Pre-committed: fixed at PREFLIGHT, and it may only shrink.** It is classified **against the base
+     commit, before this change exists**. Moving a suite **out** (it became runnable) is free and always
+     welcome. **There is no path that adds a suite mid-cycle.** A suite that ran at PREFLIGHT and won't run
+     now is a **finding** — attach a debugger; it is an environment regression this change may have caused.
+     A suite **not in the baseline run at all** (written this cycle by sc-tdd, or never selected by the
+     nature's `tests` command) may only **inherit** an existing entry, and only when it is gated by the
+     **same dependency whose probe already failed at PREFLIGHT** — recorded with
+     `inheritedFrom: "<the PREFLIGHT entry>"`. Any other growth means re-running this step against the base
+     commit from the top, never editing the set in place.
    - **It never satisfies anything.** G6/G9 stop treating these suites as regressions; they do **not**
      start treating them as coverage. sc-ship maps every acceptance criterion whose only coverage is an
-     unrunnable-here suite to `review-only` and surfaces it on the pre-merge manual gate (§sc-ship G11).
+     unrunnable-here suite to `review-only (ci-deferred)` (§sc-ship G11) and surfaces it on the pre-merge
+     manual gate (§sc-ship G12).
 6. **Classify risk** (for model routing, below). The label dials **ceremony only** — the model tier and
    which role is upgraded — **never an outcome**: verification, fresh-eyes review, and the fail-closed
    floors run regardless of the label. **Not one-shot (mirrors step 4):** if a later stage reveals a
@@ -262,8 +281,10 @@ free). Implementer sub-worktrees carry **no** cycle state — only the orchestra
   "gates": { "G1": "pass", "G2": "pass" }, "loops": { "G8": 1 },
   "nature": ["backend"], "risk": ["auth"], "size": "L",
   "baseline": { "capturedOn": "<base-sha>", "failing": ["suiteA#case", "..."],
-                "unrunnableHere": [{ "suite": "OrderRepositoryIT", "reason": "no database reachable",
-                                     "probe": "pg_isready -h localhost -p 5432 → no response" }] },
+                "unrunnableHere": [{ "suite": "suiteB", "reason": "no database reachable",
+                                     "startupError": "<the suite's own init error, before any test ran>",
+                                     "probe": "<dependency ping> → connection refused",
+                                     "capturedAt": "preflight" }] },
   "models": { "brainstorm": "opus", "design": "opus", "tdd": "sonnet", "implement": "sonnet",
               "review": "opus", "qa": "sonnet", "ship": "sonnet" },
   "effort": { "design": "xhigh", "tdd": "medium", "implement": "low",
@@ -309,7 +330,7 @@ sibling to `review`, absent unless overlay `modelRouting.securityReviewModel` is
 | G9 | 0 new defects in integration/E2E (new vs `state.baseline`, ignoring `baseline.unrunnableHere`); seams reproduced; ITs that **can** run here actually ran | → sc-implement |
 | G10 | docs matching the change exist | writer |
 | G11 | every claim mapped 1:1 to a test/build/QA log | rework |
-| G12 | build+test+review+QA passed; base = overlay `vcs.defaultBase`; **branch merges cleanly into base** (merge-tree probe + host `mergeable`) | merge base + resolve, re-verify |
+| G12 | build+test+review+QA passed — a `degrade` G9 / `checklist` G7b counts **only** when its item is on the pre-merge manual gate; base = overlay `vcs.defaultBase`; **branch merges cleanly into base** (merge-tree probe + host `mergeable`) | merge base + resolve, re-verify |
 | G13 | merged branch deleted (local + remote); feature worktree removed if one was created (**linked dep stores unlinked first**, never deleted through); **cycle state file deleted**; base synced | — |
 
 ## Model routing (token efficiency)
