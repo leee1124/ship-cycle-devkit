@@ -26,6 +26,15 @@ implementers wrote.
   all green) as evidence; a **zero-executed or skipped** suite is a FAIL/deferral, not a pass. If the env
   genuinely can't run them, take the honest degrade below (contract-level + log the deferral) — never bank a
   compiled-but-unrun suite as verified.
+- **The one carve-out, and where it stops: `baseline.unrunnableHere`** (§ship-cycle Stage 0.5 — Capture a
+  test baseline). A suite the environment **cannot start** — no DB reachable, a service absent, a sandbox
+  policy refusing the connection, each recorded at PREFLIGHT with a **probe** — is neither a pass nor a
+  regression: G9 diffs around it. That is the whole of the exception. A suite that **starts and skips
+  itself** (`@Disabled`, zero-executed, DDL/seed/auth not provisioned) is **still a FAIL/deferral**;
+  moving it into `unrunnableHere` mid-cycle to get past this gate is the precise abuse this category must
+  not enable, and the pre-committed set plus the probe requirement is what forbids it. And quarantine is
+  not coverage: a criterion whose only evidence is an unrunnable-here suite ships as **`review-only`** on
+  the pre-merge manual gate (§sc-ship G11), never as `test`.
 - Headless is fully feasible for backend (boot + curl) and web (dev server + an E2E driver); native
   mobile is partial (device/emulator screenshot → a vision agent, or a UI-automation CLI).
 - **E2E prerequisites**: a live backend + an **authenticated session + seeded data** are needed to
@@ -116,9 +125,12 @@ unchecked. G9's HTTP bring-up also covers what a `webEnvironment=NONE` context-l
 filters, health endpoint).
 
 ## Gate G9 (to advance to `sc-ship`)
-- Core flows reproduced; **0 new defects**; front↔back contracts hold; **the integration/seam tests
-  actually ran (executed count > 0) and passed — a compiled-but-unrun or `@Disabled` suite does not satisfy
-  G9** (degrade honestly if the env can't run them, don't bank it as passed). On failure, loop to
+- Core flows reproduced; **0 new defects** (new vs `state.baseline`, ignoring `baseline.unrunnableHere`);
+  front↔back contracts hold; **every integration/seam suite that *can* run here actually ran (executed
+  count > 0) and passed — a compiled-but-unrun or `@Disabled` suite does not satisfy G9** (degrade honestly
+  if the env can't run them, don't bank it as passed). A suite in `unrunnableHere` doesn't block this gate
+  and doesn't satisfy it either; **if that set is the *only* coverage for the change, G9 is a named degrade,
+  not a pass** — say so and carry it to the pre-merge manual gate. On failure, loop to
   `sc-implement` with a debugger attached. Set `gates.G9` in state.
 
 ## Model routing

@@ -36,6 +36,11 @@
           "tests": { "type": "array", "items": { "type": "string" } },
           "build": { "type": "array", "items": { "type": "string" } },
           "reviews": { "type": "array", "items": { "type": "string" } },
+          "envProbe": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Command(s) that check whether this nature's test dependencies are actually reachable in THIS environment -- a DB liveness ping, a health curl. PREFLIGHT runs it while capturing the baseline: when it fails, the suites it gates are recorded in state.baseline.unrunnableHere as {suite, reason, probe} and gates G6/G9 diff AROUND them -- neither a regression nor coverage, and sc-ship maps any criterion whose only cover they are to the review-only label on the pre-merge manual gate. Deliberately narrow: only a suite that CANNOT START for want of a dependency qualifies. A suite that starts and fails is a failure; one that starts and skips itself (@Disabled, zero-executed, DDL/seed/auth not provisioned) stays a FAIL/deferral per 0.2.23. Without this declaration the classification is still possible but still requires a recorded probe output -- an assertion alone never qualifies."
+          },
           "bootCheck": {
             "type": "array",
             "items": { "type": "string" },

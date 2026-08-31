@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.2.27 — An "unrunnable-here" baseline category for env/DB-gated suites (#50)
+
+The test baseline (0.2.10) is binary — pass vs fail — and G6/G9 read "new failure vs baseline" as a
+regression. 0.2.23 tightened honesty by making `@Disabled` / zero-executed suites a FAIL/deferral rather
+than a pass. Between them sits a real third state they can't model: **unrunnable-here** — an
+integration/DDL/DB-gated suite this environment **cannot start at all**, verified elsewhere against a real
+dependency. It is not a failure to diff against, and counting it as passed is forbidden, so today a large
+part of a suite ends up with **no truthful status** — which is exactly how "can't run it here" becomes
+either a fake pass or a fake regression. Docs-only, framework-agnostic. Closes #50.
+
+- **`baseline.unrunnableHere: [{ suite, reason, probe }]`**, captured at PREFLIGHT alongside `failing`.
+  G6/G9 diff **around** it: neither a regression nor a silent skip — a recorded quarantine with a reason.
+- **The boundary is where the suite stops, and it is not a judgment call.** *Unrunnable-here* means the
+  suite **could not start** for want of a **dependency**. A suite that **starts and fails** is `failing`.
+  A suite that starts and **skips itself** — `@Disabled`, zero-executed, DDL/seed/auth not provisioned —
+  remains 0.2.23's FAIL/deferral. This category is **not a laundering route for a disabled test**, and the
+  0.2.23 floor is not relaxed by one word.
+- **A probe, not an assertion.** The recorded `probe` is the command and what it returned (`connection
+  refused`, `no such host`, a policy denial). **No probe ⇒ not unrunnable-here** — the claim has to cost
+  something to make. A nature may declare overlay **`changeNature[].envProbe`** (a DB liveness ping, a
+  health curl) so the classification is mechanical, mirroring `bootCheck`'s precedent.
+- **Pre-committed, and the set may only shrink.** It is classified **against the base commit, before the
+  change exists**, so it cannot be reached for mid-cycle to make a regression disappear. Moving a suite
+  **out** is free; moving one **in** mid-cycle demands a fresh probe and a loud log — a suite that ran at
+  PREFLIGHT and won't run now is a **finding**, not a quarantine.
+- **Quarantine is never coverage.** sc-ship maps any acceptance criterion whose only cover is an
+  unrunnable-here suite to the existing **`review-only`** label (0.2.14) **mechanically**, names the suite
+  and its reason, and lists it under the **pre-merge manual gate** — the observable check being "this suite
+  passes where it *can* run". "Covered in CI" is true and is still not a `test` label: G11 records what
+  *this run* proved. If that set is a change's only coverage, G9 is a **named degrade, not a pass**, and
+  sc-ship says so in one line rather than letting a claim map of quarantines read as a verified change.
+
 ## 0.2.26 — Right-size the cycle: size tiers, effort on the judgment axis, cost readout (#54, #53, #52)
 
 Three issues on one axis: **#54** decides how much ceremony a change gets, **#53** makes the hardest

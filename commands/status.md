@@ -34,6 +34,9 @@ Otherwise parse the JSON and print a compact, scannable status report:
 - **Loop counts** per gate from `loops`; the loop cap is 3 per gate — flag any gate that has hit the cap.
 - **Resolved model routing** from `models` (per stage) and **effort** from `effort`.
 - **Change nature** (`nature`), **risk** (`risk`), and **size tier** (`size` — S/M/L).
+- **Baseline**: the count of pre-existing failures (`baseline.failing`) and, separately, the suites this
+  environment **cannot run** (`baseline.unrunnableHere`) with each one's `reason` — these are quarantined,
+  neither passing nor regressed. Never fold the two counts together: a quarantine is not a red test.
 - **Cost so far** from `telemetry`: one row per completed stage (tier / model / effort, plus tokens or cost
   where the host exposed them), the running total, and which risk-gated upgrades fired
   (`telemetry.upgrades`). Print `unavailable` for any figure the host didn't provide — **never estimate

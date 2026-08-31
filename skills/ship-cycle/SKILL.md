@@ -191,6 +191,31 @@ orchestration plumbing (code + files), **not an LLM step**.
    every parallel implementer — to re-derive "is this my regression or was it already red?" by hand
    (repeatedly, via stash-and-compare). With a baseline recorded, gates G6/G9 diff against it: a failure
    already in `baseline` is not a regression; only a **new** one blocks. Skip only on the **Tier S** path.
+
+   **A third category — `unrunnableHere`.** Pass/fail is binary and some suites are neither: an
+   integration/DDL/DB-gated suite this environment **cannot start at all** (no database reachable, a
+   service absent, a sandbox policy refusing the connection), verified elsewhere against a real dependency.
+   It is not a failure to diff against, and 0.2.23 rightly forbids counting it as passed — so today a large
+   part of a suite ends up with **no truthful status**, which is how "can't run it here" quietly becomes
+   either a fake pass or a fake regression. Record it instead:
+   `baseline.unrunnableHere: [{ suite, reason, probe }]`.
+   - **The boundary is where the suite stops, and it is not a judgment call.** *Unrunnable-here* means the
+     suite **could not start** because a **dependency** is missing. A suite that **starts and fails** is
+     `failing`. A suite that starts and **skips itself** — `@Disabled`, zero-executed, DDL/seed/auth not
+     provisioned — stays 0.2.23's **FAIL/deferral**. This category is **not a laundering route for a
+     disabled test**; it exists only for a dependency the environment refuses to provide.
+   - **A probe, not an assertion.** Record the command you ran and what it returned (`connection refused`,
+     `no such host`, a policy denial) in `probe`. **No probe ⇒ not unrunnable-here** — the claim has to
+     cost something to make. Where the nature declares overlay `envProbe`, run that; otherwise probe the
+     dependency directly.
+   - **Pre-committed, and the set may only shrink.** It is classified **against the base commit, before
+     this change exists**, so it can never be reached for mid-cycle to make a regression disappear. Moving
+     a suite **out** (it became runnable) is free and always welcome. Moving one **in** mid-cycle demands a
+     **fresh probe** and a loud one-line log naming suite + reason — a suite that ran at PREFLIGHT and
+     won't run now is a **finding**, not a quarantine.
+   - **It never satisfies anything.** G6/G9 stop treating these suites as regressions; they do **not**
+     start treating them as coverage. sc-ship maps every acceptance criterion whose only coverage is an
+     unrunnable-here suite to `review-only` and surfaces it on the pre-merge manual gate (§sc-ship G11).
 6. **Classify risk** (for model routing, below). The label dials **ceremony only** — the model tier and
    which role is upgraded — **never an outcome**: verification, fresh-eyes review, and the fail-closed
    floors run regardless of the label. **Not one-shot (mirrors step 4):** if a later stage reveals a
@@ -216,7 +241,8 @@ orchestration plumbing (code + files), **not an LLM step**.
    the setting, the security lens uses its tier model as before — the guard is opt-in, since only the operator
    knows which model refuses.)
 8. **Init state**: write this cycle's `.claude/ship-cycle/<branch-slug>.json` (including `branch`, `size`,
-   `sizeEvidence` when the tier is S, `models`, `effort`, `baseline`, and an empty `telemetry`). First
+   `sizeEvidence` when the tier is S, `models`, `effort`, `baseline` including its `unrunnableHere` set,
+   and an empty `telemetry`). First
    migrate a legacy bare state file if one exists for this branch, and refuse if the
    target file already belongs to a different `branch` (§State). A **detached HEAD** (empty slug) has no
    cycle key — that's caught at step 1.
@@ -235,7 +261,9 @@ free). Implementer sub-worktrees carry **no** cycle state — only the orchestra
 { "goal": "...", "branch": "...", "worktreePath": "...", "stage": "sc-design",
   "gates": { "G1": "pass", "G2": "pass" }, "loops": { "G8": 1 },
   "nature": ["backend"], "risk": ["auth"], "size": "L",
-  "baseline": { "capturedOn": "<base-sha>", "failing": ["suiteA#case", "..."] },
+  "baseline": { "capturedOn": "<base-sha>", "failing": ["suiteA#case", "..."],
+                "unrunnableHere": [{ "suite": "OrderRepositoryIT", "reason": "no database reachable",
+                                     "probe": "pg_isready -h localhost -p 5432 → no response" }] },
   "models": { "brainstorm": "opus", "design": "opus", "tdd": "sonnet", "implement": "sonnet",
               "review": "opus", "qa": "sonnet", "ship": "sonnet" },
   "effort": { "design": "xhigh", "tdd": "medium", "implement": "low",
@@ -261,7 +289,8 @@ the real record. `models` is resolved once at PREFLIGHT (§Stage 0.7) with risk
 upgrades already applied — every stage reads its model from here rather than re-deriving it. A stage
 whose roles span tiers (e.g. `sc-ship`: writer=low, verifier=high, git-master=mid) records its dominant
 tier here; the stage skill resolves the per-role exceptions from the same tierMap. (§Stage 0.N is PREFLIGHT
-list item N — §Stage 0.2 is "Change-size tier, then worktree isolation" and §Stage 0.7 is "Resolve
+list item N — §Stage 0.2 is "Change-size tier, then worktree isolation", §Stage 0.5 is "Capture a test
+baseline", and §Stage 0.7 is "Resolve
 per-stage models *and effort*".) The map also carries `review.security` (a flat key,
 sibling to `review`, absent unless overlay `modelRouting.securityReviewModel` is set — §Stage 0.7).
 
@@ -273,11 +302,11 @@ sibling to `review`, absent unless overlay `modelRouting.securityReviewModel` is
 | G2/G3 | interfaces specified + 0 unresolved critic objections | re-design |
 | G4 | failing tests exist for core logic (Red evidence) | reject |
 | G5 | build succeeds + new tests pass (Green) | build-fixer |
-| G6 | no failures **new vs `state.baseline`** (pre-existing base-branch reds don't block), core coverage ≥80% | debugger → sc-implement |
+| G6 | no failures **new vs `state.baseline`** (pre-existing base-branch reds don't block; `baseline.unrunnableHere` suites are neither pass nor regression), core coverage ≥80% | debugger → sc-implement |
 | G7 | (if an artifact ships) real build succeeds | build-fixer |
 | G7b | (if the nature declares `bootCheck`) full-context **eager** boot/context-load smoke passes on a non-inert change | build-fixer (env can't load → checklist) |
 | G8 | 0 Critical/High (authz, paywall, anemic, N+1); **every finding carries a disposition** (fixed-here / filed `#NN`). UI → designer passes | → sc-implement (design flaw → sc-design) |
-| G9 | 0 new defects in integration/E2E (new vs `state.baseline`); seams reproduced | → sc-implement |
+| G9 | 0 new defects in integration/E2E (new vs `state.baseline`, ignoring `baseline.unrunnableHere`); seams reproduced; ITs that **can** run here actually ran | → sc-implement |
 | G10 | docs matching the change exist | writer |
 | G11 | every claim mapped 1:1 to a test/build/QA log | rework |
 | G12 | build+test+review+QA passed; base = overlay `vcs.defaultBase`; **branch merges cleanly into base** (merge-tree probe + host `mergeable`) | merge base + resolve, re-verify |
