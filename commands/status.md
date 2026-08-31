@@ -44,8 +44,11 @@ Otherwise parse the JSON and print a compact, scannable status report:
   `timeout`/`failed` one with its id, since it owes a pre-merge manual-gate item.
 - **Git-write freeze** from `gitFreeze`: when `active`, say so first and name the branch, the reason and
   how long it has been held. A held freeze means **an out-of-process reviewer is reading this branch**:
-  commits, checkouts and rebases must wait (§sc-review). An `active` freeze with **no** `running` job is a
-  **stale freeze** — flag it as a finding to release, not a state to respect forever.
+  commits, checkouts and rebases must wait (§sc-review). Flag a **stale freeze** — a finding to release,
+  not a state to respect forever — in **either** of two cases: an `active` freeze with **no** `running` job,
+  **or** an `active` freeze whose `releaseOn` is `snapshot` once that snapshot exists. The second is the
+  likelier leak: on the default path the freeze is meant to last only across the capture, so a live job is
+  no evidence that the freeze is still legitimate.
 - **Cost so far** from `telemetry`: one row per completed stage (tier / model / effort, plus tokens or cost
   where the host exposed them), the running total, and which risk-gated upgrades fired
   (`telemetry.upgrades`). Print `unavailable` for any figure the host didn't provide — **never estimate

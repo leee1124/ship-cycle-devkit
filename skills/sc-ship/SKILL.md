@@ -74,7 +74,9 @@ live pass. `review-only` is a legitimate outcome, not a failure — but it must 
   not verify something in this environment and recorded a checklist item — a `gates.G7b: checklist` boot
   deferral (sc-implement couldn't load a full context locally), sc-qa's device-gap / reachability-blocked
   items, a `baseline.unrunnableHere` suite that is a criterion's only coverage, or a declared external
-  review that ended `timeout`/`failed` (name the reviewer and the job id — §sc-review) — list them in the
+  review that ended `timeout`/`failed` (name the reviewer, the job id, **and the elapsed wait
+  `startedAt → endedAt`**, so a review that was never actually waited for is visible as such — §sc-review)
+  — list them in the
   PR body under an explicit **"Pre-merge manual gate"** heading (one observable check per item), so a
   deferral can't slip in as a silent pass. For an unrunnable-here item the observable check is the **CI
   job that must show that suite executed (count > 0) and green on this branch's head commit** — a link a
@@ -107,6 +109,12 @@ live pass. `review-only` is a legitimate outcome, not a failure — but it must 
   assumed), and every deferred finding is filed and referenced.
 
 ## Cleanup (G13)
+- **Check `state.gitFreeze.active` and `state.reviewJobs` before you delete anything.** Teardown removes a
+  worktree and a branch; an out-of-process reviewer reading either hangs or dies mid-read (§sc-review).
+  **Never remove a worktree that is a recorded `reviewJobs[].snapshot`** — a detached snapshot worktree is
+  not this cycle's feature worktree and is not yours to prune, and `git worktree prune` is repo-scoped.
+  Reaching G13 with a `running` job means G8 was set while a review was still reading: stop and resolve it,
+  don't tear down around it.
 - **Emit the cost readout FIRST — before anything in this section deletes anything** (§ship-cycle — Cost
   readout). Print, and write to an artifact dir **outside the worktree**, one row per stage: **resolved
   tier, model, effort** and whatever usage the host actually exposed (tokens/cost/wall-clock), plus the run

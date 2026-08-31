@@ -19,7 +19,7 @@
       "nature": "backend",
       "tests": ["cd apps/backend && ./gradlew test"],
       "build": ["cd apps/backend && ./gradlew build"],
-      "reviews": ["security", "quality", "performance", "algorithm"],
+      "reviews": ["security", "quality", "performance", "algorithm", "external:outside-eyes"],
       "bootCheck": ["cd apps/backend && ./gradlew test --tests '*ContextLoadTest'"],
       "envProbe": ["pg_isready -h localhost -p 5432", "docker info"]
     },

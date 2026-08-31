@@ -92,7 +92,7 @@
       "type": "object",
       "description": "Optional. Declares out-of-process review agents — a different model or CLI entirely — that a changeNature[].reviews entry may name, turning that lens into an ASYNC review job (\u00a7sc-review). The kit stays docs-only and never hard-codes a vendor: the project supplies every command. G8 then runs snapshot \u2192 launch \u2192 record the job in state.reviewJobs \u2192 the cycle may suspend and resume \u2192 judge on completion. A foreign reviewer is always an ADDITIONAL lens: it never replaces the in-session set, and a job that times out or fails does not lower G8's bar — it becomes a named deferral on the pre-merge manual gate.",
       "properties": {
-        "$comment": { "type": "string" }
+        "$comment": { "type": "string", "description": "Documentation only; not a reviewer. A reviewer cannot be named $comment." }
       },
       "additionalProperties": {
         "type": "object",
@@ -106,12 +106,20 @@
           "status": {
             "type": "array",
             "items": { "type": "string" },
-            "description": "Command(s) that report a job's state, given its id. Polled on the reviewer's own cadence; must distinguish running from a terminal state so G8 can tell 'not judged yet' from 'judged'."
+            "description": "Command(s) that report a job's state, given its id. Polled on the reviewer's own cadence; must distinguish running from a terminal state so G8 can tell 'not judged yet' from 'judged'.",
+            "minItems": 1
           },
           "fetch": {
             "type": "array",
             "items": { "type": "string" },
-            "description": "Command(s) that retrieve a completed job's findings, given its id. Its output is judged like any other lens — same severity discipline, refutation pass and triage rubric."
+            "description": "Command(s) that retrieve a completed job's findings, given its id. Its output is judged like any other lens — same severity discipline, refutation pass and triage rubric.",
+            "minItems": 1
+          },
+          "cancel": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1,
+            "description": "Optional. Command(s) that stop a job, given its id. Used when G8 routes back to sc-implement and the in-flight review's subject is about to be rewritten — the job is recorded superseded, not waited out. Without it a superseded job is abandoned in state with its reason, never left silently running."
           },
           "notify": {
             "type": "array",
@@ -122,10 +130,10 @@
             "type": "boolean",
             "description": "Default true. Capture an immutable diff/bundle/detached-worktree at launch and hand the reviewer that instead of the live branch, so the git-write freeze releases as soon as it is written. Set false only for a reviewer that genuinely requires the live tree — then the freeze holds for the whole job and every stage that writes git must wait."
           },
-          "pollSeconds": { "type": "integer", "description": "How often to run the status command. Match the reviewer's real cadence; a 30-minute review does not need a 10-second poll." },
-          "maxWaitMinutes": { "type": "integer", "description": "Bounds the wait. On exceeding it the job is recorded status: timeout WITH ITS ID and carried to the pre-merge manual gate — never silently dropped, because 'the external reviewer timed out' must not become the standard way to ship without one." }
+          "pollSeconds": { "type": "integer", "minimum": 1, "description": "How often to run the status command. Match the reviewer's real cadence; a 30-minute review does not need a 10-second poll." },
+          "maxWaitMinutes": { "type": "integer", "minimum": 1, "description": "Bounds the wait. On exceeding it the job is recorded status: timeout WITH ITS ID and carried to the pre-merge manual gate — never silently dropped, because 'the external reviewer timed out' must not become the standard way to ship without one." }
         },
-        "required": ["launch"]
+        "required": ["launch", "status", "fetch"]
       }
     },
     "modelRouting": {

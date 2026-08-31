@@ -2,44 +2,59 @@
 
 ## 0.2.28 — Async external / foreign-agent review as a first-class gate, with a git-write freeze (#48)
 
-`sc-review` assumed every lens is an in-session subagent that returns synchronously — and even the
-spec-blind **cold lens** is still a same-model-family subagent. The skill names the gold standard it cannot
-reach ("the in-pipeline stand-in for an outside reviewer"), while the real external reviewer is a
-**different agent or model entirely**, run out of process, taking 25–40 minutes and exposing progress only
-through a status file you poll. The pipeline could model none of it — no async job, no foreign reviewer, no
-completion signal — so operators hand-rolled polling waiters and tracked job ids in a scratchpad: precisely
-the hand-tracked state per-cycle state (#41) was created to eliminate. Docs-only, framework-agnostic, and
-independent of #47 (which makes a *specific* foreign agent first-class; this is the layer underneath).
-Closes #48.
+`sc-review` assumed every lens is an in-session subagent returning synchronously — and even the spec-blind
+**cold lens** is a same-model-family subagent. The skill names the gold standard it cannot reach ("the
+in-pipeline stand-in for an outside reviewer"), while the real external reviewer is a **different agent or
+model entirely**, run out of process, taking 25–40 minutes and exposing progress only through a status file
+you poll. None of it was modelable — no async job, no foreign reviewer, no completion signal — so operators
+hand-rolled polling waiters and tracked job ids in a scratchpad: precisely the hand-tracked state per-cycle
+state (#41) was created to eliminate. Docs-only, framework-agnostic, independent of #47 (which makes a
+*specific* foreign agent first-class; this is the layer underneath). Closes #48.
 
-- **`state.reviewJobs: [{ id, agent, lens, status, startedAt, snapshot, resultPath }]`** — the async
-  analogue of `models`. G8's shape becomes *snapshot → launch → record → the cycle may suspend and resume →
-  judge on completion*, and G8 does not pass while any entry is still `running`. A job that is running but
-  unrecorded is invisible to `/status`, `/resume` and the freeze rule, so recording it comes **before**
-  anything else.
-- **Opt-in and project-supplied.** A nature's `reviews` entry naming a reviewer declared in overlay
-  **`externalReviewers`** runs async; the overlay supplies `launch` / `status` / `fetch` / optional
-  `notify`, so the kit stays docs-only and **never hard-codes a vendor**. The result is judged like any
-  other lens — same severity discipline, refutation pass and triage rubric (0.2.26).
-- **Snapshot first, which is what makes the freeze cheap.** Capture an immutable diff/bundle/detached
-  worktree at launch and hand the reviewer *that*, not the live branch. It is the difference between "this
-  branch is locked for forty minutes" and "this branch is locked while a diff is written".
-- **Git-write freeze while a job is in flight — a fail-closed operational floor.** An out-of-process reader
-  hangs indefinitely on a badly-timed `commit`/`branch -f`/`checkout`/`rebase` (a ~1-hour hang observed in
-  the field, silent and progressless). `state.gitFreeze` records it; with a snapshot it releases the instant
-  the snapshot is written, and without one it holds until the job is terminal, with `sc-implement` and
-  `sc-ship` checking it before any git write. It joins the **outcomes** side of the bright line: Tier S does
-  not exempt you from waiting, and a frozen branch is an instruction to wait or snapshot — never a licence
-  to skip the write.
-- **A job that never lands is named, not dropped.** `maxWaitMinutes` bounds the wait; a `timeout`/`failed`
-  job keeps its id and goes on the **pre-merge manual gate** (0.2.27's machinery). The in-session lenses
-  still gate G8 — the foreign reviewer was always an addition — so its absence never lowers "0
-  Critical/High" and never excuses skipping the cold lens. "The external reviewer timed out" must not become
-  the standard way to ship without one, and what stops that is making its absence visible on the PR.
-- **Completion is surfaced, not remembered.** `/status` prints every job with status and age, flags a
-  `running` one loudly, and flags an `active` freeze with **no** running job as a **stale freeze** — a
-  finding to release, not a state to respect forever. `/resume` **polls a running job rather than
-  relaunching it**: a relaunch abandons a job that may be half an hour in and restarts the clock.
+- **`state.reviewJobs`** — the async analogue of `models`. G8's shape becomes *freeze → snapshot → release
+  → write-ahead → launch → poll → judge on completion*, and G8 does not pass while any entry is
+  `running`/`launching`. **The record is written before the launch, not after**: the id comes from the
+  launch command, so recording afterwards leaves a window where a running job exists with no state entry —
+  invisible to `/status`, `/resume` and the freeze rule, and unrecoverable if the session dies in it.
+- **Activation is `reviews: ["external:<name>"]`**, naming a reviewer declared in overlay
+  **`externalReviewers`** (`launch`/`status`/`fetch` required, `notify`/`cancel` optional). The `external:`
+  prefix is what makes the core invariant *mechanical*: a foreign reviewer can never occupy a built-in
+  lens's slot, so one named `cold` cannot silently retire the in-session cold lens. Results are judged like
+  any other lens — same severity discipline, refutation pass and triage rubric.
+- **Freeze first, then snapshot — the capture is the window that needs protecting.** A concurrent
+  `checkout`/`branch -f` *during* `git diff base...head` doesn't hang anything; it silently produces a diff
+  against the wrong base, and a corrupted review input reads exactly like a clean one. The freeze is set
+  before the capture and **released the moment the snapshot exists**, before launch — so on the default
+  path the branch is free for the whole review while the reviewer reads something nobody will touch.
+- **Git-write freeze as a fail-closed operational floor.** An out-of-process reader hangs indefinitely on a
+  badly-timed `commit`/`branch -f`/`checkout`/`rebase` — a ~1-hour hang observed in the field, silent and
+  progressless. Under `snapshot: false` (a reviewer that insists on the live tree) the freeze holds to
+  terminal status and **every** stage that touches the tree or branch waits: `sc-implement`'s edits and
+  worktree moves, `sc-ship`'s commit/push **and G13 teardown**, and PREFLIGHT's leftover-worktree recovery.
+  A worktree recorded as a `reviewJobs[].snapshot` is **never** removed or pruned — and since
+  `git worktree prune` is repo-scoped, the shared operations scan **every** cycle's state file, not just
+  their own: `gitFreeze` is the one thing in per-cycle state that describes a repo-wide hazard.
+  It sits on the **outcomes** side of the bright line: Tier S does not exempt you from waiting.
+- **A terminal status is a claim that needs evidence.** `timeout` requires `endedAt` with
+  `endedAt − startedAt ≥ maxWaitMinutes`; `failed` requires the reviewer's own error output at
+  `resultPath`. **A `timeout` recorded minutes after `startedAt` is a skipped review, not a timeout** — a
+  finding, not a deferral — and the manual-gate item carries the **elapsed wait**, so a review that was
+  never actually waited for is visible as such. The schema enforces its half: `status`/`fetch` are required
+  (a launch-only reviewer could never leave `running`) and `pollSeconds`/`maxWaitMinutes` must be ≥ 1.
+- **A job whose subject is about to change is superseded, not waited out.** When G8 routes back to
+  `sc-implement`, the in-flight review is reading a diff that will not survive: record `superseded`, run
+  the optional `cancel`, release the freeze, re-launch against the fixed head. Without this verb the only
+  exits from that loop were to wait out the timeout or fabricate one — which is what made the timeout path
+  attractive rather than merely available. A superseded job is not a deferral and does not reach the PR.
+- **The in-session lenses still gate G8.** The foreign reviewer was always an addition, so its absence
+  never lowers "0 Critical/High" and never excuses skipping the cold lens.
+- **Snapshot and result live outside the worktree**, the same rule the cost readout follows and for the
+  same reason: G12 `git clean`s untracked files and G13 removes the worktree and the state file, so a
+  deferral's evidence would be deleted before the PR merges — leaving a claim, not a record.
+- **Completion is surfaced, not remembered.** `/status` prints every job with status and age and flags a
+  **stale freeze** two ways — `active` with no live job, **or** `active` with `releaseOn: "snapshot"` once
+  the snapshot exists, which is the likelier leak on the default path. `/resume` **polls a running job
+  rather than relaunching it**: a relaunch abandons a job that may be half an hour in.
 
 ## 0.2.27 — An "unrunnable-here" baseline category for env/DB-gated suites (#50)
 

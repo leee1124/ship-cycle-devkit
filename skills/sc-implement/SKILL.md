@@ -16,6 +16,8 @@ own isolation:
   mobile edit in **parallel without collisions**.
 - Independent stacks → parallel. If the front end depends on a back-end API, settle that **contract
   first**, then parallelize.
+- Never remove a worktree recorded as a `reviewJobs[].snapshot`, and check `state.gitFreeze.active` first
+  — an external reviewer may be mid-read on it (§sc-review).
 - After merge, clean up worktrees: run **sc-ship G13 step 1's link sweep first — always, not only when
   `env.sharedNodeModules` is set**, since links also arrive via `npm link`, monorepo layouts and a manual
   `mklink` — then `git worktree remove --force <path>`.
@@ -120,10 +122,13 @@ authz from the principal only, DTOs not entities, whitelist validation, no N+1, 
   --package-lock-only` regenerates the lockfile without touching `node_modules`.) In a workspace, keep the
   single root lockfile; delete stray per-package ones.
 - Do **not** commit or open a PR here — that's `sc-ship`, after review.
-- **Check `state.gitFreeze.active` before any git write** (a worktree move, a branch switch, a stash). G8
-  can loop back here while an **out-of-process reviewer is still reading the branch**, and one badly-timed
-  write hangs it indefinitely (§sc-review — Git-write freeze). Wait for the release, or release it by
-  snapshotting. Editing files in the worktree is fine; moving the *branch* is not.
+- **Check `state.gitFreeze.active` before any git write — and, when `releaseOn` is `job-complete`, before
+  editing tracked files at all.** G8 can loop back here while an **out-of-process reviewer is still reading
+  this working tree**, and one badly-timed write hangs it indefinitely (§sc-review — Git-write freeze).
+  Under `releaseOn: "snapshot"` the tree is yours and only branch moves are barred; under
+  `releaseOn: "job-complete"` the reviewer is on the live tree, so the edits themselves must wait. The
+  better move is usually neither: if the fix will rewrite what the reviewer is reading, that job is
+  **superseded** — cancel it, release the freeze, and re-launch against the fixed head (§sc-review).
 - Set `gates.G5/G6/G7/G7b` in state.
 
 ## Model routing

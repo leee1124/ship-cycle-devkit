@@ -87,10 +87,12 @@ It supplies:
 - **`i18n`** — optional path to an i18n-parity config (the i18n hook ships separately).
 - **`audit`** — optional inputs for the à-la-carte `sc-audit` skill: the `sourceOfTruth` contract, the
   consumer `surfaces` checked against it, domain `modules`, and `reportDir`. Omit to derive from `changeNature`.
-- **`externalReviewers`** — optional out-of-process review agents (a different model or CLI entirely) that
-  a `changeNature[].reviews` entry can name, turning that lens into an **async review job**: snapshot →
-  launch → record → the cycle may suspend and resume → judge on completion. You supply the commands; the
-  kit never hard-codes a vendor. A foreign reviewer is always an *additional* lens, never a replacement.
+- **`externalReviewers`** — optional out-of-process review agents (a different model or CLI entirely). A
+  `changeNature[].reviews` entry of the form **`external:<name>`** adds one as an **async review job**:
+  freeze → snapshot → release → launch → poll → judge on completion, with the cycle free to suspend and
+  resume in between. You supply the commands; the kit never hard-codes a vendor. The `external:` prefix is
+  what keeps a foreign reviewer an *additional* lens rather than a replacement — it can never occupy a
+  built-in lens's slot, so one named `cold` cannot silently retire the in-session cold lens.
 - **`modelRouting`** — optional overrides of the base pyramid / risk-gated upgrades.
 - **`env`** — optional per-cycle cost knobs for continuous runs: reuse a running dev server, share
   `node_modules` across worktrees, reuse one e2e install. Opt-in; correctness always wins (boots clean
