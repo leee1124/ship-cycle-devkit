@@ -103,7 +103,9 @@ mobile nature:
 
 ## When to run / skip
 - **Run** for real features and any change that crosses a seam.
-- **Skip** for trivial/isolated changes (log the skip reason).
+- **Skip only when `state.size` is `S`** (log the skip reason). A stage does not re-judge triviality for
+  itself: PREFLIGHT owns the tier and re-tiering is monotonic upward (§ship-cycle Stage 0.2 — Change-size
+  tier), so a run that recorded `M`/`L` cannot skip QA by deciding on its own that it looks isolated.
 
 ## Boot smoke (G7b) vs. this stage's bring-up
 G7b already ran the eager context-load back in Green (sc-implement). When this stage does a **full
@@ -122,5 +124,11 @@ filters, health endpoint).
 ## Model routing
 qa-tester + verifier run at the **mid** tier.
 
-**Pass `model = state.models['qa']` on the qa-tester/verifier calls** (resolved at PREFLIGHT) — never the
-agent type's default model (Iron Law 6).
+**Pass `model = state.models['qa']` and `effort = state.effort['qa']` on the qa-tester/verifier calls**
+(both resolved at PREFLIGHT) — never the agent type's defaults (Iron Law 6).
+
+**Telemetry**: when you set `gates.G9` in state, append this stage's row to
+`state.telemetry.stages['qa']` — the resolved tier, model and effort, plus whatever usage the host
+actually exposed (tokens/cost/wall-clock) and `null` for what it didn't. **Never estimate a figure.** The
+run's cost readout is assembled from these rows at G13 (§ship-cycle — Cost readout); a stage that writes no
+row is simply absent from it, so the readout under-reports rather than lying.

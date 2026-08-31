@@ -1,6 +1,6 @@
 ---
 name: ship-cycle
-description: Orchestrator for a gated development lifecycle. Runs PREFLIGHT (branch guard, worktree isolation, overlay load, change-nature + risk classification) then chains the stage skills (sc-brainstorm → sc-design → sc-tdd → sc-implement → sc-review → sc-qa → sc-ship), enforcing gates and a loop cap via a state file. Framework-agnostic via a project overlay. Triggers "ship it", "run the lifecycle", "ship-cycle", "design to PR".
+description: Orchestrator for a gated development lifecycle. Runs PREFLIGHT (branch guard, change-size tier, worktree isolation, overlay load, change-nature + risk classification, model/effort routing) then chains the stage skills (sc-brainstorm → sc-design → sc-tdd → sc-implement → sc-review → sc-qa → sc-ship), enforcing gates and a loop cap via a state file. Framework-agnostic via a project overlay. Triggers "ship it", "run the lifecycle", "ship-cycle", "design to PR".
 ---
 
 # ship-cycle — orchestrator
@@ -67,7 +67,7 @@ Hard stops, not suggestions. Each lists the excuses agents reach for — all rej
 
 | # | Stage skill | Produces | Gate |
 |---|---|---|---|
-| 0 | PREFLIGHT (this skill) | branch, worktree, overlay, routing, state | — |
+| 0 | PREFLIGHT (this skill) | branch, **size tier**, worktree, overlay, model+effort routing, state | — |
 | 1 | `sc-brainstorm` | agreed problem + acceptance criteria | G1 |
 | 2 | `sc-design` | interfaces/boundaries + critic sign-off | G2/G3 |
 | 3 | `sc-tdd` | failing tests for core logic (Red) | G4 |
@@ -106,7 +106,27 @@ orchestration plumbing (code + files), **not an LLM step**.
 1. **Branch guard**: if on a protected branch (overlay `vcs.protectedBranches`), create `feature/*`|`fix/*`.
    A **detached HEAD** (empty `git branch --show-current`) has **no cycle key** — refuse and ask for a named
    branch, since state is keyed by branch (§State).
-2. **Worktree isolation (conditional)**: create an isolated worktree **only when it earns its keep** —
+2. **Change-size tier (S/M/L), then worktree isolation.** Pick the tier **first and out loud** — it is the
+   dial every later stage reads, and leaving it implicit is exactly why a one-line fix pays Tier-L ceremony.
+   Record it as `state.size`, and for **S** record the corroborating sites as
+   `state.sizeEvidence: ["path:line", "path:line"]`. **S with fewer than two recorded sites is not S** — if
+   you cannot write them down it is M, because the party that benefits from S is the one certifying it.
+   **Print the tier here, inline, before the worktree decision below** (state itself is written at step 8),
+   and again with the routing (§Stage 0.7 — Resolve per-stage models and effort).
+
+   | tier | what it is | what it gets |
+   |---|---|---|
+   | **S** | a single expression / constant / comment whose cause is already corroborated by **≥2 independent code sites**, with no runtime-behaviour ambiguity | branch, **no worktree**; inline self-verification; **no verification fleet** — except a surviving Critical/High, which still gets **≥1 independent refuter, never zero**; **the security lens plus one lens matched to the change nature** — the security lens never drops; conflict check; PR |
+   | **M** | one module, one stack | worktree only if something else earns it; 1–2 lenses/verifiers |
+   | **L** | multi-file, cross-stack, security-sensitive, or a migration | the full set — every stage, full lens breadth, QA |
+
+   **Tier S is a claim about evidence, not about diff size.** "It's one line" does not earn it; the
+   corroborated cause does. If you cannot name the ≥2 sites, it is not S. **Re-classification is monotonic,
+   like risk (step 6)**: a tier that turns out bigger than it looked moves **up** and adds the ceremony
+   back — it never moves down mid-cycle to retire a stage you already owe. Tier dials *ceremony only*,
+   never an outcome (§Tier S path → the bright line).
+
+   Then **worktree isolation (conditional)**: create an isolated worktree **only when it earns its keep** —
    the change is split across stacks (backend/web/mobile) or runs parallel implementers, where
    `git worktree add ../<repo>-<branch> -b <branch>` lets them work **without collisions**. For a
    single-track change (one platform, sequential), a plain feature branch is enough — worktree is pure
@@ -170,18 +190,22 @@ orchestration plumbing (code + files), **not an LLM step**.
    Pre-existing failures on the base branch otherwise force every later stage (sc-tdd/implement/qa) — and
    every parallel implementer — to re-derive "is this my regression or was it already red?" by hand
    (repeatedly, via stash-and-compare). With a baseline recorded, gates G6/G9 diff against it: a failure
-   already in `baseline` is not a regression; only a **new** one blocks. Skip only on the lightweight path.
+   already in `baseline` is not a regression; only a **new** one blocks. Skip only on the **Tier S** path.
 6. **Classify risk** (for model routing, below). The label dials **ceremony only** — the model tier and
    which role is upgraded — **never an outcome**: verification, fresh-eyes review, and the fail-closed
    floors run regardless of the label. **Not one-shot (mirrors step 4):** if a later stage reveals a
    higher-stakes axis the initial diff didn't show (a token lifetime, a migration, an API contract),
    re-classify and re-resolve routing. Re-escalation is **monotonic** — it may add ceremony back (restore a
    dropped tier, reinstate a lens or QA) but never removes an outcome.
-7. **Resolve per-stage models now (not per-spawn)**: for each stage, resolve its tier → a concrete model
-   via overlay `modelRouting.tierMap` (base pyramid + any risk upgrade). Write the result to state
-   `models` and **print it** (auditable, e.g. `review→opus, implement→sonnet`). Every stage then spawns
-   with `model = state.models[<stage>]` — never an agent type's default. This turns "remember to bridge
-   the tierMap" into "copy a concrete value", which is the difference that makes it actually happen.
+7. **Resolve per-stage models *and effort* now (not per-spawn)**: for each stage, resolve its tier → a
+   concrete model via overlay `modelRouting.tierMap` (base pyramid + any risk upgrade), and its work-kind →
+   an effort level via `modelRouting.effortMap`, scaled by `state.size` (§Model routing → Effort). Write
+   both to state (`models`, `effort`) and **print them** with the size tier (auditable, e.g.
+   `size=S · review→sonnet/medium, implement→sonnet/low`). Record which risk upgrades fired in
+   `telemetry.upgrades` — that list is what the post-run readout reports (§Cost readout).
+   Every stage then spawns with `model = state.models[<stage>]` (and `state.effort[<stage>]`) — never an
+   agent type's default. This turns "remember to bridge the tierMap" into "copy a concrete value", which is
+   the difference that makes it actually happen.
    **Routing guard — a security review must never run on a model that refuses security analysis** (it would
    silently no-op — "ran" but checked nothing). If overlay `modelRouting.securityReviewModel` is set, the
    **`security` and `authz` review lenses use that model**, overriding their tier-resolved model — record it
@@ -191,8 +215,9 @@ orchestration plumbing (code + files), **not an LLM step**.
    a fail-closed floor, not ceremony: a security review that quietly no-ops is worse than a loud stop. (Absent
    the setting, the security lens uses its tier model as before — the guard is opt-in, since only the operator
    knows which model refuses.)
-8. **Init state**: write this cycle's `.claude/ship-cycle/<branch-slug>.json` (including `branch`, `models`,
-   `baseline`). First migrate a legacy bare state file if one exists for this branch, and refuse if the
+8. **Init state**: write this cycle's `.claude/ship-cycle/<branch-slug>.json` (including `branch`, `size`,
+   `sizeEvidence` when the tier is S, `models`, `effort`, `baseline`, and an empty `telemetry`). First
+   migrate a legacy bare state file if one exists for this branch, and refuse if the
    target file already belongs to a different `branch` (§State). A **detached HEAD** (empty slug) has no
    cycle key — that's caught at step 1.
 
@@ -209,10 +234,15 @@ free). Implementer sub-worktrees carry **no** cycle state — only the orchestra
 ```json
 { "goal": "...", "branch": "...", "worktreePath": "...", "stage": "sc-design",
   "gates": { "G1": "pass", "G2": "pass" }, "loops": { "G8": 1 },
-  "nature": ["backend"], "risk": ["auth"],
+  "nature": ["backend"], "risk": ["auth"], "size": "L",
   "baseline": { "capturedOn": "<base-sha>", "failing": ["suiteA#case", "..."] },
   "models": { "brainstorm": "opus", "design": "opus", "tdd": "sonnet", "implement": "sonnet",
-              "review": "opus", "qa": "sonnet", "ship": "sonnet" } }
+              "review": "opus", "qa": "sonnet", "ship": "sonnet" },
+  "effort": { "design": "xhigh", "tdd": "medium", "implement": "low",
+              "review": "high", "qa": "medium", "ship": "low" },
+  "telemetry": { "upgrades": ["auth → security lens: high→top"],
+                 "stages": { "review": { "tier": "top", "model": "opus", "effort": "high",
+                                         "tokens": null, "cost": null } } } }
 ```
 Write it at every transition; read **this cycle's** file at PREFLIGHT to **resume** and to enforce **its**
 loop cap (don't count loops in your head — each cycle's file owns its own `loops`). **Resume/select**: read
@@ -230,8 +260,9 @@ overwrites its prior completed file — acceptable: state is gitignored run-stat
 the real record. `models` is resolved once at PREFLIGHT (§Stage 0.7) with risk
 upgrades already applied — every stage reads its model from here rather than re-deriving it. A stage
 whose roles span tiers (e.g. `sc-ship`: writer=low, verifier=high, git-master=mid) records its dominant
-tier here; the stage skill resolves the per-role exceptions from the same tierMap. (§Stage 0.7 is
-PREFLIGHT list item 7, "Resolve per-stage models".) The map also carries `review.security` (a flat key,
+tier here; the stage skill resolves the per-role exceptions from the same tierMap. (§Stage 0.N is PREFLIGHT
+list item N — §Stage 0.2 is "Change-size tier, then worktree isolation" and §Stage 0.7 is "Resolve
+per-stage models *and effort*".) The map also carries `review.security` (a flat key,
 sibling to `review`, absent unless overlay `modelRouting.securityReviewModel` is set — §Stage 0.7).
 
 ## Gate criteria
@@ -245,7 +276,7 @@ sibling to `review`, absent unless overlay `modelRouting.securityReviewModel` is
 | G6 | no failures **new vs `state.baseline`** (pre-existing base-branch reds don't block), core coverage ≥80% | debugger → sc-implement |
 | G7 | (if an artifact ships) real build succeeds | build-fixer |
 | G7b | (if the nature declares `bootCheck`) full-context **eager** boot/context-load smoke passes on a non-inert change | build-fixer (env can't load → checklist) |
-| G8 | 0 Critical/High (authz, paywall, anemic, N+1). UI → designer passes | → sc-implement (design flaw → sc-design) |
+| G8 | 0 Critical/High (authz, paywall, anemic, N+1); **every finding carries a disposition** (fixed-here / filed `#NN`). UI → designer passes | → sc-implement (design flaw → sc-design) |
 | G9 | 0 new defects in integration/E2E (new vs `state.baseline`); seams reproduced | → sc-implement |
 | G10 | docs matching the change exist | writer |
 | G11 | every claim mapped 1:1 to a test/build/QA log | rework |
@@ -274,22 +305,98 @@ Assign models by **cost-of-being-wrong × cost-of-verification**, not by role na
   pins the model the `security`/`authz` lenses use, overriding their tier (§Stage 0.7 → spawned in
   sc-review) — set it to the most capable model that will actually *do* security review. A fail-closed
   floor, not dialable ceremony.
-- **Bigger levers first**: prompt caching (cache the repo/diff/design doc), an effort dial, and
+- **Bigger levers first**: prompt caching (cache the repo/diff/design doc), the effort dial above, and
   "cheap path first" for implementation (mid tier → verify → escalate only the failing fix). **Exception**:
   for inherently complex work (novel algorithms, intricate UI like SVG/canvas), start at the higher tier —
   cheap-path-first there just buys a wasted failed attempt.
 
-## Lightweight path
+### Effort — on the judgment/mechanics axis, not on stage names
 
-Trivial changes (config/docs/one-liner): collapse brainstorm/design/review into one check, substitute
-heavy suites with self-tests/link checks, reduce review to quality+security, and **drop the model tiers**
-(mid/low instead of high). **Never skip build/test verification or the pre-PR review.**
+Tier says *which model*; **effort** says how hard it thinks. Keying effort to stage names leaks, because
+the two most judgment-dense pieces of work in the cycle answer to no stage's name: **root-cause analysis**
+and **triage** (which findings are real, which are false positives, which are out of scope). Price the
+*work*, and let the size tier scale it:
 
-**The bright line — dial ceremony, never an outcome.** *Ceremony* (dialable by risk/triviality): stage
-count, model tier, worktree-or-not, lens breadth, QA-skip-for-trivial, TDD-harness form. *Outcomes* (never
-dialed, for a typo fix and an auth change alike): verification actually ran and its output was read,
-review by fresh eyes before any PR, the fail-closed floors (security/data/contract), a failing test before
-prod code. When unsure which side something is on, it is an outcome — keep it.
+| effort | work |
+|---|---|
+| **xhigh** | design; the final adversarial review/critique — **Tier L only** |
+| **high** | **root-cause analysis** (§sc-brainstorm); **triage** (fix-here / file-and-link — §sc-review); Tier M review; the G11 evidence mapping |
+| **medium** | Tier S review; test design (sc-tdd); QA exploration; the edit itself when it is a multi-file refactor |
+| **low** | worktree/branch setup, grep and file discovery, commit/push/PR, running tests, docs, manifest re-pinning, schema/XML validation, one-line edits |
+
+**Every stage gets an entry in `state.effort`** — `brainstorm` and `qa` follow the size tier, `tdd` is
+`medium`, `implement` inherits the tier, `review` scales with the tier, `ship` is `low` except its G11
+evidence mapping. A stage whose roles span kinds records its **dominant** effort here and resolves the
+per-role exceptions from the same map, exactly as `models` already does for tiers (§State).
+
+Two consequences, both deliberate:
+- **Review effort scales with the size tier** instead of being pinned at the top. Pinning every review at
+  maximum is what turns a corroborated one-line fix into a six-figure-token verification pass — so a
+  blanket "reviews are always xhigh" rule would leave the actual waste untouched.
+- **The edit inherits the tier.** A one-liner whose cause is already pinned is `low`; a multi-file
+  refactor *is* design work and is priced as such.
+
+**Bridge to the host (mirrors tierMap).** Overlay `modelRouting.effortMap` maps these levels onto whatever
+your host calls them; PREFLIGHT resolves per-stage effort into `state.effort` (§Stage 0.7) and every spawn
+passes it explicitly, exactly as with `model=` — a default effort is the same silent override as a default
+model (Iron Law 6). **Without an `effortMap`, effort levels are advisory only** — same rule as tiers.
+
+**Root-cause analysis and triage are never dialed down.** They sit at `high` on a Tier S change as much as
+a Tier L one, because they are *outcomes*, not ceremony (§bright line). Right-sizing that reaches them is
+not a saving: it is how you ship the wrong fix confidently. When a request arrives as "relabel that bar as
+Total" and the bar is in fact a disjoint bucket, implementing it as stated ships a chart that actively
+misleads — root-cause analysis is the only stage that catches it, and it costs a few greps.
+
+## Tier S path (the lightweight path)
+
+**Tier S** (§Stage 0.2 — config/docs/one-liner with a corroborated cause): collapse brainstorm/design/review
+into one check, substitute heavy suites with self-tests/link checks, reduce review to **the security lens
+plus one lens matched to the change nature** (the security lens never drops — it is a fail-closed floor,
+and its `securityReviewModel` pin is meaningless if the lens itself can be dialed away), run **no
+verification fleet** except that a surviving Critical/High still gets **at least one** independent refuter,
+take no worktree, and **drop the model tiers** (mid/low instead of high) and the effort levels with them.
+**Never skip build/test verification, the pre-PR review, root-cause analysis, triage, or the pre-PR
+conflict check.**
+
+**The bright line — dial ceremony, never an outcome.** *Ceremony* (dialable by size tier and risk): stage
+count, model tier **and effort level**, worktree-or-not, lens breadth, **verifier/agent count**,
+QA-skip-for-trivial, TDD-harness form. *Outcomes* (never dialed, for a typo fix and an auth change alike):
+verification actually ran and its output was read; review by fresh eyes before any PR; the fail-closed
+floors (security/data/contract); a failing test before prod code; **root-cause analysis before any defect
+fix**; **triage of every finding** (fix-here or filed-and-linked — never silently dropped, Iron Law 5 +
+§sc-review); and **the pre-PR conflict check** (G12). When unsure which side something is on, it is an
+outcome — keep it.
+
+**The three that pay for the cycle.** Root-cause analysis, triage and the conflict check are the cheapest
+stages in the pipeline and the ones a right-sizing pass reaches for first, because they have no impressive
+artifact to show. They are also where the cycle earns its keep: they are what stop you implementing a
+misdiagnosed request, shipping a review's false positive, and discovering a conflict after the PR is open.
+Cutting them is not right-sizing — it is removing the part that was working.
+
+## Cost readout (post-run)
+
+Model routing is this kit's efficiency claim, and 0.2.6 made it **enforced**. Enforcement is not
+measurement: a per-stage tier that is pinned but never counted leaves the claim unfalsifiable on *your*
+repo and leaves `tierMap`/`effortMap` tunable only by intuition. So the cycle **reports what it spent**.
+
+- **Accumulate as you go — each stage writes its own row at its gate.** When a stage sets its gate in
+  state, it appends to `state.telemetry.stages[<stage>]` the **resolved tier, model and effort** (already in
+  `models`/`effort`) plus whatever usage the host actually exposes — tokens, cost, wall-clock. Each stage
+  skill carries this instruction next to its gate; the orchestrator does not write rows on their behalf,
+  because a stage that runs as a subagent is the only party that can see its own usage.
+  `telemetry.upgrades` records which risk-gated upgrades fired (§Stage 0.7).
+- **Never invent a number.** Most hosts expose no per-agent token count. Record `null` and print
+  `unavailable` for what you cannot measure; the resolved tier/effort per stage is *always* recordable and
+  is itself the useful half. A fabricated cost table is worse than an honest gap — it is the same
+  false-green class as a scraped exit code (Iron Law 2).
+- **Emit before *anything* in G13 deletes anything.** The state file lives in the cycle's working
+  directory — **which is the worktree itself when PREFLIGHT created one** (§State) — so removing the
+  worktree destroys `telemetry` just as surely as deleting the file does. sc-ship therefore emits the
+  readout as the **first** act of G13 and writes it to an artifact dir **outside** the worktree; otherwise
+  the only record of what the run cost is destroyed by the step that ends the run (§sc-ship Cleanup).
+- **Read-only.** The readout changes no gate and blocks nothing; it exists so an operator can see whether
+  routing paid off here and tune `tierMap`/`effortMap` with data instead of an asserted percentage.
+`/status` prints the same table mid-run.
 
 **Exception — small but high-stakes.** Keep the higher review tier even for a tiny diff when
 cost-of-being-wrong is high or verification is expensive: build/release config, **dependency/lockfile
