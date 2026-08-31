@@ -24,6 +24,14 @@ from an argued one. Label every claim with one of:
 - **test** — covered by a unit/integration test that **actually ran and passed** (name it; a
   compiled-but-unrun or `@Disabled` test is not evidence — see sc-qa G9).
 - **review-only** — verified by review/inspection because live was unreachable (say *why* it was blocked).
+  Any criterion whose only coverage is a suite in `state.baseline.unrunnableHere` is labelled
+  **`review-only (ci-deferred)`** — name the suite and its recorded `reason` — and listed on the pre-merge
+  manual gate below. The suffix is load-bearing: plain `review-only` means somebody **read the code and
+  argued it correct**; `ci-deferred` means **nothing in this run observed it at all**. Do not collapse
+  them. "Covered in CI" is a true statement and is **not** a `test` label here: this cycle did not observe
+  it pass, and G11's labels record what *this run* proved.
+  If **every** criterion lands on `review-only` for this reason, say that in one line rather than letting a
+  claim map of quarantines read like a verified change.
 
 Surface the labels in the PR body's claim map (e.g. `- ✅ rate limit rejects 11th request — **live** (e2e:
 login_spec)` / `- ✅ owner check on delete — **review-only** (dev user can't reach another owner's record)`).
@@ -60,9 +68,13 @@ live pass. `review-only` is a legitimate outcome, not a failure — but it must 
   `vcs.tracker.milestones` is on.
 - **Surface any deferred manual checks recorded in state as a pre-merge manual gate.** If a stage could not
   verify something in this environment and recorded a checklist item — a `gates.G7b: checklist` boot
-  deferral (sc-implement couldn't load a full context locally) or sc-qa's device-gap / reachability-blocked
-  items — list them in the PR body under an explicit **"Pre-merge manual gate"** heading (one observable
-  check per item), so a deferral can't slip in as a silent pass. If none were recorded, say so.
+  deferral (sc-implement couldn't load a full context locally), sc-qa's device-gap / reachability-blocked
+  items, or a `baseline.unrunnableHere` suite that is a criterion's only coverage — list them in the PR body
+  under an explicit **"Pre-merge manual gate"** heading (one observable check per item), so a deferral can't
+  slip in as a silent pass. For an unrunnable-here item the observable check is the **CI job that must show
+  that suite executed (count > 0) and green on this branch's head commit** — a link a reviewer can click,
+  not a claim they have to trust; name the suite and its recorded `reason` beside it. A `gates.G9: degrade`
+  goes here too, with its reason. If none were recorded, say so.
 - **Verify the closing token actually landed (don't trust that you wrote it).** After opening the PR,
   **re-fetch the created body** and assert it contains the exact intended token for **every** tracked issue
   in `state`: `Closes #NN` when that issue is fully done, `Refs #NN` when partial. A bare mention (`#NN`,
@@ -83,7 +95,9 @@ live pass. `review-only` is a legitimate outcome, not a failure — but it must 
   passing. A finding triaged as out-of-scope and then never filed is not deferred, it is **dropped** — the
   same silent leak as a missing `Closes` token.
 - If `vcs.tracker` defines a board, move the item **In Progress → Done** as work completes.
-- Gate: build + test + review + QA all passed, **the branch merges cleanly into the base**, the opened PR
+- Gate: build + test + review + QA all passed — a `gates.G9: degrade` or `gates.G7b: checklist` counts as
+  satisfied **only** when its item is on the pre-merge manual gate above, with its reason — **the branch
+  merges cleanly into the base**, the opened PR
   body carries the correct `Closes`/`Refs` token for every tracked issue (re-fetched and asserted, not
   assumed), and every deferred finding is filed and referenced.
 

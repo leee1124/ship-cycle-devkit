@@ -1,5 +1,57 @@
 # Changelog
 
+## 0.2.27 — An "unrunnable-here" baseline category for env/DB-gated suites (#50)
+
+The test baseline (0.2.10) is binary — pass vs fail — and G6/G9 read "new failure vs baseline" as a
+regression. 0.2.23 tightened honesty by making `@Disabled` / zero-executed suites a FAIL/deferral rather
+than a pass. Between them sits a real third state neither models: **unrunnable-here** — an
+integration/DDL/DB-gated suite this environment **cannot start at all**, verified elsewhere against a real
+dependency. It is not a failure to diff against, and counting it as passed is forbidden, so a large part of
+a suite ends up with **no truthful status** — which is how "can't run it here" becomes either a fake pass or
+a fake regression. Docs-only, framework-agnostic. Closes #50.
+
+`baseline.unrunnableHere: [{ suite, reason, startupError, probe, capturedAt }]` is captured at PREFLIGHT
+alongside `failing`, and G6/G9 diff **around** it: neither a regression nor a silent skip. The category is
+an escape hatch by construction, so it is fenced on four sides rather than merely added:
+
+- **Boundary.** It means the suite **could not start** for want of a **dependency**. A suite that starts
+  and fails is `failing`; one that starts and **skips itself** (`@Disabled`, zero-executed, DDL/seed/auth
+  not provisioned) stays 0.2.23's FAIL/deferral. Not a laundering route for a disabled test, and the 0.2.23
+  floor is not relaxed by one word. Runners blur the distinction — a context-init failure often reports as
+  an error on every test method, a container-gated suite as *skipped* — so **when the report is ambiguous
+  it is not unrunnable-here**: record it under whichever stricter category the runner named.
+- **Evidence, in two pieces.** `startupError` is the suite's **own** attempted run terminating before any
+  test executed; `probe` is the dependency command and what it returned. Only the first says *this suite*
+  could not start — **one failed dependency probe never licenses quarantining a second suite**, the failure
+  mode where a single `pg_isready` quarantines a whole module's tests, unit tests included. Either piece
+  missing ⇒ not unrunnable-here, and a **passing** overlay `changeNature[].envProbe` is a hard bar: nothing
+  under that nature may be quarantined for that dependency. The docs say plainly what this buys — both
+  pieces are self-reported prose that nothing validates. They are **friction, not proof**.
+- **Pre-commitment, with no growth path.** Fixed against the base commit, before the change exists. The set
+  may only **shrink**. A suite that ran at PREFLIGHT and won't run now is a **finding**, not a quarantine.
+  A suite that did not exist at the base commit (a new IT from sc-tdd) may only **inherit** an entry whose
+  probe already failed, via `inheritedFrom` — and inheriting is not counting: it is not Red evidence at G4
+  and not Green at G5. Any other growth means re-capturing the baseline from the top. `/resume` treats the
+  quarantine as **read-only**, `capturedAt` stamps provenance, and `/status` **flags any entry that is not
+  `preflight` as added mid-cycle** — a finding to check, not a quarantine to trust.
+- **Non-satisfaction.** G6/G9 stop treating these as regressions; they do not start treating them as
+  coverage. sc-ship labels any criterion they alone cover **`review-only (ci-deferred)`** — the suffix is
+  load-bearing, since plain `review-only` means somebody read the code and argued it correct while
+  `ci-deferred` means nothing in this run observed it — and puts it on the **pre-merge manual gate**, whose
+  observable check is the CI job showing that suite executed and green on this branch's head. Quarantining
+  changes the label, not the work: 0.2.23's contract-level degrade still applies in full.
+
+Two supporting fixes this needed:
+
+- **`gates.G9` becomes `pass` / `degrade` / `fail`**, the three-way shape `gates.G7b` already used
+  (`pass`/`checklist`/`skip`), and **G12 honors a `degrade` only when its item is on the pre-merge manual
+  gate**. Without this the honest case was unrepresentable: a run whose only coverage is quarantined could
+  neither pass G12 nor usefully loop to a debugger that cannot conjure a database — leaving `pass` as the
+  sole writable value. A gate with no truthful value is how false-green gets written by an honest agent.
+- **Tier S has no baseline, so `unrunnableHere` is *absent, not empty* there** — the category is
+  unavailable on Tier S rather than mintable from nothing. A Tier S run that meets a suite it cannot start
+  **re-tiers upward to M** (monotonic, §Stage 0.2) and captures the baseline against the base commit.
+
 ## 0.2.26 — Right-size the cycle: size tiers, effort on the judgment axis, cost readout (#54, #53, #52)
 
 Three issues on one axis: **#54** decides how much ceremony a change gets, **#53** makes the hardest

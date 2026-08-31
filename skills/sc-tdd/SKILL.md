@@ -14,7 +14,11 @@ next stage makes them pass. Rejected excuses: "trivial" · "just once" · "I'll 
    e.g. unit (service/domain) + integration (controller+DB) for backend; component/E2E for web;
    unit + algorithm for mobile. Don't write test types the nature doesn't call for.
 3. **Run them and read the output.** Confirm they **fail for the intended reason** (missing behavior),
-   not a compile error or typo. A test that passes now, or errors for the wrong reason, is not Red.
+   not a compile error or typo. A test that passes now, or errors for the wrong reason, is not Red — and a
+   **connection-refused init error is the wrong reason**, not Red evidence. When a new suite is gated by a
+   dependency already quarantined at PREFLIGHT, it **inherits** that entry (§ship-cycle Stage 0.5 — Capture
+   a test baseline) rather than counting as Red: it is Red-deferred, its criterion carried to
+   `review-only (ci-deferred)`, and it is not counted as Green at G5 either.
 
 ## Cover the plural case (N≥2), not just the singular
 A test that exercises **one** item passes while a bug that only manifests with **two or more** hides:

@@ -62,7 +62,14 @@ authz from the principal only, DTOs not entities, whitelist validation, no N+1, 
 - **G6**: no failures **new vs `state.baseline`** (the base-branch reds captured at PREFLIGHT don't
   block — don't make each implementer re-derive "mine or pre-existing?" by stash-and-compare; diff the
   run against `state.baseline.failing`), core coverage ≥80%. On a genuinely new failure, attach a
-  debugger and loop.
+  debugger and loop. Suites in **`state.baseline.unrunnableHere`** — ones this environment cannot start,
+  probed and recorded at PREFLIGHT — are diffed **around**: not a regression, and not coverage either
+  (§ship-cycle Stage 0.5 — Capture a test baseline). A suite that starts and fails is a failure like any
+  other. **There is no path that adds a suite to that set here**: a suite that ran at PREFLIGHT and won't
+  run now is a finding, not a quarantine. The one exception is a suite that did not exist at the base
+  commit and is gated by the **same dependency whose probe already failed at PREFLIGHT** — it *inherits*
+  that entry (`inheritedFrom`), and inheriting is not counting: **G5 does not treat it as Green**, and its
+  criterion goes to `review-only (ci-deferred)` (§sc-ship G11).
 - **No false-green (how you read G5/G6)**: judge pass/fail from the command's **own exit status or its
   machine-readable report** (surefire/JUnit XML, runner JSON) — never from a piped/tailed/grepped stdout
   line. `mvn test | grep -i fail | tail` returns the *pipeline's last* exit code (the tail's `0`), so a red

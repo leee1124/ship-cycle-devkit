@@ -20,7 +20,8 @@
       "tests": ["cd apps/backend && ./gradlew test"],
       "build": ["cd apps/backend && ./gradlew build"],
       "reviews": ["security", "quality", "performance", "algorithm"],
-      "bootCheck": ["cd apps/backend && ./gradlew test --tests '*ContextLoadTest'"]
+      "bootCheck": ["cd apps/backend && ./gradlew test --tests '*ContextLoadTest'"],
+      "envProbe": ["pg_isready -h localhost -p 5432", "docker info"]
     },
     {
       "match": "apps/web/**",
