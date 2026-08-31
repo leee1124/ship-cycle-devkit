@@ -29,10 +29,31 @@ expensive outcome. This stage ends when the user accepts a design direction — 
 - Record the agreed problem + acceptance criteria in this cycle's state file
   (`.claude/ship-cycle/<branch-slug>.json`); set `gates.G1 = pass`.
 
-## Lightweight
-For a trivial, unambiguous change, compress this to a one-line restatement + acceptance criteria and proceed.
+## Root-cause analysis (defect goals) — the stage that pays for the cycle
+When the goal is a **defect fix**, the "agreed problem" this stage produces is the **root cause**, never the
+reported symptom. State it, and name the **≥2 independent code sites** that corroborate it. **G1 does not
+pass on a restatement of the report.** This is the kit's highest-judgment work and it runs at `high` effort
+on **every size tier** — it is an outcome, not ceremony (§ship-cycle → Tier S path → the bright line), and
+it is also what earns Tier S at all: the same corroborating sites become `state.sizeEvidence`.
+
+Why it is never dialed down: a request arrives as "relabel that bar as Total" and the bar is in fact a
+disjoint bucket, so implementing it as reported ships a chart that actively misleads. No later gate catches
+that — every downstream lens is anchored to the accepted problem statement. A few greps here are the
+cheapest insurance in the pipeline.
+
+## Lightweight (Tier S only)
+When `state.size` is **S** (§ship-cycle Stage 0.2 — Change-size tier; PREFLIGHT owns it and a stage never
+re-judges triviality for itself), compress this to a one-line restatement + criteria and proceed —
+**except** the root-cause section above, which runs unchanged.
 
 ## Model routing
 Requirements/discovery (analyst) runs at the **high** tier — getting the problem wrong propagates
 everywhere. Often the orchestrator does this inline with the user; **if you spawn an agent, pass
-`model = state.models['brainstorm']`** (resolved at PREFLIGHT) — never the agent type's default (Iron Law 6).
+`model = state.models['brainstorm']` and `effort = state.effort['brainstorm']`** (both resolved at
+PREFLIGHT) — never the agent type's defaults (Iron Law 6).
+
+**Telemetry**: when you set `gates.G1` in state, append this stage's row to
+`state.telemetry.stages['brainstorm']` — the resolved tier, model and effort, plus whatever usage the host
+actually exposed (tokens/cost/wall-clock) and `null` for what it didn't. **Never estimate a figure.** The
+run's cost readout is assembled from these rows at G13 (§ship-cycle — Cost readout); a stage that writes no
+row is simply absent from it, so the readout under-reports rather than lying.

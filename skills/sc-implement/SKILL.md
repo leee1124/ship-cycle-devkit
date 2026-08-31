@@ -48,8 +48,11 @@ a layer), worktree-per-stack doesn't apply — the collision risk is *within* th
 
 ## Implement (executor — fresh context)
 Give the implementer **only the plan, the failing tests, and the conventions** (not the whole prior
-conversation) to avoid context contamination. Use the stack prompt template:
-`${CLAUDE_PLUGIN_ROOT}/prompts/impl-backend.md` · `impl-web.md` · `impl-mobile.md` (adapt to your stack).
+conversation) to avoid context contamination. The stack prompt templates —
+`${CLAUDE_PLUGIN_ROOT}/prompts/impl-backend.md` · `impl-web.md` · `impl-mobile.md` — are **reference, not
+required reading: invoke one when the tier warrants it** (Tier M/L, or any stack you haven't briefed an
+implementer on before) and skip it on Tier S, where the brief is a one-liner and loading a 60-line template
+costs more than it carries. Adapt to your stack.
 Follow the engineering constitution (`${CLAUDE_PLUGIN_ROOT}/docs/engineering-constitution.md`):
 authz from the principal only, DTOs not entities, whitelist validation, no N+1, no swallowed exceptions.
 
@@ -116,5 +119,12 @@ authz from the principal only, DTOs not entities, whitelist validation, no N+1, 
 executor + build-fixer run at the **mid** tier. Cheap path first: implement on mid → verify → escalate
 only the failing fix (or a risk-zone diff) to a higher tier.
 
-**Pass `model = state.models['implement']` on the executor/build-fixer calls** (resolved at PREFLIGHT) —
-never the agent type's default (Iron Law 6). An escalated fix passes the higher tier explicitly too.
+**Pass `model = state.models['implement']` and `effort = state.effort['implement']` on the
+executor/build-fixer calls** (both resolved at PREFLIGHT) — never the agent type's defaults (Iron Law 6).
+An escalated fix passes the higher tier explicitly too.
+
+**Telemetry**: when you set `gates.G5`…`G7b` in state, append this stage's row to
+`state.telemetry.stages['implement']` — the resolved tier, model and effort, plus whatever usage the host
+actually exposed (tokens/cost/wall-clock) and `null` for what it didn't. **Never estimate a figure.** The
+run's cost readout is assembled from these rows at G13 (§ship-cycle — Cost readout); a stage that writes no
+row is simply absent from it, so the readout under-reports rather than lying.

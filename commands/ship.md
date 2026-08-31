@@ -27,3 +27,5 @@ the required upstream gates are `pass`: **G1** (agreed criteria), **G2/G3** (des
   G11 (every claim mapped to evidence), G12 (build/test/review/QA green + clean merge + `Closes`/`Refs`
   tokens; base = overlay `vcs.defaultBase`), then G13 cleanup (delete branch local+remote, remove the
   worktree if present — link sweep first, never a recursive delete through a linked dep store — sync base).
+  G13 **emits the cost readout before it deletes anything** (not a pass condition, but the worktree removal
+  destroys the state file it reads — see sc-ship Cleanup).

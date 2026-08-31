@@ -138,9 +138,11 @@ Two rules that keep the kit from bloating — and from being trimmed into useles
 
 **Size before ceremony.** PREFLIGHT picks a **change-size tier (S/M/L)** up front and records it in state;
 every later stage reads it. **Tier S** — a one-liner whose cause is already corroborated by ≥2 independent
-code sites — takes no worktree, no verification fleet, one review lens, and the low tiers. **Tier L** gets
-the full set. The tier dials *ceremony* (stage count, model tier and effort, lens breadth, agent count);
-it never dials an *outcome*. Re-tiering is monotonic **upward**: a change that turns out bigger adds the
+code sites — takes no worktree, no verification fleet (bar one refuter on a surviving Critical/High), the
+security lens plus one nature-matched lens, and the low tiers. **Tier L** gets the full set. The security
+lens is never one of the things a tier drops — it is a fail-closed floor. The tier dials *ceremony* (stage
+count, model tier and effort, lens breadth, agent count); it never dials an *outcome*. Re-tiering is
+monotonic **upward**: a change that turns out bigger adds the
 ceremony back, and never drops a stage it already owes. Root-cause analysis, finding triage and the pre-PR
 conflict check are outcomes — they are the cheapest stages in the pipeline and the first a right-sizing
 pass reaches for, and cutting them is how you ship a misdiagnosed request confidently.

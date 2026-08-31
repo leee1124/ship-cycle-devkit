@@ -53,28 +53,64 @@ touched? (2) does this change introduce or amplify it? (3) is it a precondition 
 sc-ship then **asserts** it: every finding triaged as filed must have a real issue and a `Refs #NN` in the
 PR body — an unfiled finding is dropped, not deferred: the same silent leak as a missing `Closes` token.
 
+### Floors that survived the right-sizing (found in pre-PR review)
+
+An adversarial review of the first pass caught two ways this change had weakened an outcome while claiming
+to dial only ceremony — the exact failure #54 forbids — plus a defect that made #52 inert. All are fixed
+here and stated as rules:
+
+- **The security lens is never what a tier drops.** The first pass reduced Tier S from "quality+security"
+  to "a single lens" without naming which survives, so an executor could ship a Tier S change with no
+  security review at all — while the same file lists the fail-closed floors as never-dialed and 0.2.21
+  builds a `securityReviewModel` pin that is meaningless if the lens itself can be dialed away. Tier S is
+  now **the security lens plus one nature-matched lens**.
+- **A surviving Critical/High always gets at least one refuter, never zero.** "No verification fleet"
+  carried that carve-out in `sc-review` but not in the orchestrator — and the orchestrator is what an
+  executor reads first. Both now say it.
+- **Tier S must record its evidence.** "If you cannot name the ≥2 sites it is not S" was unenforceable —
+  the party that benefits from S was the sole certifier, with nothing written down. S now records
+  `state.sizeEvidence: ["path:line", ...]`, and **S with fewer than two recorded sites is M**.
+- **Root-cause analysis has an owner and a gate.** It was declared an outcome but belonged to no stage.
+  `sc-brainstorm` now owns it: for a defect goal the agreed problem **is the root cause**, corroborated by
+  ≥2 sites, and **G1 does not pass on a restatement of the report**. Those same sites are what earn Tier S.
+- **The triage assertion no longer fails open.** Quantifying over findings "marked filed" passed vacuously
+  on an artifact that was never triaged. G8 and sc-ship now require **every** finding to carry a
+  disposition; an absent triage record fails rather than passes.
+
 ### Post-run cost readout (#52)
 
 Routing was enforced (0.2.6) but never counted, leaving the kit's one efficiency claim unfalsifiable on your
 repo and `tierMap` tunable only by intuition. The cycle now accumulates `state.telemetry` per stage —
-resolved tier/model/effort plus whatever usage the host exposes — and G13 **emits the readout before it
-deletes the state file** (ordering is the point: the step that ends the run is the step that destroys the
-only record of what it cost). `/status` prints the same table mid-run; `/resume` appends rather than
+**each stage writes its own row at its gate**, since a stage running as a subagent is the only party that
+can see its own usage — and G13 **emits the readout as its first act, before anything in cleanup deletes
+anything**. Ordering is the point, and the explicit state delete is not the only hazard: the state file
+lives in the cycle's working directory, *which is the worktree itself* when PREFLIGHT created one, so the
+worktree removal destroys `telemetry` just as surely. The readout is written to an artifact dir **outside**
+the worktree. `/status` prints the same table mid-run; `/resume` appends rather than
 restarting it. **Nothing is estimated**: what the host doesn't expose prints `unavailable`, because a
 fabricated cost table is the same false-green class as a scraped exit code (Iron Law 2). Read-only — it
 gates nothing.
 
 ### Pruning rule: delete what the model knows, not lines (#54)
 
-A blunt "simplify the skills" pass deletes the wrong half. The README now states the split — generic
+A blunt "simplify the skills" pass deletes the wrong half, so the README states the split: generic
 principles (SOLID restatements, "don't swallow exceptions", "use parameterized queries") are **prunable**;
 toolchain paths, wrapper scripts, runner flags a junction layout requires, and VCS footguns (including the
 teardown that follows a `node_modules` junction, 0.2.25) are **load-bearing**, because each exists from an
-incident and none is inferable. Generalized for a framework-agnostic kit: *generic principles prune,
-overlay/environment facts stay.* Applied conservatively to the constitution: §3/§4/§6/§8's restatements
-collapse to compact reference points while every gate-cited number, anti-pattern and non-obvious idiom
-(the TS `enum`-vs-union caveat, ≥80% coverage, the normalized error shape) is kept in full. Net line count
-is roughly unchanged — which is the point: the metric is *signal*, not length.
+incident and none is inferable. Generalized: *generic principles prune, overlay/environment facts stay.*
+
+Applied, per the maintainer's **conservative** call: the constitution's §3/§4/§6/§8 restatements collapse
+to compact reference points while every gate-cited number, anti-pattern and non-obvious idiom (the TS
+`enum`-vs-union caveat, ≥80% coverage, the normalized error shape) is kept in full, with no renumbering —
+`sc-review`'s `#3`/`#7` citations still resolve. The option's second half is also done: `sc-implement`
+demotes the `prompts/impl-*.md` stack templates to **reference invoked when the tier warrants it**, skipped
+on Tier S where loading a 60-line template costs more than it carries.
+
+**Honest accounting: this release adds weight, it does not remove it** — roughly +300 lines of new
+procedure against ~50 removed, and the constitution itself grew (76 → 81) because the pruning *rule*
+costs more lines than the restatements it authorized deleting. The prune is deliberately small; what is
+new is the rule that governs the next one. Stating the principle is not the same as having applied it, and
+this entry does not claim otherwise.
 
 ## 0.2.25 — Junction/symlink-safe worktree teardown + stale `index.lock` recovery (#49)
 

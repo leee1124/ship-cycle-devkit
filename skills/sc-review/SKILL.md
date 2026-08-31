@@ -101,8 +101,8 @@ Every lens returns, in this shape:
 ## Verify findings (avoid false positives)
 For each Critical/High, spawn an independent check that tries to **refute** it (does the code path
 actually reach the bug? is it already mitigated elsewhere?). Keep only findings that survive. Scale the
-count of refuters to the size tier (§ship-cycle Stage 0.2) — Tier S runs no verification fleet — but never
-to zero on a Critical/High.
+count of refuters to the size tier (§ship-cycle Stage 0.2 — Change-size tier): Tier S runs no verification
+fleet — but **never to zero on a surviving Critical/High**, which always gets at least one refuter.
 
 ## Triage — fix here, or file and link (Iron Law 5)
 Iron Law 5 fixes the *disposition* of an out-of-scope defect ("found, filed, not fixed here"); it does not
@@ -113,7 +113,9 @@ fixed, or findings get quietly under-filed because nothing does.
 **Three questions. Any "yes" → fix it here. All "no" → file it and link it.**
 1. Is the finding **reachable through the lines this diff touched**?
 2. Does **this change make it worse** — introduce it, or amplify an existing instance?
-3. Is it a **precondition for an acceptance criterion** of this change (§sc-brainstorm, in state)?
+3. Is it a **precondition for an acceptance criterion** of this change (§sc-brainstorm, in state)? On a
+   Tier S run, where brainstorm collapsed to a one-liner, read the criteria from `state.goal`; if none were
+   stated the answer is **no** — an absent criterion is never a yes.
 
 Everything else is filed to the tracker with a **one-line rationale** and referenced from the PR body as
 `Refs #NN` (sc-ship asserts the token). "File it" is a real outcome, not a soft skip: an unfiled finding
@@ -126,6 +128,9 @@ disposition (fixed-here / filed-as `#NN`) in the review artifact so G8 and sc-sh
 
 ## Gate G8 (to advance to `sc-qa`)
 - **0 Critical/High** after verification. Address survivors in `sc-implement`, then re-review.
+- **Every finding carries a recorded disposition** — *fixed here* or *filed as `#NN`* (§Triage). A findings
+  list with no dispositions does not pass; sc-ship re-asserts this at G12, and an assertion that quantifies
+  only over the findings *marked* filed would pass vacuously on an artifact that was never triaged.
 - If a finding is a **design flaw** (not an impl bug), loop back to `sc-design`, not `sc-implement`.
 - Set `gates.G8` and loop count in state (respect the orchestrator's loop cap).
 
@@ -139,7 +144,8 @@ high-risk changes (auth/payment → security; complex algorithm → algorithm). 
 review. The two exceptions that never scale down: **triage** (above) and the security lens's fail-closed
 model pin.
 
-**Pass `model = state.models['review']` on every lens agent** (resolved at PREFLIGHT) — this is the
+**Pass `model = state.models['review']` and `effort = state.effort['review']` on every lens agent** (both
+resolved at PREFLIGHT) — this is the
 stage the default-model trap bit in practice: spawning a `quality-reviewer`/`security-reviewer` without
 `model=` runs the review on that type's cheaper default instead of the intended high/top tier, silently.
 Never rely on the agent-type default (Iron Law 6).
@@ -148,3 +154,9 @@ Never rely on the agent-type default (Iron Law 6).
 `modelRouting.securityReviewModel` — §ship-cycle Stage 0.7), spawn the **`security` and `authz` lenses with
 that model**, not `models['review']`. Some models refuse security analysis and a review routed to one
 silently no-ops; this pin guarantees the security lens runs on a model that will actually do it.
+
+**Telemetry**: when you set `gates.G8` in state, append this stage's row to
+`state.telemetry.stages['review']` — the resolved tier, model and effort, plus whatever usage the host
+actually exposed (tokens/cost/wall-clock) and `null` for what it didn't. **Never estimate a figure.** The
+run's cost readout is assembled from these rows at G13 (§ship-cycle — Cost readout); a stage that writes no
+row is simply absent from it, so the readout under-reports rather than lying.

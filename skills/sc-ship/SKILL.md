@@ -72,18 +72,31 @@ live pass. `review-only` is a legitimate outcome, not a failure — but it must 
   before merge (or, if already merged, `comment + close` the issue). This is the same failure class the cold
   lens guards against: the narrative body reads complete while the machine-readable token silently leaked,
   leaving a finished issue open and polluting the backlog.
-- **Assert every deferred finding was actually filed and linked (Iron Law 5).** sc-review's triage split
-  each surviving finding into *fixed here* or *file-and-link* (§sc-review — Triage). For every finding in
-  the review artifact marked filed, confirm the issue **exists** and the PR body carries its `Refs #NN`.
-  A finding triaged as out-of-scope and then never filed is not deferred, it is **dropped** — the same
-  silent leak as a missing `Closes` token, and the one that quietly turns "found, filed, not fixed here"
-  into "found, forgotten".
+- **Assert every finding carries a disposition, and that filed ones were filed (Iron Law 5).** sc-review's
+  triage split each surviving finding into *fixed here* or *file-and-link* (§sc-review — Triage). Quantify
+  over **every finding in the review artifact, not only the ones marked filed**: each must carry a
+  disposition — *fixed here* (visible in this diff) or *filed as `#NN`* (the issue **exists** and the PR
+  body carries its `Refs #NN`). A finding with **no** recorded disposition **fails this gate**: an absent
+  triage record is not an empty one, and quantifying only over "marked filed" passes vacuously on the
+  artifact that was never triaged at all — which is exactly the under-filing this rule exists to stop. If
+  the artifact lists findings but records no dispositions, **re-run triage** (§sc-review) rather than
+  passing. A finding triaged as out-of-scope and then never filed is not deferred, it is **dropped** — the
+  same silent leak as a missing `Closes` token.
 - If `vcs.tracker` defines a board, move the item **In Progress → Done** as work completes.
 - Gate: build + test + review + QA all passed, **the branch merges cleanly into the base**, the opened PR
   body carries the correct `Closes`/`Refs` token for every tracked issue (re-fetched and asserted, not
   assumed), and every deferred finding is filed and referenced.
 
 ## Cleanup (G13)
+- **Emit the cost readout FIRST — before anything in this section deletes anything** (§ship-cycle — Cost
+  readout). Print, and write to an artifact dir **outside the worktree**, one row per stage: **resolved
+  tier, model, effort** and whatever usage the host actually exposed (tokens/cost/wall-clock), plus the run
+  total and which risk-gated upgrades fired (`telemetry.upgrades`). **Record `unavailable` for anything the
+  host does not expose — never estimate a number.** Ordering is the whole point, and the branch/state
+  deletes below are not the only hazard: the cycle's state file lives in the cycle's working directory,
+  **which is the worktree itself when PREFLIGHT created one** (§ship-cycle State), so the worktree removal
+  below destroys `telemetry` exactly as the explicit delete does. A readout emitted after either one
+  reports nothing.
 - After merge: delete the branch **local + remote** (constitution #9); never delete protected branches.
 - **Remove the feature worktree — sweep for links, then let git delete.** Teardown is the one step in the
   cycle that can destroy state **outside** the worktree, so this order is binding:
@@ -117,17 +130,13 @@ live pass. `review-only` is a legitimate outcome, not a failure — but it must 
      link-free: re-run step 1's sweep and confirm it prints nothing before you walk away.** A failed
      directory delete is a **warning, not a gate**; a delete that recursed through a link is **damage**,
      not a warning.
-- **Emit the cost readout — before the state file is deleted** (§ship-cycle — Cost readout). Print, and
-  write to the run's artifact dir, one row per stage: **resolved tier, model, effort** and whatever usage
-  the host actually exposed (tokens/cost/wall-clock), plus the run total and which risk-gated upgrades
-  fired (`telemetry.upgrades`). **Record `unavailable` for anything the host does not expose — never
-  estimate a number.** Ordering is the whole point: the next bullet deletes the only place this run's spend
-  was recorded, so a readout emitted after it reports nothing.
 - **Delete this cycle's state file** (`.claude/ship-cycle/<branch-slug>.json`): the branch is gone, so its
   branch-keyed state is dead — leaving it would show as a phantom active cycle in `/status`.
 - Sync the base branch.
-- **Gate**: once the branch is deleted, the worktree removed (if one was created), and the base synced,
-  set `gates.G13 = pass` in state — the run's terminal gate. Cleanup is best-effort: a locked
+- **Gate**: once the cost readout has been emitted (first — not a pass condition, but it must already have
+  happened by the time anything here deletes), the branch is deleted, the worktree removed (if one was
+  created), and the base synced, set `gates.G13 = pass` in state — the run's terminal gate. Cleanup is
+  best-effort: a locked
   worktree/directory is a **warning, not a blocker**, so record the warning and still mark G13 `pass`.
 
 ## Issue-tracker hygiene
@@ -139,5 +148,10 @@ writer runs at the **low** tier; verifier at **high** (evidence judgment); git-m
 effort axis (§ship-cycle Model routing → Effort) the same split holds: docs, commit/push/PR and the
 readout are `low` mechanics; the evidence mapping at G11 is judgment and stays `high` on every size tier.
 
-**Pass `model = state.models['ship']` on these calls** (resolved at PREFLIGHT) — never the agent type's
-default model (Iron Law 6). (If a stage splits roles across tiers, resolve each from the same tierMap.)
+**Pass `model = state.models['ship']` and `effort = state.effort['ship']` on these calls** (both resolved
+at PREFLIGHT) — never the agent type's defaults; a default effort is the same silent override as a default
+model (Iron Law 6). (If a stage splits roles across tiers, resolve each from the same tierMap/effortMap.)
+
+**Telemetry**: when setting `gates.G13`, append this stage's row to `state.telemetry.stages['ship']` —
+resolved tier/model/effort plus whatever usage the host exposed, `null` for what it didn't (§ship-cycle —
+Cost readout). Do this *before* the readout is emitted, since the readout reads it.

@@ -45,5 +45,11 @@ verification to review/QA rather than writing a vacuous test.
 ## Model routing
 test-engineer runs at the **mid** tier.
 
-**Pass `model = state.models['tdd']` on the test-engineer call** (resolved at PREFLIGHT) — never the
-agent type's default model (Iron Law 6).
+**Pass `model = state.models['tdd']` and `effort = state.effort['tdd']` on the test-engineer call** (both
+resolved at PREFLIGHT) — never the agent type's defaults (Iron Law 6).
+
+**Telemetry**: when you set `gates.G4` in state, append this stage's row to
+`state.telemetry.stages['tdd']` — the resolved tier, model and effort, plus whatever usage the host
+actually exposed (tokens/cost/wall-clock) and `null` for what it didn't. **Never estimate a figure.** The
+run's cost readout is assembled from these rows at G13 (§ship-cycle — Cost readout); a stage that writes no
+row is simply absent from it, so the readout under-reports rather than lying.
