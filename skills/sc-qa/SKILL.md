@@ -60,9 +60,12 @@ check:
   the health check fails.
 - **Share the dep store across worktrees** (`env.sharedNodeModules`): a pnpm store or a linked
   `node_modules` so each per-stack worktree doesn't re-download the full tree (see PREFLIGHT). This is the
-  one knob here that is **destructive on teardown**: the link it creates is a path by which a recursive
-  delete of a worktree reaches into the shared store and wipes it for every other consumer. Turning it on
-  means teardown unlinks before it deletes — sc-ship's Cleanup (G13).
+  one knob here that is **destructive on teardown**: a linked `node_modules` is a path by which a
+  recursive delete of a worktree reaches into the shared store and wipes it for every other consumer. (A
+  pnpm content-addressable store shares by *hardlink* and is not exposed to this — but you rarely know
+  from the cycle which form the project used, so the rule applies either way.) Turning this on means
+  **stopping to read sc-ship's Cleanup (G13) step 1 and running its link sweep before any worktree is
+  deleted** — the rule without its commands is not a procedure.
 - **Reuse one e2e install** (`env.reuseE2EInstall`): Playwright browser binaries are cached — reuse a
   single e2e package install rather than `npm ci`-ing it per worktree.
 

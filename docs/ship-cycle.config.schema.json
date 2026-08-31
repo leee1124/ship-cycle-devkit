@@ -120,7 +120,10 @@
             { "const": true, "description": "Auto-detect: reuse whatever dev server is already up." }
           ]
         },
-        "sharedNodeModules": { "type": "boolean" },
+        "sharedNodeModules": {
+          "type": "boolean",
+          "description": "Share one dep store across worktrees (pnpm store or linked node_modules). The only env knob that is destructive on teardown: a linked node_modules must be swept for and unlinked before a worktree is deleted, or the delete reaches the shared store — see sc-ship Cleanup (G13) step 1."
+        },
         "reuseE2EInstall": { "type": "boolean" }
       }
     }

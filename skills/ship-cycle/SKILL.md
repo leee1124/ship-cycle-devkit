@@ -112,15 +112,34 @@ orchestration plumbing (code + files), **not an LLM step**.
    single-track change (one platform, sequential), a plain feature branch is enough — worktree is pure
    overhead. Record the worktree path in state when used. When several worktrees are created and overlay
    `env.sharedNodeModules` is set, share one dep store across them (pnpm store / linked `node_modules`) so
-   each doesn't re-install the full tree — see sc-qa's per-cycle cost note. **A shared store is a link, and
-   a link is a teardown hazard**: the delete that removes the worktree must unlink it rather than recurse
-   through it — sc-ship's Cleanup (G13) owns that order, and it is not optional.
+   each doesn't re-install the full tree — see sc-qa's per-cycle cost note. **Record how the store is
+   linked** (`ln -s`, `cmd /c mklink /J`, or a pnpm hardlink store), because teardown has to find it again:
+   every link made here is a path by which a recursive delete reaches the shared store and wipes it for
+   every other worktree and parallel cycle. sc-ship's Cleanup (G13) step 1 owns that sweep; it is not
+   optional and it is not conditional on this flag.
+   **If the worktree path already exists** — a leftover from a previous cycle whose teardown hit the
+   locked-files fallback — do **not** clear it with a recursive delete. Run G13 step 1's link sweep and
+   unlink every hit first; then `git worktree remove --force <path>` if git still tracks it, otherwise
+   `git worktree prune` and delete the now link-free directory.
    **Stale `index.lock` after a timed-out `worktree add`.** On a large/slow filesystem the checkout can
-   outlive a command timeout and leave `.git/worktrees/<name>/index.lock` behind; the next `checkout -f`
-   then fails with exit 128 (`Unable to create '…/index.lock': File exists`). Recovery: first confirm **no
-   git process is actually running** — a live `worktree add` holds that lock legitimately and deleting it
-   corrupts the in-flight checkout — then remove the stale lock and retry the add once. Raise the timeout
-   rather than looping on the retry; a lock that returns immediately means the add is still running.
+   outlive a command timeout. By then the add has created the branch, the directory **and** the
+   registration — only the checkout is unfinished — and it leaves an `index.lock` behind, under the *main*
+   repo's git dir: resolve it with `git -C <worktree> rev-parse --git-path index.lock`, not
+   `<worktree>/.git/…` (inside a worktree `.git` is a **file**, not a directory). Whatever resumes the
+   checkout then fails with exit 128 (`Unable to create '…/index.lock': File exists`).
+   - **Gate the recovery on the lock being stale, not held.** `find "$(git -C <worktree> rev-parse
+     --git-path index.lock)" -mmin +<the timeout you just exceeded, in minutes>` printing the path is your
+     go-ahead; printing nothing means an add is still in flight — **wait, don't delete**, since deleting a
+     live lock corrupts the checkout in progress. ("No git process is running" is *not* the check: the
+     crashed add you're recovering from leaves no process, so it is trivially true exactly when it tells
+     you nothing.)
+   - **Then finish the checkout in place — do not re-run `worktree add`.** Delete the stale lock and run
+     `git -C <worktree> checkout -f`. Re-adding cannot work: the branch the timed-out add already created
+     makes it fail with `fatal: a branch named '<branch>' already exists`, and `--force` does not help.
+     Only if the checkout still fails, restart cleanly — sweep + unlink (G13 step 1), delete the
+     directory, `git worktree prune`, then `git worktree add <path> <branch>` **without `-b`**, since the
+     branch already exists. Raise the timeout rather than looping; a lock that reappears right after you
+     delete it means an add is still running.
 3. **Load overlay**: read `${CLAUDE_PROJECT_DIR}/<projectConfig>` (plugin `projectConfig` setting;
    default `.claude/ship-cycle.config.json`). **Absent** → built-in heuristics + log "defaults in use".
    **Malformed → fail closed: stop and report; do not silently fall back.** *One* narrow carve-out: if the

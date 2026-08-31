@@ -26,4 +26,4 @@ the required upstream gates are `pass`: **G1** (agreed criteria), **G2/G3** (des
 - If **all** required gates pass: invoke the `sc-ship` skill to run stage 7 — G10 (docs match the change),
   G11 (every claim mapped to evidence), G12 (build/test/review/QA green + clean merge + `Closes`/`Refs`
   tokens; base = overlay `vcs.defaultBase`), then G13 cleanup (delete branch local+remote, remove the
-  worktree if present, sync base).
+  worktree if present — link sweep first, never a recursive delete through a linked dep store — sync base).

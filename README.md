@@ -90,8 +90,8 @@ It supplies:
 - **`env`** — optional per-cycle cost knobs for continuous runs: reuse a running dev server, share
   `node_modules` across worktrees, reuse one e2e install. Opt-in; correctness always wins (boots clean
   when a change needs isolation). Sharing `node_modules` links each worktree into one store, so teardown
-  **unlinks before it deletes** (sc-ship G13) — a recursive delete through the link would destroy the
-  shared install.
+  **sweeps for links and unlinks before it deletes** (sc-ship G13) — a delete that resolves the link would
+  destroy the shared install.
 
 If the overlay is absent, ship-cycle falls back to built-in heuristics and logs that defaults are used.
 
