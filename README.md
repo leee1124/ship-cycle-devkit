@@ -89,7 +89,9 @@ It supplies:
 - **`modelRouting`** — optional overrides of the base pyramid / risk-gated upgrades.
 - **`env`** — optional per-cycle cost knobs for continuous runs: reuse a running dev server, share
   `node_modules` across worktrees, reuse one e2e install. Opt-in; correctness always wins (boots clean
-  when a change needs isolation).
+  when a change needs isolation). Sharing `node_modules` links each worktree into one store, so teardown
+  **unlinks before it deletes** (sc-ship G13) — a recursive delete through the link would destroy the
+  shared install.
 
 If the overlay is absent, ship-cycle falls back to built-in heuristics and logs that defaults are used.
 

@@ -79,10 +79,24 @@ live pass. `review-only` is a legitimate outcome, not a failure — but it must 
 
 ## Cleanup (G13)
 - After merge: delete the branch **local + remote** (constitution #9); never delete protected branches.
-- **Remove the feature worktree**: `git worktree remove --force <state.worktreePath>`. Teardown must not
-  block the cycle: if removal fails because files are locked (a `node_modules`/build process still holding
-  handles — common on Windows), fall back to `git worktree prune` to drop the registry entry and leave the
-  directory for later deletion. A failed directory delete is a **warning, not a gate**.
+- **Remove the feature worktree — unlink shared stores first, then let git delete.** Teardown is the one
+  step in the cycle that can destroy state **outside** the worktree, so this order is binding:
+  1. **Unlink before anything is deleted.** If the worktree's `node_modules` (or any other dep/cache
+     subtree) is a **junction/symlink** into a shared store — exactly what `env.sharedNodeModules` creates
+     — a recursive delete follows the link and **wipes the shared install** that every other worktree and
+     parallel cycle depends on. Detect it first — `test -L <path>` on POSIX; on Windows a junction shows
+     as `<JUNCTION>`/`<SYMLINKD>` in `dir`, or check `(Get-Item <path>).LinkType` — then remove the **link
+     itself, never its contents**: `rm <link>` (or `unlink <link>`) on POSIX; `rmdir <link>` **without
+     `/s`** in cmd, or `Remove-Item <link>` **without `-Recurse`**, on Windows. The recursive forms
+     (`rm -rf <link>/`, `rmdir /s`, `Remove-Item -Recurse`) are the ones that walk into the target.
+     Removing a link is not removing its target; removing the target is silent and unrecoverable.
+  2. **Then `git worktree remove --force <state.worktreePath>`** — delegate the directory delete to git.
+     Never hand-roll a recursive delete of the worktree path as the first move.
+  3. Teardown must not block the cycle: if removal fails because files are locked (a `node_modules`/build
+     process still holding handles — common on Windows), fall back to `git worktree prune` to drop the
+     registry entry and leave the directory for later deletion. A failed directory delete is a **warning,
+     not a gate** — but a delete that recursed through a link is **damage**, not a warning, which is why
+     step 1 runs unconditionally, including on this fallback path.
 - **Delete this cycle's state file** (`.claude/ship-cycle/<branch-slug>.json`): the branch is gone, so its
   branch-keyed state is dead — leaving it would show as a phantom active cycle in `/status`.
 - Sync the base branch.

@@ -16,7 +16,8 @@ own isolation:
   mobile edit in **parallel without collisions**.
 - Independent stacks → parallel. If the front end depends on a back-end API, settle that **contract
   first**, then parallelize.
-- After merge, clean up worktrees: `git worktree remove <path>`.
+- After merge, clean up worktrees: `git worktree remove <path>` — and when a dep store was shared
+  (`env.sharedNodeModules`), **unlink the linked subtree before any delete**, per sc-ship's Cleanup (G13).
 
 ## Large cross-cutting change — waved execution (single stack)
 When one change touches **many files of the same stack** (a design-system reskin, a codemod/rename across

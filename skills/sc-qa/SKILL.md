@@ -59,7 +59,10 @@ check:
   clean only when the change needs isolation (schema/migration, a server-config or dependency change) or
   the health check fails.
 - **Share the dep store across worktrees** (`env.sharedNodeModules`): a pnpm store or a linked
-  `node_modules` so each per-stack worktree doesn't re-download the full tree (see PREFLIGHT).
+  `node_modules` so each per-stack worktree doesn't re-download the full tree (see PREFLIGHT). This is the
+  one knob here that is **destructive on teardown**: the link it creates is a path by which a recursive
+  delete of a worktree reaches into the shared store and wipes it for every other consumer. Turning it on
+  means teardown unlinks before it deletes — sc-ship's Cleanup (G13).
 - **Reuse one e2e install** (`env.reuseE2EInstall`): Playwright browser binaries are cached — reuse a
   single e2e package install rather than `npm ci`-ing it per worktree.
 

@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.2.25 — Junction/symlink-safe worktree teardown + stale `index.lock` recovery (#49)
+
+`env.sharedNodeModules` (0.2.19) made the kit **create** links from each worktree into one shared dep
+store, but teardown guidance never learned about them. 0.2.11 covered only the *non-destructive* teardown
+failure (locked files → `git worktree prune`, warn, move on). The destructive one was reachable **by
+design**: a recursive delete of a worktree follows the junction/symlink into the shared store and wipes
+the install every other worktree and parallel cycle depends on — observed in the field, silent and
+unrecoverable. Docs-only, framework-agnostic. Closes #49.
+
+- **Unlink before you delete (sc-ship G13, binding order).** Teardown is the one cycle step that can
+  destroy state *outside* the worktree, so it is now an ordered procedure: (1) detect whether
+  `node_modules` — or any dep/cache subtree — is a junction/symlink and remove the **link only**
+  (`rm`/`rmdir`, never `rm -rf`, never `Remove-Item -Recurse`); (2) then `git worktree remove --force`,
+  delegating the directory delete to git rather than hand-rolling one; (3) the existing locked-files
+  fallback (`git worktree prune`, warn, don't block) is unchanged — but step 1 runs unconditionally,
+  including on that path, because a delete that recursed through a link is **damage, not a warning**.
+- **Stale `index.lock` recovery (PREFLIGHT).** A `worktree add` that outlives a command timeout on a
+  large/slow filesystem leaves `.git/worktrees/<name>/index.lock`; the next `checkout -f` fails with exit
+  128 (`Unable to create '…/index.lock': File exists`). PREFLIGHT now recovers: confirm **no git process
+  is actually running** (a live add holds that lock legitimately — deleting it corrupts the in-flight
+  checkout), remove the stale lock, retry once, and raise the timeout instead of looping.
+- **The feature that creates the link now points at the safe teardown.** `env.sharedNodeModules` is
+  labeled the one cost knob that is *destructive on teardown* in sc-qa, PREFLIGHT, sc-implement's
+  post-merge cleanup, the README `env` bullet, and the example overlay's `$comment` — so the docs that
+  sell the sharing also carry the unlink rule. G13's gate row records it.
+
 ## 0.2.24 — Genericize domain-specific module names in the example overlay (#44)
 
 The shipped example overlay (`docs/ship-cycle.config.example.json`) had `audit.modules` set to

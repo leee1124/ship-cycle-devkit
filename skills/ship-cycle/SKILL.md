@@ -112,7 +112,15 @@ orchestration plumbing (code + files), **not an LLM step**.
    single-track change (one platform, sequential), a plain feature branch is enough — worktree is pure
    overhead. Record the worktree path in state when used. When several worktrees are created and overlay
    `env.sharedNodeModules` is set, share one dep store across them (pnpm store / linked `node_modules`) so
-   each doesn't re-install the full tree — see sc-qa's per-cycle cost note.
+   each doesn't re-install the full tree — see sc-qa's per-cycle cost note. **A shared store is a link, and
+   a link is a teardown hazard**: the delete that removes the worktree must unlink it rather than recurse
+   through it — sc-ship's Cleanup (G13) owns that order, and it is not optional.
+   **Stale `index.lock` after a timed-out `worktree add`.** On a large/slow filesystem the checkout can
+   outlive a command timeout and leave `.git/worktrees/<name>/index.lock` behind; the next `checkout -f`
+   then fails with exit 128 (`Unable to create '…/index.lock': File exists`). Recovery: first confirm **no
+   git process is actually running** — a live `worktree add` holds that lock legitimately and deleting it
+   corrupts the in-flight checkout — then remove the stale lock and retry the add once. Raise the timeout
+   rather than looping on the retry; a lock that returns immediately means the add is still running.
 3. **Load overlay**: read `${CLAUDE_PROJECT_DIR}/<projectConfig>` (plugin `projectConfig` setting;
    default `.claude/ship-cycle.config.json`). **Absent** → built-in heuristics + log "defaults in use".
    **Malformed → fail closed: stop and report; do not silently fall back.** *One* narrow carve-out: if the
@@ -223,7 +231,7 @@ sibling to `review`, absent unless overlay `modelRouting.securityReviewModel` is
 | G10 | docs matching the change exist | writer |
 | G11 | every claim mapped 1:1 to a test/build/QA log | rework |
 | G12 | build+test+review+QA passed; base = overlay `vcs.defaultBase`; **branch merges cleanly into base** (merge-tree probe + host `mergeable`) | merge base + resolve, re-verify |
-| G13 | merged branch deleted (local + remote); feature worktree removed if one was created; **cycle state file deleted**; base synced | — |
+| G13 | merged branch deleted (local + remote); feature worktree removed if one was created (**linked dep stores unlinked first**, never deleted through); **cycle state file deleted**; base synced | — |
 
 ## Model routing (token efficiency)
 
