@@ -63,8 +63,8 @@ User-invokable slash commands for inspecting or steering an in-flight run (read 
 `.claude/ship-cycle/<branch-slug>.json`, keyed by the current branch — run them from the cycle's own
 working directory; they resolve the branch with `git branch --show-current`, which needs **git ≥ 2.22**):
 
-- `/ship-cycle-devkit:status` — print the current stage, gate table (G1–G13), loop counts, resolved model
-  routing, and worktree. Read-only.
+- `/ship-cycle-devkit:status` — print the current stage, gate table (G1–G13), loop counts, **size tier**,
+  resolved model **and effort** routing, the **cost so far**, and the worktree. Read-only.
 - `/ship-cycle-devkit:resume` — resume an interrupted run from its last incomplete stage (doesn't restart
   completed stages).
 - `/ship-cycle-devkit:ship` — jump to the ship stage when the required upstream gates (G1–G9) are green;
@@ -114,13 +114,48 @@ Models are assigned by **cost-of-being-wrong × cost-of-verification**, not by r
 - **Risk-gated upgrade**: only high-risk changes (auth/payment, schema migration, public API contract,
   complex algorithm) bump the *single matching role* to the top tier — matched to the *kind* of risk,
   not always the same role.
-- **Bigger levers than tier choice**: prompt caching, an effort dial, and "cheap path first" for
+- **Effort is priced on the judgment/mechanics axis, not on stage names.** The two most judgment-dense
+  pieces of work answer to no stage's name — **root-cause analysis** and **triage** — so they sit at `high`
+  on every change, while setup, discovery, commit/push/PR and running tests sit at `low`. Review effort
+  **scales with the size tier** rather than being pinned at the top; the edit inherits the tier.
+- **Bigger levers than tier choice**: prompt caching, the effort dial, and "cheap path first" for
   implementation.
 - **Enforced, not just documented**: PREFLIGHT pre-resolves each stage's tier into a concrete model
-  (`state.models`) and every stage passes `model=` explicitly. Iron Law 6 forbids spawning on an agent
-  type's default — a specialized type (`quality-reviewer`, …) otherwise silently overrides your tier.
+  (`state.models`) and its effort into `state.effort`, and every stage passes both explicitly. Iron Law 6
+  forbids spawning on an agent type's default — a specialized type (`quality-reviewer`, …) otherwise
+  silently overrides your tier.
+- **Measured, not just asserted**: every run ends with a **cost readout** — per-stage tier/model/effort plus
+  whatever usage your host exposes, the run total, and which risk upgrades fired. So the efficiency claim
+  above is checkable on *your* repo, and `tierMap`/`effortMap` are tunable with data instead of intuition.
+  What the host doesn't expose is printed `unavailable`; nothing is estimated.
 
-Tier names (top/high/mid/low) map onto whatever model lineup your environment offers.
+Tier names (top/high/mid/low) map onto whatever model lineup your environment offers, via `tierMap`;
+effort levels (xhigh/high/medium/low) map through `effortMap` the same way.
+
+## Right-sizing & pruning
+
+Two rules that keep the kit from bloating — and from being trimmed into uselessness.
+
+**Size before ceremony.** PREFLIGHT picks a **change-size tier (S/M/L)** up front and records it in state;
+every later stage reads it. **Tier S** — a one-liner whose cause is already corroborated by ≥2 independent
+code sites — takes no worktree, no verification fleet, one review lens, and the low tiers. **Tier L** gets
+the full set. The tier dials *ceremony* (stage count, model tier and effort, lens breadth, agent count);
+it never dials an *outcome*. Re-tiering is monotonic **upward**: a change that turns out bigger adds the
+ceremony back, and never drops a stage it already owes. Root-cause analysis, finding triage and the pre-PR
+conflict check are outcomes — they are the cheapest stages in the pipeline and the first a right-sizing
+pass reaches for, and cutting them is how you ship a misdiagnosed request confidently.
+
+**"Simplify" means delete what the model already knows — not reduce line count.** Two very different kinds
+of rule accumulate in files like these, and a blunt prune deletes the wrong one:
+
+| prunable | load-bearing |
+|---|---|
+| Restatements of Clean Code / SOLID, "don't swallow exceptions", "use parameterized queries", "prefer meaningful names" — a competent model applies these unprompted | Toolchain absolute paths that aren't on `PATH`, wrapper scripts, runner flags a symlink/junction layout requires, build-artifact rebuild steps, dual-build dependency drift, VCS footguns (`git -C`, never `cd`; stage explicit files, never `-A`; a teardown that follows a `node_modules` junction and wipes the shared store) |
+
+Everything in the right-hand column exists because of an incident that actually happened, and none of it is
+inferable from general engineering knowledge. In a framework-agnostic kit the split generalizes cleanly:
+**generic principles are prunable; overlay- and environment-supplied facts are load-bearing.** The same
+test applies to your own `CLAUDE.md`/`AGENTS.md`.
 
 ## Prior art & inspiration
 

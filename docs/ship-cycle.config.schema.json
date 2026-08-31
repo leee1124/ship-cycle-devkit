@@ -95,6 +95,16 @@
             "low": { "type": "string" }
           }
         },
+        "effortMap": {
+          "type": "object",
+          "description": "Maps the kit's effort levels onto whatever this host calls them, exactly as tierMap does for models. PREFLIGHT resolves per-stage effort into state.effort and every stage spawn passes it explicitly -- a default effort is the same silent override as a default model (Iron Law 6). Effort is priced on the judgment/mechanics axis, not on stage names: root-cause analysis and triage stay 'high' on every size tier, review effort scales with the size tier, and mechanics (setup, discovery, commit/push/PR, running tests, one-line edits) are 'low'. Absent this map, effort levels are advisory only.",
+          "properties": {
+            "xhigh": { "type": "string" },
+            "high": { "type": "string" },
+            "medium": { "type": "string" },
+            "low": { "type": "string" }
+          }
+        },
         "base": { "type": "object" },
         "securityReviewModel": {
           "type": "string",

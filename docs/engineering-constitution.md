@@ -3,6 +3,13 @@
 Baseline engineering rules the `ship-cycle` skill enforces at its gates. A project may extend these,
 but should not weaken them. Framework-agnostic.
 
+**What is stated in full, and what is stated once** (the pruning rule — see the README). §3–§8 name the
+baseline **compactly**: they are the review checklist's reference points, not tutorials, because a
+competent model applies general engineering principles unprompted. What is spelled out in full is what a
+model **cannot** infer — the specific anti-pattern, the non-obvious language idiom, the number a gate
+enforces. A project extending this file should follow the same split, and should never prune the other
+half: environment and toolchain facts are load-bearing precisely because they aren't inferable.
+
 ## 1. Branching & flow
 - **Never commit directly to a protected branch** (`main`/`master`/`dev`). Create a `feature/*` or
   `fix/*` branch first.
@@ -20,10 +27,8 @@ but should not weaken them. Framework-agnostic.
   current in the same change that adds/changes/removes behavior.
 
 ## 3. Architecture & design (SOLID & Clean Code)
-- Keep layers separated (Controller, Service, Repository, DTO).
-- Small methods with a single responsibility; meaningful, domain-language names for methods, variables,
-  **and constants** — no unexplained literals (see the no-magic-numbers rule below).
-- Depend on interfaces/abstractions, not concrete classes, so change stays cheap.
+- Layered separation (Controller/Service/Repository/DTO); single-responsibility methods; domain-language
+  names for methods, variables **and constants**; dependence on abstractions, not concrete classes.
 - **No magic numbers/strings**: extract any literal with domain meaning into a named constant. A closed,
   related set becomes an `enum` (Java) / a union literal type or an `as const` object (TS — **not**
   `enum`, whose runtime cost and `isolatedModules`/bundler pitfalls make the union the idiom) /
@@ -32,17 +37,17 @@ but should not weaken them. Framework-agnostic.
   the anemic-model smell (#7).
 
 ## 4. Input validation & security (OWASP Top 10)
-- Validate external input with framework features and regex on a **whitelist** basis.
-- Prevent SQL injection: use an ORM or parameterized queries — never string-concatenate SQL.
-- Prevent XSS: escape/encode all HTML output.
+- Whitelist-validate external input; parameterized queries or an ORM (never concatenated SQL); escape or
+  encode all HTML output. The security review lens names these as anti-patterns (§10) — that is where the
+  enforcement lives.
 
 ## 5. Authentication & authorization
 - For every resource-mutating request (C/U/D), verify in the **service layer** that the current user's
   identity matches the data's owner.
 
 ## 6. Minimize data exposure & handle exceptions
-- Never return entities directly; return a DTO containing only what's needed.
-- Don't swallow exceptions (`catch {}`) — log them.
+- Never return entities directly; return a DTO containing only what's needed. Don't swallow exceptions
+  (`catch {}`) — log them.
 - To the client, hide concrete error detail (stack traces, DB errors); return a normalized safe error
   shape (e.g. `{ "code": "ERR001", "message": "The request could not be processed." }`).
 
@@ -54,7 +59,7 @@ but should not weaken them. Framework-agnostic.
 
 ## 8. Test-Driven Development (TDD)
 - Follow Red-Green-Refactor: write a failing test first (Red), pass it minimally (Green), then refactor.
-- Structure tests as Given/When/Then with a descriptive name.
+  Structure tests as Given/When/Then with a descriptive name.
 - Separate unit / integration / E2E tests. Keep coverage of core business logic at **≥80%**.
 
 ## 9. Branch management

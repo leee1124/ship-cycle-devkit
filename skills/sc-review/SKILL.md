@@ -100,7 +100,29 @@ Every lens returns, in this shape:
 
 ## Verify findings (avoid false positives)
 For each Critical/High, spawn an independent check that tries to **refute** it (does the code path
-actually reach the bug? is it already mitigated elsewhere?). Keep only findings that survive.
+actually reach the bug? is it already mitigated elsewhere?). Keep only findings that survive. Scale the
+count of refuters to the size tier (§ship-cycle Stage 0.2) — Tier S runs no verification fleet — but never
+to zero on a Critical/High.
+
+## Triage — fix here, or file and link (Iron Law 5)
+Iron Law 5 fixes the *disposition* of an out-of-scope defect ("found, filed, not fixed here"); it does not
+make the actually-hard call: of the findings that survived verification, **which belong to this change?**
+Without a rubric this fails in one of two directions every time — scope balloons because everything gets
+fixed, or findings get quietly under-filed because nothing does.
+
+**Three questions. Any "yes" → fix it here. All "no" → file it and link it.**
+1. Is the finding **reachable through the lines this diff touched**?
+2. Does **this change make it worse** — introduce it, or amplify an existing instance?
+3. Is it a **precondition for an acceptance criterion** of this change (§sc-brainstorm, in state)?
+
+Everything else is filed to the tracker with a **one-line rationale** and referenced from the PR body as
+`Refs #NN` (sc-ship asserts the token). "File it" is a real outcome, not a soft skip: an unfiled finding
+is a dropped one, and Iron Law 5 forbids that as firmly as it forbids fixing it here.
+
+**Triage runs at `high` effort on every tier** (§ship-cycle Model routing → Effort). It is judgment-dense
+work that wears no impressive artifact, so it is the first thing a right-sizing pass reaches for — and
+misjudging it is how a review either balloons the branch or loses a real defect. Record each finding's
+disposition (fixed-here / filed-as `#NN`) in the review artifact so G8 and sc-ship can both read it.
 
 ## Gate G8 (to advance to `sc-qa`)
 - **0 Critical/High** after verification. Address survivors in `sc-implement`, then re-review.
@@ -110,6 +132,12 @@ actually reach the bug? is it already mitigated elsewhere?). Keep only findings 
 ## Model routing
 security/quality/algorithm review run at the **high** tier; upgrade the matching lens to **top** for
 high-risk changes (auth/payment → security; complex algorithm → algorithm). style/designer may run lower.
+
+**Effort scales with the size tier, it is not pinned at the top** (§ship-cycle Model routing → Effort):
+`xhigh` for the final adversarial lens on **Tier L only**, `high` on Tier M, `medium` on Tier S. A blanket
+"reviews always run at maximum" is precisely what makes a corroborated one-line fix cost a six-figure-token
+review. The two exceptions that never scale down: **triage** (above) and the security lens's fail-closed
+model pin.
 
 **Pass `model = state.models['review']` on every lens agent** (resolved at PREFLIGHT) — this is the
 stage the default-model trap bit in practice: spawning a `quality-reviewer`/`security-reviewer` without

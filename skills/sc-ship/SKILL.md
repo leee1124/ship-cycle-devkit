@@ -72,10 +72,16 @@ live pass. `review-only` is a legitimate outcome, not a failure — but it must 
   before merge (or, if already merged, `comment + close` the issue). This is the same failure class the cold
   lens guards against: the narrative body reads complete while the machine-readable token silently leaked,
   leaving a finished issue open and polluting the backlog.
+- **Assert every deferred finding was actually filed and linked (Iron Law 5).** sc-review's triage split
+  each surviving finding into *fixed here* or *file-and-link* (§sc-review — Triage). For every finding in
+  the review artifact marked filed, confirm the issue **exists** and the PR body carries its `Refs #NN`.
+  A finding triaged as out-of-scope and then never filed is not deferred, it is **dropped** — the same
+  silent leak as a missing `Closes` token, and the one that quietly turns "found, filed, not fixed here"
+  into "found, forgotten".
 - If `vcs.tracker` defines a board, move the item **In Progress → Done** as work completes.
-- Gate: build + test + review + QA all passed, **the branch merges cleanly into the base**, and the opened
-  PR body carries the correct `Closes`/`Refs` token for every tracked issue (re-fetched and asserted, not
-  assumed).
+- Gate: build + test + review + QA all passed, **the branch merges cleanly into the base**, the opened PR
+  body carries the correct `Closes`/`Refs` token for every tracked issue (re-fetched and asserted, not
+  assumed), and every deferred finding is filed and referenced.
 
 ## Cleanup (G13)
 - After merge: delete the branch **local + remote** (constitution #9); never delete protected branches.
@@ -111,6 +117,12 @@ live pass. `review-only` is a legitimate outcome, not a failure — but it must 
      link-free: re-run step 1's sweep and confirm it prints nothing before you walk away.** A failed
      directory delete is a **warning, not a gate**; a delete that recursed through a link is **damage**,
      not a warning.
+- **Emit the cost readout — before the state file is deleted** (§ship-cycle — Cost readout). Print, and
+  write to the run's artifact dir, one row per stage: **resolved tier, model, effort** and whatever usage
+  the host actually exposed (tokens/cost/wall-clock), plus the run total and which risk-gated upgrades
+  fired (`telemetry.upgrades`). **Record `unavailable` for anything the host does not expose — never
+  estimate a number.** Ordering is the whole point: the next bullet deletes the only place this run's spend
+  was recorded, so a readout emitted after it reports nothing.
 - **Delete this cycle's state file** (`.claude/ship-cycle/<branch-slug>.json`): the branch is gone, so its
   branch-keyed state is dead — leaving it would show as a phantom active cycle in `/status`.
 - Sync the base branch.
@@ -123,7 +135,9 @@ Don't add third-party/competitor product names or "learning/practice" items to t
 finished issues immediately.
 
 ## Model routing
-writer runs at the **low** tier; verifier at **high** (evidence judgment); git-master at **mid**.
+writer runs at the **low** tier; verifier at **high** (evidence judgment); git-master at **mid**. On the
+effort axis (§ship-cycle Model routing → Effort) the same split holds: docs, commit/push/PR and the
+readout are `low` mechanics; the evidence mapping at G11 is judgment and stays `high` on every size tier.
 
 **Pass `model = state.models['ship']` on these calls** (resolved at PREFLIGHT) — never the agent type's
 default model (Iron Law 6). (If a stage splits roles across tiers, resolve each from the same tierMap.)

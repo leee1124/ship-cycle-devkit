@@ -32,7 +32,12 @@ Otherwise parse the JSON and print a compact, scannable status report:
   `sc-brainstorm → sc-design → sc-tdd → sc-implement → sc-review → sc-qa → sc-ship`.
 - **Gate table** — for **G1–G13**, show `pass` / `fail` / `—` (not yet reached) from `gates`.
 - **Loop counts** per gate from `loops`; the loop cap is 3 per gate — flag any gate that has hit the cap.
-- **Resolved model routing** from `models` (per stage).
-- **Change nature** (`nature`) and **risk** (`risk`).
+- **Resolved model routing** from `models` (per stage) and **effort** from `effort`.
+- **Change nature** (`nature`), **risk** (`risk`), and **size tier** (`size` — S/M/L).
+- **Cost so far** from `telemetry`: one row per completed stage (tier / model / effort, plus tokens or cost
+  where the host exposed them), the running total, and which risk-gated upgrades fired
+  (`telemetry.upgrades`). Print `unavailable` for any figure the host didn't provide — **never estimate
+  one**; an invented cost table is worse than an honest gap. Absent `telemetry` (a run started before this
+  was recorded), say so and print the routing alone.
 
 Keep it terse. Do not run any stage, and do not write to the state file.

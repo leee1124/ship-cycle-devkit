@@ -1,5 +1,81 @@
 # Changelog
 
+## 0.2.26 — Right-size the cycle: size tiers, effort on the judgment axis, cost readout (#54, #53, #52)
+
+Three issues on one axis: **#54** decides how much ceremony a change gets, **#53** makes the hardest
+judgment call inside a review repeatable, and **#52** measures whether the routing actually paid. Docs-only,
+framework-agnostic. Closes #54, #53, #52.
+
+### Size tiers, chosen up front (#54)
+
+The kit already had a *Lightweight path* and prose asides ("scale agent count to change size", "a trivial
+one-line change may not warrant a worktree") — but they were asides, not a branch in the procedure, so the
+default path stayed full ceremony. PREFLIGHT now **picks a change-size tier first** and records it:
+
+- **Tier S** — a single expression/constant/comment whose cause is already corroborated by **≥2 independent
+  code sites**: no worktree, no verification fleet, one review lens, low tiers. **S is a claim about
+  evidence, not diff size** — "it's one line" doesn't earn it; if you can't name the ≥2 sites, it isn't S.
+- **Tier M** — one module, one stack: worktree only if something else earns it, 1–2 lenses.
+- **Tier L** — multi-file / cross-stack / security-sensitive / migration: the full set.
+
+Recorded as `state.size`, printed with the routing, and **monotonic like risk**: a change that turns out
+bigger moves up and adds ceremony back; it never moves down mid-cycle to retire a stage it already owes.
+
+### Effort on the judgment/mechanics axis, not on stage names (#54)
+
+Naming the expensive stages "design / review / critique" leaks, because the two most judgment-dense pieces
+of work in the cycle answer to **no stage's name**: root-cause analysis and triage. Effort is now priced on
+the work — `xhigh` design and the final adversarial lens (Tier L only), `high` root-cause analysis and
+triage, `medium` Tier S review and multi-file edits, `low` setup/discovery/commit/tests/one-liners — bridged
+to the host by a new overlay `modelRouting.effortMap` (advisory without one, exactly like `tierMap`) and
+resolved into `state.effort` at PREFLIGHT, passed explicitly on every spawn (a default effort is the same
+silent override as a default model — Iron Law 6). Two deliberate consequences: **review effort scales with
+the size tier** instead of being pinned at the top (pinning it is what turns a corroborated one-liner into a
+six-figure-token review, so "reviews are always xhigh" would have left the real waste in place), and **the
+edit inherits the tier**.
+
+### What right-sizing may never reach (#54)
+
+Root-cause analysis, finding triage and the pre-PR conflict check are added to the **outcomes** side of the
+bright line, alongside verification-was-read and fresh-eyes-review. They are the cheapest stages in the
+pipeline and the first a right-sizing pass reaches for, because they produce no impressive artifact — and
+they are what stop you implementing a misdiagnosed request ("relabel that bar as Total", when the bar is a
+disjoint bucket and relabelling ships a chart that misleads), shipping a review's false positive, and
+finding a conflict after the PR is open. Cutting them isn't right-sizing; it removes the part that worked.
+
+### A deferred-findings rubric for Iron Law 5 (#53)
+
+Iron Law 5 fixed the *disposition* of an out-of-scope defect ("found, filed, not fixed here") but not the
+call that is actually hard: which of a review's surviving findings belong to *this* change? Without a rubric
+it fails one of two ways every time — scope balloons, or findings get quietly under-filed. sc-review gains
+three questions, **any yes → fix here, all no → file and link**: (1) reachable through the lines this diff
+touched? (2) does this change introduce or amplify it? (3) is it a precondition for an acceptance criterion?
+sc-ship then **asserts** it: every finding triaged as filed must have a real issue and a `Refs #NN` in the
+PR body — an unfiled finding is dropped, not deferred: the same silent leak as a missing `Closes` token.
+
+### Post-run cost readout (#52)
+
+Routing was enforced (0.2.6) but never counted, leaving the kit's one efficiency claim unfalsifiable on your
+repo and `tierMap` tunable only by intuition. The cycle now accumulates `state.telemetry` per stage —
+resolved tier/model/effort plus whatever usage the host exposes — and G13 **emits the readout before it
+deletes the state file** (ordering is the point: the step that ends the run is the step that destroys the
+only record of what it cost). `/status` prints the same table mid-run; `/resume` appends rather than
+restarting it. **Nothing is estimated**: what the host doesn't expose prints `unavailable`, because a
+fabricated cost table is the same false-green class as a scraped exit code (Iron Law 2). Read-only — it
+gates nothing.
+
+### Pruning rule: delete what the model knows, not lines (#54)
+
+A blunt "simplify the skills" pass deletes the wrong half. The README now states the split — generic
+principles (SOLID restatements, "don't swallow exceptions", "use parameterized queries") are **prunable**;
+toolchain paths, wrapper scripts, runner flags a junction layout requires, and VCS footguns (including the
+teardown that follows a `node_modules` junction, 0.2.25) are **load-bearing**, because each exists from an
+incident and none is inferable. Generalized for a framework-agnostic kit: *generic principles prune,
+overlay/environment facts stay.* Applied conservatively to the constitution: §3/§4/§6/§8's restatements
+collapse to compact reference points while every gate-cited number, anti-pattern and non-obvious idiom
+(the TS `enum`-vs-union caveat, ≥80% coverage, the normalized error shape) is kept in full. Net line count
+is roughly unchanged — which is the point: the metric is *signal*, not length.
+
 ## 0.2.25 — Junction/symlink-safe worktree teardown + stale `index.lock` recovery (#49)
 
 `env.sharedNodeModules` (0.2.19) made the kit **create** links from each worktree into one shared dep
