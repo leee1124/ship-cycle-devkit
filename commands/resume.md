@@ -34,3 +34,9 @@ Otherwise, resume via the `ship-cycle` skill's PREFLIGHT resume path:
    from what the completed stages imply: resuming is not an occasion to re-tier a cycle downward.
 3. Do **not** restart already-`pass` stages and do **not** re-initialize the state file — pick up exactly
    where the run left off.
+4. **If `reviewJobs` holds a `running` entry, resume by polling it — never by relaunching.** Run that
+   reviewer's declared `status` command against the recorded `id`; a relaunch abandons a job that may be
+   half an hour in and starts the clock again. If the job is gone on the host side (the process died with
+   the previous session), mark it `failed` with that reason and re-launch deliberately, counting it against
+   G8's loop cap. Honor `gitFreeze` on resume exactly as mid-run: if it is `active`, do not move the branch
+   until it is released — and if it is active with **no** `running` job, release it and say so.

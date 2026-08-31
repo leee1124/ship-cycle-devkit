@@ -137,6 +137,9 @@ orchestration plumbing (code + files), **not an LLM step**.
    every link made here is a path by which a recursive delete reaches the shared store and wipes it for
    every other worktree and parallel cycle. sc-ship's Cleanup (G13) step 1 owns that sweep; it is not
    optional and it is not conditional on this flag.
+   **Before any worktree removal or `prune` here**, confirm the path is not a `reviewJobs[].snapshot` of an
+   active cycle and that no cycle holds an `active` `gitFreeze` — `prune` drops registry entries
+   **repo-wide**, not just this cycle's (§sc-review — Git-write freeze).
    **If the worktree path already exists** — a leftover from a previous cycle whose teardown hit the
    locked-files fallback — do **not** clear it with a recursive delete. Run G13 step 1's link sweep and
    unlink every hit first; then `git worktree remove --force <path>` if git still tracks it, otherwise
@@ -261,7 +264,7 @@ orchestration plumbing (code + files), **not an LLM step**.
    knows which model refuses.)
 8. **Init state**: write this cycle's `.claude/ship-cycle/<branch-slug>.json` (including `branch`, `size`,
    `sizeEvidence` when the tier is S, `models`, `effort`, `baseline` including its `unrunnableHere` set,
-   and an empty `telemetry`). First
+   an empty `telemetry`, an empty `reviewJobs`, and `gitFreeze` inactive). First
    migrate a legacy bare state file if one exists for this branch, and refuse if the
    target file already belongs to a different `branch` (§State). A **detached HEAD** (empty slug) has no
    cycle key — that's caught at step 1.
@@ -289,6 +292,12 @@ free). Implementer sub-worktrees carry **no** cycle state — only the orchestra
               "review": "opus", "qa": "sonnet", "ship": "sonnet" },
   "effort": { "design": "xhigh", "tdd": "medium", "implement": "low",
               "review": "high", "qa": "medium", "ship": "low" },
+  "reviewJobs": [{ "id": "<host job id>", "agent": "<external reviewer name>",
+                   "lens": "external-adversarial", "status": "running", "startedAt": "<iso>",
+                   "endedAt": null, "snapshot": "<path outside the worktree>",
+                   "resultPath": "<path outside the worktree>" }],
+  "gitFreeze": { "active": false, "branch": null, "since": null, "releasedAt": null, "reason": null,
+                 "releaseOn": "snapshot" },
   "telemetry": { "upgrades": ["auth → security lens: high→top"],
                  "stages": { "review": { "tier": "top", "model": "opus", "effort": "high",
                                          "tokens": null, "cost": null } } } }
@@ -299,7 +308,12 @@ loop cap (don't count loops in your head — each cycle's file owns its own `loo
 `failed` / absent means a **fresh** cycle for this branch (init a new file). Because each cycle owns a
 branch-named file there is no shared active file to clobber and no "archive the stale active file" dance —
 concurrent cycles coexist, and sequential ones just leave the finished file behind (deleted at G13 when the
-branch is). **Collision guard**: the slug is lossy (`feat/x` and `feat-x` both → `feat-x`), so the JSON
+branch is). **One exception to per-cycle isolation: `gitFreeze` describes a *repo-wide* hazard.**
+`git worktree add / remove / prune` and an `index.lock` recovery reach outside the cycle that runs them —
+`prune` is repo-scoped. Before any of those, scan **every** `.claude/ship-cycle/*.json` in this working
+directory, not just this branch's, for an `active` `gitFreeze` or a `running` `reviewJobs` entry, and treat
+another cycle's freeze as binding on the shared operation (§sc-review — Git-write freeze).
+**Collision guard**: the slug is lossy (`feat/x` and `feat-x` both → `feat-x`), so the JSON
 `branch` field is the exact record — on init, if the target file already exists with a **different**
 `branch`, refuse/warn rather than clobber another cycle. **Migration (PREFLIGHT-only, one-time)**: if the
 per-branch file is absent and a legacy bare `.claude/.ship-cycle-state.json` exists whose `branch` **equals**
@@ -326,7 +340,7 @@ sibling to `review`, absent unless overlay `modelRouting.securityReviewModel` is
 | G6 | no failures **new vs `state.baseline`** (pre-existing base-branch reds don't block; `baseline.unrunnableHere` suites are neither pass nor regression), core coverage ≥80% | debugger → sc-implement |
 | G7 | (if an artifact ships) real build succeeds | build-fixer |
 | G7b | (if the nature declares `bootCheck`) full-context **eager** boot/context-load smoke passes on a non-inert change | build-fixer (env can't load → checklist) |
-| G8 | 0 Critical/High (authz, paywall, anemic, N+1); **every finding carries a disposition** (fixed-here / filed `#NN`). UI → designer passes | → sc-implement (design flaw → sc-design) |
+| G8 | 0 Critical/High (authz, paywall, anemic, N+1); **every finding carries a disposition** (fixed-here / filed `#NN`); **no `reviewJobs` entry still `running`/`launching`** and `gitFreeze` released. UI → designer passes | → sc-implement (design flaw → sc-design) |
 | G9 | 0 new defects in integration/E2E (new vs `state.baseline`, ignoring `baseline.unrunnableHere`); seams reproduced; ITs that **can** run here actually ran | → sc-implement |
 | G10 | docs matching the change exist | writer |
 | G11 | every claim mapped 1:1 to a test/build/QA log | rework |
@@ -414,8 +428,10 @@ QA-skip-for-trivial, TDD-harness form. *Outcomes* (never dialed, for a typo fix 
 verification actually ran and its output was read; review by fresh eyes before any PR; the fail-closed
 floors (security/data/contract); a failing test before prod code; **root-cause analysis before any defect
 fix**; **triage of every finding** (fix-here or filed-and-linked — never silently dropped, Iron Law 5 +
-§sc-review); and **the pre-PR conflict check** (G12). When unsure which side something is on, it is an
-outcome — keep it.
+§sc-review); **the pre-PR conflict check** (G12); and **the git-write freeze while an out-of-process
+reviewer is reading the branch** (§sc-review — an operational floor: a badly-timed `commit`/`checkout` can
+hang the reader for an hour, and Tier S does not exempt you from waiting). When unsure which side something
+is on, it is an outcome — keep it.
 
 **The three that pay for the cycle.** Root-cause analysis, triage and the conflict check are the cheapest
 stages in the pipeline and the ones a right-sizing pass reaches for first, because they have no impressive

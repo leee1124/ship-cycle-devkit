@@ -19,7 +19,7 @@
       "nature": "backend",
       "tests": ["cd apps/backend && ./gradlew test"],
       "build": ["cd apps/backend && ./gradlew build"],
-      "reviews": ["security", "quality", "performance", "algorithm"],
+      "reviews": ["security", "quality", "performance", "algorithm", "external:outside-eyes"],
       "bootCheck": ["cd apps/backend && ./gradlew test --tests '*ContextLoadTest'"],
       "envProbe": ["pg_isready -h localhost -p 5432", "docker info"]
     },
@@ -63,6 +63,18 @@
     ],
     "modules": ["auth", "billing", "catalog", "orders", "profile", "settings"],
     "reportDir": "docs/audits"
+  },
+
+  "externalReviewers": {
+    "$comment": "Optional. An out-of-process reviewer — a different model/CLI — that a changeNature[].reviews entry can name to run that lens as an async job. Commands are yours; the kit never hard-codes a vendor. Keep snapshot true so the git-write freeze releases in seconds instead of holding the branch for the whole review.",
+    "outside-eyes": {
+      "launch": ["my-reviewer start --diff $SNAPSHOT --print-id"],
+      "status": ["my-reviewer status $JOB_ID"],
+      "fetch": ["my-reviewer result $JOB_ID"],
+      "snapshot": true,
+      "pollSeconds": 60,
+      "maxWaitMinutes": 45
+    }
   },
 
   "modelRouting": {

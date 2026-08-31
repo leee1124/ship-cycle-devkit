@@ -39,6 +39,10 @@ This makes verification strength auditable and stops a review-only fallback from
 live pass. `review-only` is a legitimate outcome, not a failure — but it must be **named as such**.
 
 ## PR (G12)
+- **Check `state.gitFreeze.active` first — do not commit, push, rebase or move the branch while it is
+  set** (§sc-review — Git-write freeze). An external reviewer reading this branch out of process hangs on a
+  badly-timed write, and G8 should already have released the freeze; if it is still active, a review job is
+  unresolved and you are shipping ahead of your own gate.
 - Atomic commits; open the PR against overlay `vcs.defaultBase`.
 - **Never stage generated/CI-built artifacts** listed in overlay `commit.excludePaths` (e.g. a bundle
   output dir a QA step built locally). Auto-revert / don't-stage them before committing (`git checkout --
@@ -66,15 +70,18 @@ live pass. `review-only` is a legitimate outcome, not a failure — but it must 
 - Body summarizes the review + QA results and **links the tracked issue**: `Closes #NN` (fully done →
   auto-close on merge) or `Refs #NN` (partial → progress comment, keep open). Assign the milestone if
   `vcs.tracker.milestones` is on.
-- **Surface any deferred manual checks recorded in state as a pre-merge manual gate.** If a stage could not
-  verify something in this environment and recorded a checklist item — a `gates.G7b: checklist` boot
+- **Surface any deferred manual checks recorded in state as a pre-merge manual gate.** If a stage could
+  not verify something in this environment and recorded a checklist item — a `gates.G7b: checklist` boot
   deferral (sc-implement couldn't load a full context locally), sc-qa's device-gap / reachability-blocked
-  items, or a `baseline.unrunnableHere` suite that is a criterion's only coverage — list them in the PR body
-  under an explicit **"Pre-merge manual gate"** heading (one observable check per item), so a deferral can't
-  slip in as a silent pass. For an unrunnable-here item the observable check is the **CI job that must show
-  that suite executed (count > 0) and green on this branch's head commit** — a link a reviewer can click,
-  not a claim they have to trust; name the suite and its recorded `reason` beside it. A `gates.G9: degrade`
-  goes here too, with its reason. If none were recorded, say so.
+  items, a `baseline.unrunnableHere` suite that is a criterion's only coverage, or a declared external
+  review that ended `timeout`/`failed` (name the reviewer, the job id, **and the elapsed wait
+  `startedAt → endedAt`**, so a review that was never actually waited for is visible as such — §sc-review)
+  — list them in the
+  PR body under an explicit **"Pre-merge manual gate"** heading (one observable check per item), so a
+  deferral can't slip in as a silent pass. For an unrunnable-here item the observable check is the **CI
+  job that must show that suite executed (count > 0) and green on this branch's head commit** — a link a
+  reviewer can click, not a claim they have to trust; name the suite and its recorded `reason` beside it.
+  A `gates.G9: degrade` goes here too, with its reason. If none were recorded, say so.
 - **Verify the closing token actually landed (don't trust that you wrote it).** After opening the PR,
   **re-fetch the created body** and assert it contains the exact intended token for **every** tracked issue
   in `state`: `Closes #NN` when that issue is fully done, `Refs #NN` when partial. A bare mention (`#NN`,
@@ -102,6 +109,12 @@ live pass. `review-only` is a legitimate outcome, not a failure — but it must 
   assumed), and every deferred finding is filed and referenced.
 
 ## Cleanup (G13)
+- **Check `state.gitFreeze.active` and `state.reviewJobs` before you delete anything.** Teardown removes a
+  worktree and a branch; an out-of-process reviewer reading either hangs or dies mid-read (§sc-review).
+  **Never remove a worktree that is a recorded `reviewJobs[].snapshot`** — a detached snapshot worktree is
+  not this cycle's feature worktree and is not yours to prune, and `git worktree prune` is repo-scoped.
+  Reaching G13 with a `running` job means G8 was set while a review was still reading: stop and resolve it,
+  don't tear down around it.
 - **Emit the cost readout FIRST — before anything in this section deletes anything** (§ship-cycle — Cost
   readout). Print, and write to an artifact dir **outside the worktree**, one row per stage: **resolved
   tier, model, effort** and whatever usage the host actually exposed (tokens/cost/wall-clock), plus the run

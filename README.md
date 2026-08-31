@@ -64,7 +64,8 @@ User-invokable slash commands for inspecting or steering an in-flight run (read 
 working directory; they resolve the branch with `git branch --show-current`, which needs **git ≥ 2.22**):
 
 - `/ship-cycle-devkit:status` — print the current stage, gate table (G1–G13), loop counts, **size tier**,
-  resolved model **and effort** routing, the **cost so far**, and the worktree. Read-only.
+  resolved model **and effort** routing, the **cost so far**, in-flight **review jobs** and any **git-write
+  freeze**, and the worktree. Read-only.
 - `/ship-cycle-devkit:resume` — resume an interrupted run from its last incomplete stage (doesn't restart
   completed stages).
 - `/ship-cycle-devkit:ship` — jump to the ship stage when the required upstream gates (G1–G9) are green;
@@ -86,6 +87,12 @@ It supplies:
 - **`i18n`** — optional path to an i18n-parity config (the i18n hook ships separately).
 - **`audit`** — optional inputs for the à-la-carte `sc-audit` skill: the `sourceOfTruth` contract, the
   consumer `surfaces` checked against it, domain `modules`, and `reportDir`. Omit to derive from `changeNature`.
+- **`externalReviewers`** — optional out-of-process review agents (a different model or CLI entirely). A
+  `changeNature[].reviews` entry of the form **`external:<name>`** adds one as an **async review job**:
+  freeze → snapshot → release → launch → poll → judge on completion, with the cycle free to suspend and
+  resume in between. You supply the commands; the kit never hard-codes a vendor. The `external:` prefix is
+  what keeps a foreign reviewer an *additional* lens rather than a replacement — it can never occupy a
+  built-in lens's slot, so one named `cold` cannot silently retire the in-session cold lens.
 - **`modelRouting`** — optional overrides of the base pyramid / risk-gated upgrades.
 - **`env`** — optional per-cycle cost knobs for continuous runs: reuse a running dev server, share
   `node_modules` across worktrees, reuse one e2e install. Opt-in; correctness always wins (boots clean
