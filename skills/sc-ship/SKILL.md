@@ -79,10 +79,38 @@ live pass. `review-only` is a legitimate outcome, not a failure — but it must 
 
 ## Cleanup (G13)
 - After merge: delete the branch **local + remote** (constitution #9); never delete protected branches.
-- **Remove the feature worktree**: `git worktree remove --force <state.worktreePath>`. Teardown must not
-  block the cycle: if removal fails because files are locked (a `node_modules`/build process still holding
-  handles — common on Windows), fall back to `git worktree prune` to drop the registry entry and leave the
-  directory for later deletion. A failed directory delete is a **warning, not a gate**.
+- **Remove the feature worktree — sweep for links, then let git delete.** Teardown is the one step in the
+  cycle that can destroy state **outside** the worktree, so this order is binding:
+  1. **Sweep the whole worktree for links and unlink every hit, before anything is deleted.** Not just
+     `node_modules/` at the root: a shared store is just as often linked **per package**
+     (`node_modules/<pkg>` → a store or a sibling package), where a root-only `test -L` returns false and
+     the sweep is the only thing that sees it.
+     - POSIX: `find <worktree> -xdev \( -type l -o -xtype l \) -print` — empty output means nothing to
+       unlink. Remove each hit with `rm <link>` or `unlink <link>` (**not** `rmdir <link>`, which fails
+       with `Not a directory` and leaves the link standing).
+     - Windows: `Get-ChildItem -LiteralPath <worktree> -Recurse -Force -Attributes ReparsePoint |
+       Select-Object FullName, LinkType`. Remove each hit with `cmd /c rmdir "<link>"` — it deletes the
+       reparse point only and behaves identically on every Windows shell and PowerShell version. Do
+       **not** write a bare `rmdir` (in PowerShell it is an alias for `Remove-Item`), and do not rely on
+       `Remove-Item`: on Windows PowerShell 5.1 it prompts on a link with children, and before
+       PowerShell 6.2 it deletes *through* reparse points.
+     The forms that walk into the target and destroy the shared install are `rm -rf <link>/` on POSIX —
+     the **trailing slash** resolves the link (plain `rm -r <worktree>` does *not* descend through a
+     symlink, so this bites hardest on Windows) — and `rd /s` / `Remove-Item -Recurse` on Windows, where
+     recursion does follow junctions. Removing a link is not removing its target; removing the target is
+     silent and unrecoverable. (When `env.sharedNodeModules` is backed by a **pnpm** content-addressable
+     store the sharing is by *hardlink*, so the sweep finds nothing and there is nothing to unlink — run
+     it anyway: you don't get to know from here which form the project used.)
+  2. **Then `git worktree remove --force <state.worktreePath>`** — delegate the directory delete to git,
+     which unlinks a link rather than descending into it. Never hand-roll a recursive delete of the
+     worktree path as the first move.
+  3. Teardown must not block the cycle: if removal fails because files are locked (a `node_modules`/build
+     process still holding handles — common on Windows), fall back to `git worktree prune` to drop the
+     registry entry and leave the directory for later deletion. **Whoever deletes it later — an operator,
+     the next cycle's PREFLIGHT — is outside this procedure, so the directory you abandon must be
+     link-free: re-run step 1's sweep and confirm it prints nothing before you walk away.** A failed
+     directory delete is a **warning, not a gate**; a delete that recursed through a link is **damage**,
+     not a warning.
 - **Delete this cycle's state file** (`.claude/ship-cycle/<branch-slug>.json`): the branch is gone, so its
   branch-keyed state is dead — leaving it would show as a phantom active cycle in `/status`.
 - Sync the base branch.

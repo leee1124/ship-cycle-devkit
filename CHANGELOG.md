@@ -1,5 +1,49 @@
 # Changelog
 
+## 0.2.25 — Junction/symlink-safe worktree teardown + stale `index.lock` recovery (#49)
+
+`env.sharedNodeModules` (0.2.19) made the kit **create** links from each worktree into one shared dep
+store, but teardown guidance never learned about them. 0.2.11 covered only the *non-destructive* teardown
+failure (locked files → `git worktree prune`, warn, move on). The destructive one was reachable **by
+design**: a delete that resolves the link reaches the shared store and wipes the install every other
+worktree and parallel cycle depends on — observed in the field, silent and unrecoverable. Docs-only,
+framework-agnostic. Closes #49.
+
+- **Sweep, then let git delete (sc-ship G13, binding order).** Teardown is the one cycle step that can
+  destroy state *outside* the worktree, so it is now an ordered procedure. (1) Sweep the **whole
+  worktree**, not just `node_modules/` at the root — a store is as often linked per package, where a
+  root-only `test -L` returns false — via `find <wt> -xdev \( -type l -o -xtype l \) -print` / a
+  `-Attributes ReparsePoint` scan, and unlink every hit: `rm`/`unlink` on POSIX, `cmd /c rmdir "<link>"`
+  on Windows. The commands that *don't* work are named too: `rmdir <link>` fails on POSIX (`Not a
+  directory`, link survives), bare `rmdir` is a `Remove-Item` alias in PowerShell, and `Remove-Item`
+  prompts on WinPS 5.1 and deletes through reparse points before PowerShell 6.2. (2) Then
+  `git worktree remove --force`, which unlinks rather than descending — the delete is delegated to git,
+  never hand-rolled. (3) The locked-files fallback is unchanged, with one addition: the directory you
+  abandon must be **link-free**, because whoever deletes it later is outside this procedure.
+- **The danger is scoped correctly, not asserted broadly.** Plain `rm -r <worktree>` does *not* descend
+  through a symlink; the POSIX form that destroys the target is `rm -rf <link>/` — the **trailing slash**
+  resolves the link — and on Windows `rd /s` / `Remove-Item -Recurse`, where recursion does follow
+  junctions. A rule an operator can falsify on their own machine gets discounted wholesale, so the docs
+  say which form bites where. A pnpm content-addressable store shares by *hardlink* and is exempt; the
+  sweep runs anyway, since the cycle can't tell which form a project used.
+- **Stale `index.lock` recovery (PREFLIGHT), with a performable guard.** A `worktree add` that outlives a
+  command timeout has already created the branch, the directory **and** the registration; only the
+  checkout is unfinished. So recovery **finishes the checkout in place** — `git -C <wt> checkout -f` —
+  and never re-runs `worktree add`, which fails on the branch the timed-out add created (`fatal: a branch
+  named '<branch>' already exists`; `--force` doesn't help). The lock is resolved with
+  `git -C <wt> rev-parse --git-path index.lock`, since inside a worktree `.git` is a *file* and the lock
+  lives under the main repo's git dir. The go/no-go is the lock's **age** (`find <lock> -mmin
+  +<timeout>`), not "is a git process running" — the crashed add leaves no process, so that check is
+  trivially true exactly when it tells you nothing.
+- **PREFLIGHT owns the leftover directory.** G13's fallback deliberately leaves a worktree dir behind; the
+  next cycle's `worktree add` then fails on the existing path and the agent improvises a delete. That
+  delete now has a rule (sweep → unlink → `worktree remove --force`, else `prune` + delete) instead of
+  being the one unguarded recursive delete in the cycle.
+- **Every surface that sells the sharing now carries the unlink rule** — sc-qa, PREFLIGHT, sc-implement's
+  post-merge cleanup (unconditional: links also arrive via `npm link`, monorepo layouts, a manual
+  `mklink`), the README `env` bullet, the example overlay `$comment`, the config **schema**'s
+  `sharedNodeModules` description, `/ship`'s G13 summary, and G13's gate row.
+
 ## 0.2.24 — Genericize domain-specific module names in the example overlay (#44)
 
 The shipped example overlay (`docs/ship-cycle.config.example.json`) had `audit.modules` set to
