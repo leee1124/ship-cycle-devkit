@@ -79,6 +79,69 @@ order of strength:
   gracefully** to `general-purpose` + explicit `model=` on hosts (stock Claude Code) that don't provide
   custom agent types, so portability isn't traded for enforcement.
 
+## External / foreign-agent review — async (overlay-declared, opt-in)
+The cold lens is the **in-pipeline stand-in** for an outside reviewer; it is still a same-session,
+same-model-family subagent that returns synchronously. The real thing is a **different agent or model
+entirely**, run out of process, taking tens of minutes, exposing progress only through a status file or
+command you have to poll. None of that was modelable here — no async job, no foreign reviewer, no
+completion signal — so operators hand-rolled polling waiters and tracked job ids in a scratchpad: exactly
+the hand-tracked state the per-cycle state file exists to eliminate.
+
+A nature's `reviews` entry naming a reviewer declared in overlay **`externalReviewers`** runs in **async
+mode**. The overlay supplies the commands (`launch`, `status`, `fetch`, optional `notify`) because the kit
+stays docs-only and **never hard-codes a vendor**. Absent the declaration every lens is in-session, as
+before. G8's async shape is *snapshot → launch → record → the cycle may suspend and resume → judge on
+completion*, not "spawn subagent, await return":
+
+1. **Snapshot first — this is what makes the freeze cheap.** Before launching, capture an **immutable**
+   view of what the reviewer must read: `git diff <base>...<head> > <snapshot>`, a bundle/archive, or a
+   detached worktree pinned to the head commit. Hand the reviewer **the snapshot, not the live branch**. It
+   converts an unbounded freeze into a seconds-long one — the difference between "this branch is locked for
+   forty minutes" and "this branch is locked while a diff is written".
+2. **Record the job before anything else.** Append to `state.reviewJobs`:
+   `{ id, agent, lens, status: "running", startedAt, snapshot, resultPath }`. A job that is running but
+   unrecorded is invisible to `/status`, to `/resume` and to the freeze rule below — recording it is what
+   lets it survive a suspended cycle instead of living in your head.
+3. **Poll on the reviewer's cadence; don't stall the pipeline.** The in-session lenses run **in parallel
+   with** the external job. The foreign reviewer is an *additional* lens, **never a replacement**: G8 still
+   requires the full in-session set, cold lens included.
+4. **Judge it like any other lens.** Fetch the result and apply the same severity discipline, refutation
+   pass and **triage rubric** (§Triage) — an external finding is a finding. Then set the job's `status` to
+   `complete` and record where its output landed.
+
+**Completion is surfaced, not remembered.** `/status` prints every `state.reviewJobs` entry with its status
+and age; a reviewer may declare an optional `notify` command the poll loop runs on the transition to a
+terminal state. No vendor lock-in either way — the `/status` line suffices on its own.
+
+### Git-write freeze while a job is in flight (fail-closed)
+An out-of-process reviewer reads your branch or worktree from **outside this session**. A `git commit`,
+`branch -f`, `checkout`, `rebase` or worktree removal **while it reads** can hang the reader indefinitely —
+a ~1-hour hang has been observed in the field, with no error and no progress.
+
+- **Set `state.gitFreeze` the moment a job launches** —
+  `{ active: true, branch, since, reason: "<job id> reading", releaseOn: "snapshot" | "job-complete" }` —
+  and **release it explicitly**, recording when.
+- **With a snapshot (the default) the freeze releases the instant the snapshot is written**: the reviewer
+  is reading a file nobody will touch and the branch is free again. Prefer this always.
+- **Without a snapshot** — a reviewer that insists on the live tree — the freeze holds until the job
+  reaches a terminal status, and every stage that writes git (`sc-implement`'s edits and worktree moves,
+  `sc-ship`'s commit/push and worktree teardown) **must check `state.gitFreeze.active` first and wait**.
+  Not "just this one commit": the hang is caused by exactly one badly-timed write.
+- This is an **operational floor, not dialable ceremony** (§ship-cycle → Tier S path → the bright line). It
+  is not reduced on Tier S, and a frozen branch is never a licence to skip the write — it is an instruction
+  to **wait, or to snapshot and release**.
+
+### When the external job never lands
+Overlay `maxWaitMinutes` bounds the wait. A job that exceeds it, errors, or returns nothing is recorded
+`status: "timeout"` / `"failed"` **with its id** — never silently dropped:
+- **The in-session lenses still gate G8.** The external reviewer was always an addition; its absence never
+  lowers "0 Critical/High after verification" and never excuses skipping the cold lens.
+- **The absence is named.** A declared external review that did not complete is a **deferral**: record it
+  and carry it to the **pre-merge manual gate** (§sc-ship G12), exactly as an unrunnable-here suite or a
+  `gates.G7b: checklist` item is carried. "The external reviewer timed out" must never become the standard
+  way to ship without one, and what stops that is making its absence visible **on the PR**.
+- Re-launching counts against G8's loop cap like any other re-review, and **releases the freeze first**.
+
 ## Output & severity discipline (each lens)
 Every lens returns, in this shape:
 - **Strengths** — specific, with file refs. Mandatory: it forces real code comprehension and calibrates
@@ -128,6 +191,10 @@ disposition (fixed-here / filed-as `#NN`) in the review artifact so G8 and sc-sh
 
 ## Gate G8 (to advance to `sc-qa`)
 - **0 Critical/High** after verification. Address survivors in `sc-implement`, then re-review.
+- **No `state.reviewJobs` entry is still `running`**, and `state.gitFreeze` is released. A job still in
+  flight means the gate has not been judged yet — wait for it or record its terminal status; never set G8
+  while a review you launched is still reading. A `timeout`/`failed` job does not block G8 (the in-session
+  lenses carry it) but **must** be on the pre-merge manual gate.
 - **Every finding carries a recorded disposition** — *fixed here* or *filed as `#NN`* (§Triage). A findings
   list with no dispositions does not pass; sc-ship re-asserts this at G12, and an assertion that quantifies
   only over the findings *marked* filed would pass vacuously on an artifact that was never triaged.

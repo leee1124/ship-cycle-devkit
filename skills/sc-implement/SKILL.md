@@ -120,6 +120,10 @@ authz from the principal only, DTOs not entities, whitelist validation, no N+1, 
   --package-lock-only` regenerates the lockfile without touching `node_modules`.) In a workspace, keep the
   single root lockfile; delete stray per-package ones.
 - Do **not** commit or open a PR here — that's `sc-ship`, after review.
+- **Check `state.gitFreeze.active` before any git write** (a worktree move, a branch switch, a stash). G8
+  can loop back here while an **out-of-process reviewer is still reading the branch**, and one badly-timed
+  write hangs it indefinitely (§sc-review — Git-write freeze). Wait for the release, or release it by
+  snapshotting. Editing files in the worktree is fine; moving the *branch* is not.
 - Set `gates.G5/G6/G7/G7b` in state.
 
 ## Model routing

@@ -39,6 +39,13 @@ Otherwise parse the JSON and print a compact, scannable status report:
   neither passing nor regressed. Never fold the two counts together: a quarantine is not a red test. Print
   each entry's `capturedAt` and **flag anything that is not `preflight` as added mid-cycle** — that is a
   finding to check, not a quarantine to trust.
+- **Review jobs** from `reviewJobs`: for each, the reviewer, lens, `status` and **age** (`startedAt` to
+  now). Print a `running` job **loudly** — the cycle is not judgeable while one is in flight — and print a
+  `timeout`/`failed` one with its id, since it owes a pre-merge manual-gate item.
+- **Git-write freeze** from `gitFreeze`: when `active`, say so first and name the branch, the reason and
+  how long it has been held. A held freeze means **an out-of-process reviewer is reading this branch**:
+  commits, checkouts and rebases must wait (§sc-review). An `active` freeze with **no** `running` job is a
+  **stale freeze** — flag it as a finding to release, not a state to respect forever.
 - **Cost so far** from `telemetry`: one row per completed stage (tier / model / effort, plus tokens or cost
   where the host exposed them), the running total, and which risk-gated upgrades fired
   (`telemetry.upgrades`). Print `unavailable` for any figure the host didn't provide — **never estimate

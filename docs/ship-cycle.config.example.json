@@ -65,6 +65,18 @@
     "reportDir": "docs/audits"
   },
 
+  "externalReviewers": {
+    "$comment": "Optional. An out-of-process reviewer — a different model/CLI — that a changeNature[].reviews entry can name to run that lens as an async job. Commands are yours; the kit never hard-codes a vendor. Keep snapshot true so the git-write freeze releases in seconds instead of holding the branch for the whole review.",
+    "outside-eyes": {
+      "launch": ["my-reviewer start --diff $SNAPSHOT --print-id"],
+      "status": ["my-reviewer status $JOB_ID"],
+      "fetch": ["my-reviewer result $JOB_ID"],
+      "snapshot": true,
+      "pollSeconds": 60,
+      "maxWaitMinutes": 45
+    }
+  },
+
   "modelRouting": {
     "$comment": "Optional. tierMap bridges tier names → real model ids the Task tool accepts; the skill passes model=<resolved> per call. base overrides which tier each role runs at. securityReviewModel pins the model the 'security'/'authz' review lenses use, overriding their tier — set it when your top/high tier resolves to a model that refuses security analysis (such a review silently no-ops); pin the most capable model that WILL do security review, at your highest security-review tier — auth/payment upgrades that lens to top, which the pin also overrides. Omit it to use the tier model. effortMap bridges the kit's effort levels to this host's names (its 'xhigh' may be called 'max'); effort is keyed on the judgment/mechanics axis, not on stage names, and scales with the size tier \u2014 see ship-cycle Model routing.",
     "effortMap": {

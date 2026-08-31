@@ -261,7 +261,7 @@ orchestration plumbing (code + files), **not an LLM step**.
    knows which model refuses.)
 8. **Init state**: write this cycle's `.claude/ship-cycle/<branch-slug>.json` (including `branch`, `size`,
    `sizeEvidence` when the tier is S, `models`, `effort`, `baseline` including its `unrunnableHere` set,
-   and an empty `telemetry`). First
+   an empty `telemetry`, an empty `reviewJobs`, and `gitFreeze` inactive). First
    migrate a legacy bare state file if one exists for this branch, and refuse if the
    target file already belongs to a different `branch` (§State). A **detached HEAD** (empty slug) has no
    cycle key — that's caught at step 1.
@@ -289,6 +289,11 @@ free). Implementer sub-worktrees carry **no** cycle state — only the orchestra
               "review": "opus", "qa": "sonnet", "ship": "sonnet" },
   "effort": { "design": "xhigh", "tdd": "medium", "implement": "low",
               "review": "high", "qa": "medium", "ship": "low" },
+  "reviewJobs": [{ "id": "<host job id>", "agent": "<external reviewer name>", "lens": "cold",
+                   "status": "running", "startedAt": "<iso>", "snapshot": "<path>",
+                   "resultPath": "<path>" }],
+  "gitFreeze": { "active": false, "branch": null, "since": null, "reason": null,
+                 "releaseOn": "snapshot" },
   "telemetry": { "upgrades": ["auth → security lens: high→top"],
                  "stages": { "review": { "tier": "top", "model": "opus", "effort": "high",
                                          "tokens": null, "cost": null } } } }
@@ -326,7 +331,7 @@ sibling to `review`, absent unless overlay `modelRouting.securityReviewModel` is
 | G6 | no failures **new vs `state.baseline`** (pre-existing base-branch reds don't block; `baseline.unrunnableHere` suites are neither pass nor regression), core coverage ≥80% | debugger → sc-implement |
 | G7 | (if an artifact ships) real build succeeds | build-fixer |
 | G7b | (if the nature declares `bootCheck`) full-context **eager** boot/context-load smoke passes on a non-inert change | build-fixer (env can't load → checklist) |
-| G8 | 0 Critical/High (authz, paywall, anemic, N+1); **every finding carries a disposition** (fixed-here / filed `#NN`). UI → designer passes | → sc-implement (design flaw → sc-design) |
+| G8 | 0 Critical/High (authz, paywall, anemic, N+1); **every finding carries a disposition** (fixed-here / filed `#NN`); **no `reviewJobs` entry still `running`** and `gitFreeze` released. UI → designer passes | → sc-implement (design flaw → sc-design) |
 | G9 | 0 new defects in integration/E2E (new vs `state.baseline`, ignoring `baseline.unrunnableHere`); seams reproduced; ITs that **can** run here actually ran | → sc-implement |
 | G10 | docs matching the change exist | writer |
 | G11 | every claim mapped 1:1 to a test/build/QA log | rework |
@@ -414,8 +419,10 @@ QA-skip-for-trivial, TDD-harness form. *Outcomes* (never dialed, for a typo fix 
 verification actually ran and its output was read; review by fresh eyes before any PR; the fail-closed
 floors (security/data/contract); a failing test before prod code; **root-cause analysis before any defect
 fix**; **triage of every finding** (fix-here or filed-and-linked — never silently dropped, Iron Law 5 +
-§sc-review); and **the pre-PR conflict check** (G12). When unsure which side something is on, it is an
-outcome — keep it.
+§sc-review); **the pre-PR conflict check** (G12); and **the git-write freeze while an out-of-process
+reviewer is reading the branch** (§sc-review — an operational floor: a badly-timed `commit`/`checkout` can
+hang the reader for an hour, and Tier S does not exempt you from waiting). When unsure which side something
+is on, it is an outcome — keep it.
 
 **The three that pay for the cycle.** Root-cause analysis, triage and the conflict check are the cheapest
 stages in the pipeline and the ones a right-sizing pass reaches for first, because they have no impressive
