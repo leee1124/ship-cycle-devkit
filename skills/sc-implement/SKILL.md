@@ -82,6 +82,31 @@ authz from the principal only, DTOs not entities, whitelist validation, no N+1, 
   the same way. Run build/test as their **own** step, check `$?`, then read the report. `set -o pipefail`
   alone does **not** rescue a `grep`-in-the-pipe check — `grep` exits `1` on no match, so a *passing* build
   turns false-RED; drop the pipe, don't just add pipefail. (§core 2.)
+- **No false-red either: a check that errored is not a failing result.** The opposite polarity of the
+  above, and the more expensive one, because it sends you to fix code that was already correct. When the
+  probe itself fails to run — a stale handle, a driver that died, a helper that raised before reaching the
+  thing under test — the honest outcome is **undetermined**, not *failed*. Three states, never two.
+  - **The runner already separates them; read that, not the prose** (§core 2): `<failure>` vs `<error>` in
+    JUnit/surefire XML, `FAILED` vs `ERROR` in pytest. Where a runner doesn't, the test is the **exception
+    type**: the assertion library's own type is a failure; anything raised by setup, a driver or I/O is
+    undetermined. "Where it happened" is not usable — a failed assertion is itself a raised exception.
+  - **Record the error text with the disposition.** An undetermined check with nothing pasted is
+    indistinguishable from a skipped one.
+  - **Undetermined never clears a gate — it only withholds a red.** Fix the probe and re-run. A check that
+    is still undetermined after the probe is fixed is a **finding**, not a pass, and its criterion cannot
+    satisfy G5.
+  - Never let the first observation stick: a run reporting "all N failed" with N identical infrastructure
+    errors is one broken check, not N broken things.
+  - Unlike `baseline.unrunnableHere`, which is pre-committed at PREFLIGHT and resolves ambiguity *toward*
+    `failing`, an undetermined check is minted at check time and resolved **by re-running it** — never by
+    recording it and moving on.
+- **A scripted sweep's exit `0` is an aggregate, not per-file evidence** — re-parse or re-compile the
+  files it touched. The trap that makes this more than caution: **parser offsets may be byte offsets, not
+  character offsets** (Python's `ast` `col_offset` is UTF-8 bytes; tree-sitter is byte-based; TypeScript
+  uses UTF-16 units). Slicing a `str` by them shifts by one position per *extra byte* in every preceding
+  multi-byte character, cumulatively along the line — 2 per 3-byte CJK character. The result often still
+  parses, so nothing necessarily errors. Slice the encoded bytes, or use the parser's own
+  extract-the-source-segment helper instead of doing index arithmetic.
 - **G7**: if the change ships an artifact (APK/IPA/binary), run the **real packaging build**.
 - **G7b — boot/context-load smoke (nature declares `bootCheck`)**: unit tests hand-assemble collaborators
   and sliced ITs skip full wiring, so a framework-wiring defect — a new type caught by an **unchanged**

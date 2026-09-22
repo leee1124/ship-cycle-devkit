@@ -18,7 +18,7 @@ and otherwise a `general-purpose` agent briefed with that role's prompt from
 
 ## Delegate vs act inline (orchestrator)
 
-Spawning a subagent isn't free — it boots, gets re-briefed, and **re-reads** the files — so delegating a
+Spawning a subagent isn't free — it boots, gets re-briefed and **re-reads** the files — so delegating a
 trivial edit costs more than doing it inline. Delegate when it buys **independence** (sc-design's critic,
 sc-review's lenses and sc-qa are separate agents — §core), **tier savings** (work mechanical enough that a
 cheaper-tier executor beats the orchestrator's session-fixed model), **context hygiene** (hand off what
@@ -37,8 +37,9 @@ rule whose rationale you understand generalizes to cases it never named. Dial ce
    cannot. Every finding gets a disposition: fixed here, or filed with a link (§core 5).
 2. **Judge pass/fail from the real output** — the command's own exit status or a machine-readable report
    (surefire/JUnit XML, runner JSON), not scraped stdout. `cmd | grep | tail` returns the *tail's* status,
-   so a failed build, or a `command not found`, reads green. A factual trap rather than a discipline
-   problem: see sc-implement G5/G6 for why `pipefail` alone doesn't rescue a `grep`-in-pipe check.
+   so a failed build reads green. It runs the other way too: a check that **errored before reaching the
+   thing under test** says nothing about it, so the states are passed / failed / **undetermined**, never
+   two. Factual traps, not discipline problems — see sc-implement G5/G6.
 3. **Test-first for logic, judgment elsewhere.** For anything with a contract — a function, an endpoint, a
    state machine — write the failing test first; it is the cheapest way to find out the contract is wrong.
    For layout, copy, config and most UI tweaks the meaningful verification is running the thing, so a
@@ -86,9 +87,9 @@ Each stage **writes its output to a file** (design doc, test results, review fin
 artifact dir; the next stage **reads that file**. The orchestrator passes only **pointers (paths)**, tracked
 in state — it never carries a full artifact through its own context. This is plumbing (code + files), not an
 LLM step: files carry artifacts whole, with no summarizing, token spend or drift, where a summarizing pass
-can silently drop an unresolved critic objection, a gate blocker or failing evidence. Every transition does
-this uniformly; put a model in a handoff only for a genuine transformation (extract acceptance criteria,
-reformat for the next tool), priced for that transformation's difficulty.
+can silently drop an unresolved critic objection, a gate blocker or failing evidence. Put a model in a
+handoff only for a genuine transformation (extract acceptance criteria, reformat for the next tool), priced
+for that transformation's difficulty.
 
 ## Stage 0 — PREFLIGHT
 
@@ -98,10 +99,10 @@ reformat for the next tool), priced for that transformation's difficulty.
    A detached HEAD (empty `git branch --show-current`) has no cycle key — refuse and ask for a named
    branch, since state is keyed by branch.
 2. **Change-size tier (S/M/L), then worktree isolation.** Pick the tier first and out loud — it is the dial
-   every later stage reads, and leaving it implicit is how a one-line fix pays Tier-L ceremony. Record it as
-   `state.size`; for **S** record the corroborating sites as `state.sizeEvidence: ["path:line", ...]`. S
+   every later stage reads, and leaving it implicit is how a one-line fix pays Tier-L ceremony. Record it
+   as `state.size`; for **S** record the corroborating sites in `state.sizeEvidence: ["path:line", ...]`. S
    with fewer than two recorded sites is M: the party benefiting from S certifies it, so the evidence is
-   the check. Print the tier here and with the routing (§Stage 0.7).
+   the check. Print it here and with the routing (§Stage 0.7).
 
    | tier | what it is | what it gets |
    |---|---|---|
@@ -129,7 +130,7 @@ reformat for the next tool), priced for that transformation's difficulty.
    fallback, ignores `env`, and continues. `env` alone, because it cannot touch a correctness floor.
 4. **Classify change nature**: map changed paths via overlay `changeNature` (overlapping globs →
    most-specific wins; docs/i18n-only diffs prefer the docs rule) and print the resolved routing so it is
-   auditable. Not one-shot: a later stage finding the change touches a stack the diff didn't show —
+   auditable. Not one-shot: a later stage finding the change touches a stack the diff missed —
    a "mobile-only" change needing a new backend endpoint — re-runs it and the routing, updates state and
    adds the missing implementer axis. Scope growing at the design gate is normal.
    Classification also sets **G7b applicability**: a nature declaring overlay `bootCheck` has a loadable
@@ -139,11 +140,11 @@ reformat for the next tool), priced for that transformation's difficulty.
 5. **Capture a test baseline** so "no new failures" is mechanical rather than a judgment call: run the
    nature's suite on the **base commit once** and record the pass/fail set in `state.baseline`. G6/G9 diff
    against it — a failure already there is not a regression, only a new one blocks — sparing later stages
-   from re-deriving "mine or pre-existing?" by hand.
-   A third category, `baseline.unrunnableHere`, records suites this environment **cannot start at all**
-   (no database reachable, a service absent, a sandbox policy refusing it): neither a failure to diff
-   against nor something that counts as passed. It is pre-committed against the base commit, may only
-   shrink, and satisfies no acceptance criterion — evidence rules, the started-and-failed vs.
+   from re-deriving "mine or pre-existing?".
+   `baseline.unrunnableHere` records suites this environment **cannot start at all** (no database
+   reachable, a service absent, a sandbox policy refusing it): neither a failure to diff against nor
+   something that counts as passed. It is pre-committed against the base commit, may only shrink, and
+   satisfies no acceptance criterion — evidence rules, the started-and-failed vs.
    could-not-start boundary and inheritance are in `${CLAUDE_PLUGIN_ROOT}/docs/test-baseline.md`.
    Skip the baseline only on **Tier S**, where `unrunnableHere` is then *absent, not empty*. A Tier S run
    that meets a suite it cannot start re-tiers upward to M (monotonic) and captures the baseline; it never
@@ -164,14 +165,14 @@ reformat for the next tool), priced for that transformation's difficulty.
    print `SC-ROUTE-AVOID: security-lens <tier-model>→<securityReviewModel>`.
 8. **Init state**: write this cycle's `.claude/ship-cycle/<branch-slug>.json` with everything resolved above
    plus an empty `telemetry`, an empty `reviewJobs` and `gitFreeze` inactive. Migrate a legacy bare state
-   file for this branch first if one exists, and refuse if the target file already belongs to a different
+   file for this branch first if one exists, and refuse if the target already belongs to a different
    `branch` (§State).
 
 ## State (real, not a metaphor)
 
 **One state file per cycle**, keyed by the feature branch: `.claude/ship-cycle/<branch-slug>.json`
 (slug = branch with `/` → `-`). It lives in the cycle's own working directory — its worktree if PREFLIGHT
-created one, else the main checkout — so concurrent cycles never clobber a shared file and each owns its own
+created one, else the main checkout — so concurrent cycles never clobber a shared file and each owns its
 `loops`. It carries `goal`/`branch`/`stage`/`gates`/`loops`, the PREFLIGHT results (`nature`, `risk`,
 `size`, `baseline`, `models`, `effort`), `reviewJobs`, `gitFreeze` and `telemetry`; the full shape, naming,
 collision guard, resume/selection and legacy migration are in
@@ -231,7 +232,7 @@ change as much as a Tier L one, because they are outcomes rather than ceremony.
 ## Tier S path (the lightweight path)
 
 On **Tier S** (§Stage 0.2) brainstorm/design/review collapse into one check, heavy suites give way to
-self-tests/link checks, and model tiers and effort levels drop with them. The security lens stays even at
+self-tests/link checks, and model tiers and effort drop with them. The security lens stays even at
 one-lens breadth — its `securityReviewModel` pin means nothing if the lens can be dialed away. Build/test
 verification, the pre-PR review, root-cause analysis, triage and the conflict check still run.
 
@@ -247,4 +248,4 @@ outcome.
 
 Root-cause analysis, triage and the conflict check are the cheapest stages and the first a right-sizing
 pass reaches for. They are also where the cycle earns its keep: they stop you implementing a misdiagnosed
-request, shipping a false positive and finding a conflict post-PR.
+request, shipping a false positive or finding a conflict post-PR.

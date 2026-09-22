@@ -41,6 +41,14 @@ implementers wrote.
   permission to skip the fallback that stands in for it.
 - Headless is fully feasible for backend (boot + curl) and web (dev server + an E2E driver); native
   mobile is partial (device/emulator screenshot → a vision agent, or a UI-automation CLI).
+- **Never match a process by a pattern that can match the matcher.** `pkill -f "python app.py"` **can**
+  match the shell or tool wrapper that launched it — whenever their own command line contains the pattern
+  (`bash -c "python app.py"`) — so the kill lands on the agent's session and surfaces as an unrelated exit
+  code. `ps | grep foo | xargs kill` matches the `grep` as well, which makes a wait-loop built on it never
+  terminate: it is always waiting on itself. **Stop the server the way it was started** — its own stop
+  command, the container, the job — which is both the portable answer and the correct one. When you must
+  match, anchor the pattern so it cannot match a command line that merely contains it (`pgrep -x`, a
+  `^...$` regex), or identify the process by its executable (`readlink /proc/<pid>/exe` on Linux).
 - **E2E prerequisites**: a live backend + an **authenticated session + seeded data** are needed to
   exercise real flows. If the environment can't provide them (no local backend, no seed/auth), **don't
   fake a pass** — degrade G9 to **contract-level seam verification** (assert the front↔back DTO shapes
