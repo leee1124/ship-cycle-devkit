@@ -1,5 +1,49 @@
 # Changelog
 
+## 0.2.31 — False-red, a sweep trap, self-matching kills, and credentials a dependency logs for you
+
+Four traps promoted from a real run on a different stack (a PyQt/Selenium automation app), kept only where
+the kit already names a concrete mechanism rather than general advice. Each is silent when it fires and
+mechanical to fix.
+
+- **A check that errored is not a failing result (§core 2, sc-implement).** The kit covered false *green*
+  exhaustively — scraped exit codes, `grep`-in-pipe, a `bootCheck` selector matching zero tests — and said
+  nothing about the opposite polarity, which is the more expensive one because it sends you to fix code
+  that was already correct. Observed: a post-submit verifier passed a stale element handle, the call raised
+  *before* the check ran, the error path recorded "failed", and **46 operations that had genuinely
+  succeeded were reported as failures**. Three states, never two — and the discriminator is the one the
+  runner already publishes: `<failure>` vs `<error>` in JUnit/surefire XML, `FAILED` vs `ERROR` in pytest,
+  otherwise the exception type (the assertion library's own type is a failure; anything from setup, a
+  driver or I/O is undetermined). *Undetermined* carries the error text, **never clears a gate — it only
+  withholds a red**, and is a finding if it survives fixing the probe. It is deliberately **not** described
+  as a per-check `unrunnableHere`: that category is pre-committed at PREFLIGHT, may only shrink, and
+  resolves ambiguity *toward* `failing`, so borrowing it would have inverted three of its rules.
+- **A lens that errored is not clean (sc-review).** The same mechanism in its dangerous polarity, on the
+  gate that blocks the PR: a lens that crashed, was never spawned, or returned nothing produces zero
+  findings, which reads as a pass. Zero findings counts toward G8 only from a lens that actually ran.
+- **A sweep's exit `0` is an aggregate, not per-file evidence (sc-implement).** Folded in beside the
+  false-green/false-red pair rather than given its own section — the generic half ("commit first", "try one
+  file") is already structurally guaranteed by PREFLIGHT's branch guard and worktree isolation. What
+  remains is the part with a named mechanism: **parser offsets may be byte offsets, not character offsets**
+  (Python `ast` `col_offset` is UTF-8 bytes; tree-sitter is byte-based; TypeScript uses UTF-16 units), so
+  slicing a `str` by them shifts cumulatively along the line — 2 positions per 3-byte CJK character — and
+  the result often still parses, so nothing necessarily errors.
+- **Never match a process by a pattern that can match the matcher (sc-qa).** `pkill -f "python app.py"` can
+  match the shell or wrapper that launched it whenever their own command line carries the pattern, so the
+  kill lands on the agent's session and surfaces as an unrelated exit code; `ps | grep foo | xargs kill`
+  matches the `grep`, which makes a wait-loop built on it wait on itself forever. Observed three times in
+  one project. Stop the server the way it was started — portable and correct; anchor or match by executable
+  only when you must.
+- **Secrets the code never logs itself (sc-review, security lens).** An HTTP client that logs request URLs,
+  headers or bodies logs whatever credential is carried there: a token in a URL path is written to the log
+  by a *dependency*, at its default level, with nothing in the diff to show for it. Observed: 29,271
+  occurrences of a bot token in one project's logs, from code that never touched it. A lens job precisely
+  because the author cannot see it by reading their own change — detect by grepping your own logs for the
+  shape of your secrets, remediate by moving the credential out of the URL and pinning the client logger.
+
+**Orchestrator holds at exactly 3,007 words**: §core 2's second polarity is paid for by compressions in the
+same file.
+
 ## 0.2.30 — Optional candidate bake-off for genuinely uncertain design/algorithm work (#51)
 
 Every parallelism in the kit was **partition** parallelism — worktree-per-stack, file-ownership waves,

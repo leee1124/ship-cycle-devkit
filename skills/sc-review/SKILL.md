@@ -24,7 +24,13 @@ as **separate agents in parallel** — each is blind to the others, so they catc
 
 ## Lenses (each names its anti-patterns)
 - **security**: authz/ownership bypass (IDOR), paywall/entitlement leak, injection (SQLi/XSS), secrets,
-  unsafe deserialization, missing input validation.
+  unsafe deserialization, missing input validation. Include **secrets the code never logs itself**: an HTTP
+  client that logs request URLs, headers or bodies will log whatever credential is carried there, so a
+  token in a URL path or query string is written to the log by a dependency, at its default level, with
+  nothing in the diff to show for it. This is a lens job precisely because the author cannot see it by
+  reading their own change. **Detect** it by grepping the project's own log output for the *shape* of its
+  secrets (a token prefix, a key pattern); **remediate** by moving the credential out of the URL where the
+  API allows, and pinning client loggers that see URLs/headers above their chatty default.
 - **quality**: logic defects, **anemic domain model** (business logic stranded in services, entities as
   getter/setter bags — constitution #7), **magic numbers/strings** (unnamed literals with domain meaning;
   a closed set not modeled as an enum / union / frozen object — #3), SOLID violations, dead code, silent
@@ -56,7 +62,10 @@ as **separate agents in parallel** — each is blind to the others, so they catc
 
 ## Running the lenses (agent mapping + fallback)
 Lens names are **roles, not fixed agent types**. Map each to whatever your environment provides, and
-**verify the agent type exists before spawning**. If no dedicated reviewer exists for a lens (many setups
+**verify the agent type exists before spawning** — and treat a lens that errored, was never spawned, or
+returned nothing as **undetermined, not clean**: zero findings counts toward G8 only from a lens that
+actually ran, or a crashed lens silently reads as a pass on the gate that blocks the PR (§core 2).
+ If no dedicated reviewer exists for a lens (many setups
 have no `performance-reviewer`/`algorithm-reviewer`), spawn a `general-purpose` (or `code-reviewer`) agent
 with that lens's anti-patterns pasted in as the focus — **never skip the lens or abort on a missing agent
 type**. Scale fan-out to the host: parallel by default, but on a resource-constrained machine run the
