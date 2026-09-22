@@ -10,6 +10,7 @@ the mechanics that only matter when something unusual happens to its name or its
   "gates": { "G1": "pass", "G2": "pass", "G4": "n/a: copy change, verified by execution" },
   "loops": { "G8": 1 },
   "nature": ["backend"], "risk": ["auth"], "size": "L",
+  "sizeEvidence": ["src/a.py:41", "src/b.py:88"],
   "baseline": { "capturedOn": "<base-sha>", "failing": ["suiteA#case", "..."],
                 "unrunnableHere": [{ "suite": "suiteB", "reason": "no database reachable",
                                      "startupError": "<the suite's own init error, before any test ran>",

@@ -1,0 +1,38 @@
+{
+  "name": "ship-cycle-devkit",
+  "version": "0.3.0",
+  "description": "A gated, constitution-enforcing development lifecycle: requirements → design → review → test → implement → verify → PR, with risk-based model routing. Framework-agnostic; project specifics come from an overlay config.",
+  "author": {
+    "name": "leee1124",
+    "url": "https://github.com/leee1124"
+  },
+  "homepage": "https://github.com/leee1124/ship-cycle-devkit#readme",
+  "repository": "https://github.com/leee1124/ship-cycle-devkit",
+  "license": "MIT",
+  "keywords": [
+    "ship-cycle",
+    "lifecycle",
+    "code-review",
+    "tdd",
+    "model-routing",
+    "orchestration"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Ship-Cycle DevKit",
+    "shortDescription": "Gated dev lifecycle: design → review → test → implement → verify → PR.",
+    "longDescription": "A gated development lifecycle with independent review, execution-based verification and worktree isolation. PREFLIGHT classifies change size, nature and risk, routes each stage to a model and effort tier, then chains the stage skills through gates G1-G13. Framework-agnostic: repo specifics come from a project overlay config.",
+    "developerName": "leee1124",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/leee1124/ship-cycle-devkit",
+    "defaultPrompt": [
+      "Run the ship cycle on: add rate limiting to the login endpoint",
+      "Show the current ship-cycle status",
+      "Resume the interrupted ship cycle"
+    ]
+  }
+}
