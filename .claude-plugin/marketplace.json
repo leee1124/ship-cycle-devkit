@@ -11,7 +11,7 @@
     {
       "name": "ship-cycle-devkit",
       "source": "./",
-      "description": "Gated dev lifecycle (design→review→test→impl→verify→PR) with risk-based model routing"
+      "description": "Gated dev lifecycle (design→review→test→impl→verify→PR) with risk-based model routing; ships Claude Code and Codex manifests"
     }
   ]
 }

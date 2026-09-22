@@ -27,6 +27,8 @@ Composable skills — a thin orchestrator that chains one short skill per stage 
 | `sc-audit` (à la carte) | `skills/sc-audit/` | Cross-surface parity audit: gap matrix + risks + cutover/ship verdict (not in the default chain) |
 | Engineering constitution | `docs/engineering-constitution.md` | The rules the gates enforce (SOLID/OWASP/DDD/TDD/…) |
 | Reference docs | `docs/{model-routing,state-file,test-baseline,worktree-recovery,bake-off}.md` | Detail the skills point to instead of carrying every cycle |
+| Runtime adapters | `docs/runtime-adapters.md` | The whole of the Claude/Codex difference: paths, spawning, config/state locations, invocation |
+| Structural self-check | `scripts/validate.py` + `scripts/validate_selftest.py` | Cross-references, state producers/consumers, gate coverage, manifest and version parity — run in CI on both OSes |
 | Impl prompt templates | `prompts/impl-{backend,web,mobile}.md` | Stack-specific implementation prompts (adapt to your stack) |
 | Overlay config + schema | `docs/ship-cycle.config.{example,schema}.json` | The per-project config and its JSON Schema |
 | Observability commands | `commands/` | User-invokable `/status` · `/resume` · `/ship` slash commands (read-only by default) |
@@ -41,6 +43,25 @@ claude plugin install ship-cycle-devkit
 # team-shared (recorded in the project's .claude/settings.json):
 claude plugin install ship-cycle-devkit --scope project
 ```
+
+### Codex
+
+The repo ships `.codex-plugin/plugin.json` alongside `.claude-plugin/plugin.json`, so the **stage skills**
+(`ship-cycle` and the `sc-*` set) install and run on Codex — invoke the orchestrator skill by name rather
+than with Claude's slash-command syntax. The lifecycle, the gates and the engineering constitution are
+shared; every host-specific difference is listed in one place, `docs/runtime-adapters.md`. Claude Code
+installation and commands are unchanged.
+
+**Not yet on Codex in 0.3.0**, and deliberately not papered over:
+
+- **The observability commands** (`/status`, `/resume`, `/ship`) are Claude-Code-only. They live in
+  `commands/`, which the Codex manifest does not declare, and they are implemented with Claude's inline
+  `!`-bash against a hardcoded `.claude/` path.
+- **Config and state still resolve to `.claude/`** everywhere in the skills. `docs/runtime-adapters.md`
+  describes the intended `.codex/` convention and its precedence rule; that is design intent, not yet
+  implemented.
+- The install command and invocation syntax above have **not been exercised against a real Codex
+  install** — see the CHANGELOG's *Not delivered*.
 
 Local development / trial without installing:
 
@@ -108,7 +129,8 @@ If the overlay is absent, ship-cycle falls back to built-in heuristics and logs 
 > not a bare `./gradlew` that assumes a subdir cwd. Run the observability commands and stages from **the
 > cycle's own working directory** (its worktree if one was created, else the main checkout): the per-branch
 > state file lives there and is keyed from that cwd's current branch.
-> **Gitignore the run state.** Add the directory `.claude/ship-cycle/` to your `.gitignore` — it holds the
+> **Gitignore the run state.** Add `.claude/ship-cycle/` (and `.codex/ship-cycle/` if you use Codex) to
+> your `.gitignore` — it holds the
 > per-cycle, per-branch run state, not meant to be committed (the overlay config
 > `.claude/ship-cycle.config.json` *is*).
 

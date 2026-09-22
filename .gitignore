@@ -14,3 +14,7 @@ node_modules/
 
 # Claude Code 세션 아티팩트 (플러그인 개발 시 생기는 로컬 상태 — 커밋 대상 아님)
 .claude/
+
+# ship-cycle per-cycle run state. (In a consuming project the overlay config IS committed; in this
+# repo it deliberately is not — see the overlay rule above.) .claude/ is already ignored wholesale.
+.codex/ship-cycle/

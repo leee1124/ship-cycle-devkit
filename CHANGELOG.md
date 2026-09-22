@@ -1,5 +1,60 @@
 # Changelog
 
+## 0.3.0 — Codex packaging, and a structural self-check that holds both distributions honest (#47)
+
+`main` was Claude-specific: one manifest, `claude plugin` installation, slash-command invocation, and
+config/state fixed to `.claude/`. The stage skills and the engineering constitution were always portable;
+what was missing was packaging, a place to put the host-specific differences, and something mechanical to
+stop the two distributions drifting. **Partially** closes #47 — the *Not delivered* list below is the point
+of this release as much as the code is.
+
+- **`.codex-plugin/plugin.json`**, conforming to the published Codex plugin spec (required `name`,
+  `version` strict semver, `description`, `author`, `interface`, `interface`'s five required fields, the
+  `defaultPrompt` limits). The stage skills install and run on Codex; see the gaps below for what does not.
+- **`docs/runtime-adapters.md`** — the intended single home for host-specific detail: manifest location,
+  bundled-file root, project root, how a role is spawned, invocation, and where config and state live. Two
+  properties must survive translation or the kit is not running: reviewer ≠ author, and model/effort passed
+  explicitly. It carries a **Known gaps** section rather than claiming to be the whole difference already.
+- **`scripts/validate.py` — the kit applying §core 2 to itself.** Five checks, each present because the
+  defect it catches reached a branch: bundled-file pointers resolve and none omits the plugin-root variable;
+  every documented state field is read by someone outside the shape doc and every referenced field is
+  documented; gates set by skills and gates in the orchestrator's table agree; both manifests parse, carry
+  their required fields and agree on a version with the CHANGELOG; skill frontmatter names match their
+  directories.
+- **`scripts/validate_selftest.py`** — because a checker that cannot fail is indistinguishable from one
+  that does not check. Fifteen cases, each mutating a throwaway copy of the repo and asserting the
+  validator reports it; temp paths contain spaces; CI runs both scripts on Ubuntu **and** Windows. The
+  suite's own first run caught a stale fixture, and review caught a check that was satisfied by prose in
+  the very file it parsed — a state field "read" by its own documentation. Both are fixed and both now have
+  a case.
+- **It found two defects on its first run.** `state.sizeEvidence` was written by PREFLIGHT and absent from
+  the documented shape — fixed here. G10/G11/G12 are performed by `sc-ship` and described as gates but
+  never recorded, so `/status` shows them as `—` forever — filed as **#63** rather than fixed, since it is a
+  different concern (§core 5). That direction of the gate check is advisory until #63 lands, which the code
+  says in a comment rather than leaving the reader to infer.
+
+### Not delivered — stated rather than claimed
+
+- **Codex goal-mode binding** (#47 deliverable 5). Needs behaviour of that API that could not be verified
+  from this environment; writing it from inference would be the fabricated-integration defect the previous
+  two releases were spent removing.
+- **Cross-platform state/config helper scripts** (deliverable 6). Nothing in `scripts/` reads, writes or
+  migrates cycle state or overlay config — `validate.py` is a maintainer's repo linter, a different
+  artifact for a different audience. Consequently the "helper self-tests" clause of deliverable 7 is
+  vacuous too; what CI does validate is manifests, frontmatter, structure and version parity.
+- **The `.codex/` config and state convention** (the remainder of deliverables 3 and 4). The rows in the
+  adapters table and the precedence rule are design intent: PREFLIGHT Stage 0.3 reads a `projectConfig`
+  setting only the Claude manifest declares, and about a dozen sites still name `.claude/ship-cycle/`
+  directly. The precedence rule also disagrees with Stage 0.3's "absent → built-in defaults" branch, and
+  Stage 0.3 is what executes. Marked as intent in both the doc and the README.
+- **The observability commands on Codex.** `/status`, `/resume` and `/ship` live in `commands/`, which the
+  Codex manifest does not declare, and are implemented with Claude's inline `!`-bash against a hardcoded
+  `.claude/` path.
+- **A clean-install smoke test on Codex.** The criterion "a clean Codex environment can install this
+  repository without a manual repack" cannot be checked without that environment. Spec conformance plus CI
+  validation is a necessary condition, not the criterion — and the install command and invocation syntax in
+  the README are documented as untested.
+
 ## 0.2.31 — False-red, a sweep trap, self-matching kills, and credentials a dependency logs for you
 
 Four traps promoted from a real run on a different stack (a PyQt/Selenium automation app), kept only where
