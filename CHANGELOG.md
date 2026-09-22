@@ -1,5 +1,49 @@
 # Changelog
 
+## 0.2.30 — Optional candidate bake-off for genuinely uncertain design/algorithm work (#51)
+
+Every parallelism in the kit was **partition** parallelism — worktree-per-stack, file-ownership waves,
+architects split by axis: exclusive slices meant to fit together. The opposite shape, N agents attacking the
+*same* problem and a judge picking a winner, is the one pattern from the multi-agent-orchestration world the
+vertical pipeline never borrowed, and it is most valuable exactly where the pipeline is weakest — a wide
+solution space with no defensible way to rank the options on paper. Docs-only, off by default. Closes #51.
+
+- **`docs/bake-off.md`** with a ~15-line activation block in `sc-design`, placed beside its sibling
+  (split-by-axis) so the partition/competition distinction is stated where the choice is made. Strictly
+  **ceremony** on the bright line: Tier L (Tier M only with a stated reason), never on Tier S, and it never
+  replaces the critic or G2/G3.
+- **Three activation conditions, all required** — the approaches differ in kind, the tradeoff section
+  honestly cannot rank them ("if the architect can already name the winner, that *is* the bake-off, done for
+  the price of one agent"), and being wrong is expensive. **The operator activates it; there is no automatic
+  trigger**, because all three conditions are judgments an agent would be making about its own work, and a
+  gate that dissolves under self-assessment is not a gate.
+- **Design-only and read-only.** A bake-off produces competing design docs and never takes a worktree —
+  Stage 2 is read-only, and candidate worktrees would leak past a G13 teardown that only knows about the
+  cycle's own. A comparison that genuinely needs a *measurement* is a spike, and a spike is its own cycle.
+- **Blindness is an input contract, not a prohibition.** "Candidates cannot see each other" is unenforceable
+  as an instruction, so it is built in instead: all N spawned in one fan-out, each handed the spec and
+  **only its own output path**, and the judge is the first party given all N. Likewise the criteria are
+  written to `state.bakeOff.criteria` **and printed before the fan-out** — not merely "before reading the
+  candidates", since a file written afterwards looks identical.
+- **A judge panel, not a single judge** — 2–3 `sc-review` lenses matched to the change's nature, including
+  the spec-blind **cold** lens, each scoring every candidate against the same criteria. Judging costs 1×,
+  not N×; it is the wrong place to economize. Every candidate and every lens is spawned with the resolved
+  `model`/`effort`, because an unpinned spawn here does not merely cost the wrong amount — it decides the
+  winner.
+- **Synthesis is named as the step that usually goes wrong.** Grafting the runners-up's good ideas is the
+  point of running several *and* the way to assemble a design no candidate validated, so every graft is named
+  with its justification and the synthesized doc goes through the critic **as a whole** — it is new work, and
+  G3's review has not happened to it yet. The bake-off runs **once**: G3 objections are repaired by a single
+  architect on the synthesized doc, and a re-fan is a new activation decision, priced again.
+- **Recorded where it can be read.** `state.bakeOff` holds stances, criteria, judge lenses, per-candidate
+  verdicts with losing reasons, grafts and an honest `converged` flag; `/status` prints it and `/resume`
+  judges what exists rather than restarting all N. The design telemetry row carries `candidates` and
+  `stances` so an N× stage reads as N× in the cost readout, and `sc-ship` records the winning stance and
+  `converged` in the PR body — cycle state is deleted at G13, so that is the only durable home for it.
+- Orchestrator holds at **exactly 3,007 words**: the bright-line addition is paid for by four wording
+  compressions elsewhere in the same file. The README reference-docs row now reads "the skills point to",
+  since `bake-off.md` is pointed to by `sc-design` rather than by the orchestrator.
+
 ## 0.2.29 — Lighten the harness: rationale over rebuttals, and a smaller orchestrator (#59)
 
 The kit had grown heavy in the direction agentic tooling has moved away from: more imperative rules, more

@@ -67,6 +67,9 @@ live pass. `review-only` is a legitimate outcome, not a failure — but it must 
   file in this diff** (host API: open PRs → changed files) and, if any overlap, warn in the PR body which
   sibling PR shares which file so the merge order is a conscious choice (union-merge at merge time, not a
   surprise). This is a heads-up, not a gate.
+- If `state.bakeOff` exists, the body records **which stance won and why**, and `converged: true` when the
+  candidates agreed — cycle state is deleted at G13, so the PR body is the only place the next person
+  choosing for this shape of change can still read it.
 - Body summarizes the review + QA results and **links the tracked issue**: `Closes #NN` (fully done →
   auto-close on merge) or `Refs #NN` (partial → progress comment, keep open). Assign the milestone if
   `vcs.tracker.milestones` is on.

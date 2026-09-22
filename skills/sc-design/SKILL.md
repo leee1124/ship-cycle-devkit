@@ -36,8 +36,25 @@ another's "persist a new field"). This is the design-stage analogue of `sc-imple
 same "exclusive slices + explicit seams" discipline, applied to the read-only design. Keep it to one
 architect for a single-axis change — splitting there is pure overhead.
 
+### Bake-off — N candidates competing on the same problem (optional, off by default)
+Splitting by axis is *partition* parallelism: exclusive slices meant to fit together. The opposite shape —
+N agents attacking the **same** problem from different stances, a judge panel picking a winner, the
+runners-up's good ideas grafted in — is worth its N× cost only when the solution space is genuinely wide,
+the tradeoff section honestly cannot rank the options on paper, and being wrong is expensive (a novel
+algorithm, a boundary that will be hard to move). **The operator asks for it; there is no automatic
+trigger** — all three conditions are judgments an agent would be making about its own work. Tier L (Tier M
+only with a stated reason), **design-only and read-only** (a comparison that needs a measurement is a spike,
+and a spike is its own cycle), and it never replaces the critic or G2/G3.
+
+Two things decide whether the run was worth anything, so both are built in rather than asked for: all N
+candidates are spawned in **one fan-out, each with only its own output path**, and the judging criteria are
+written into `state.bakeOff.criteria` **and printed before that fan-out**. Every candidate runs at the same
+resolved model and effort, or a stance can lose for having been routed cheaper. Full procedure — stances,
+the judge panel, synthesis, and how synthesis goes wrong — in `${CLAUDE_PLUGIN_ROOT}/docs/bake-off.md`.
+
 ## Design review (critic)
-A separate agent attacks the design (the **union** of all architect docs when the axis was split):
+A separate agent attacks the design (the **union** of all architect docs when the axis was split, or the
+**synthesized** doc when a bake-off ran — synthesis is new work and has not been reviewed as a whole):
 - Hidden assumptions, unhandled failure modes, contract mismatches, security/authz gaps, scaling/N+1.
 - **Inter-axis seam mismatches**: when architects were split, the critic's first job is to check their
   seams line up (names, signatures, who-owns-what) and that no two axes made contradictory scope
@@ -89,12 +106,15 @@ waves never trip them.
 architect + critic run at the **high** tier; upgrade to **top** if PREFLIGHT flagged this change as a
 schema migration or public-API/architecture-boundary change (see the orchestrator's model routing).
 
-**Pass `model = state.models['design']` and `effort = state.effort['design']` on the architect and critic
-calls** — both were resolved at PREFLIGHT (tier + risk upgrade). Never rely on the agent type's defaults
-(§core 6).
+**Pass `model = state.models['design']` and `effort = state.effort['design']` on the architect(s), every
+bake-off candidate, every judge lens and the critic** — both were resolved at PREFLIGHT (tier + risk
+upgrade). Never rely on the agent type's defaults (§core 6); in a bake-off an unpinned spawn does not just
+cost the wrong amount, it decides the winner.
 
 **Telemetry**: when you set `gates.G2`/`G3` in state, append this stage's row to
 `state.telemetry.stages['design']` — the resolved tier, model and effort, plus whatever usage the host
-actually exposed (tokens/cost/wall-clock) and `null` for what it didn't. **Never estimate a figure.** The
+actually exposed (tokens/cost/wall-clock) and `null` for what it didn't. When a bake-off ran, the row also
+carries `candidates` (the count) and `stances`, so an N× design stage reads as N× in the cost readout
+instead of as one ordinary row. **Never estimate a figure.** The
 run's cost readout is assembled from these rows at G13 (§`${CLAUDE_PLUGIN_ROOT}/docs/model-routing.md` — Cost readout); a stage that writes no
 row is simply absent from it, so the readout under-reports rather than lying.

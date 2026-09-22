@@ -44,6 +44,8 @@ Otherwise parse the JSON and print a compact, scannable status report:
 - **Review jobs** from `reviewJobs`: for each, the reviewer, lens, `status` and **age** (`startedAt` to
   now). Print a `running` job **loudly** — the cycle is not judgeable while one is in flight — and print a
   `timeout`/`failed` one with its id, since it owes a pre-merge manual-gate item.
+- **Bake-off** from `bakeOff`, when present: the stances, whether a winner has been picked, and
+  `converged` — a converged bake-off is a finding worth surfacing, not a footnote.
 - **Git-write freeze** from `gitFreeze`: when `active`, say so first and name the branch, the reason and
   how long it has been held. A held freeze means **an out-of-process reviewer is reading this branch**:
   commits, checkouts and rebases must wait (§sc-review). Flag a **stale freeze** — a finding to release,
