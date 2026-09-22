@@ -58,8 +58,11 @@ half: environment and toolchain facts are load-bearing precisely because they ar
 - Reflect the ubiquitous language consistently in class/method/variable names.
 
 ## 8. Test-Driven Development (TDD)
-- Follow Red-Green-Refactor: write a failing test first (Red), pass it minimally (Green), then refactor.
-  Structure tests as Given/When/Then with a descriptive name.
+- For logic with a contract — a function, an endpoint, a state machine — follow Red-Green-Refactor: write a
+  failing test first (Red), pass it minimally (Green), then refactor. Structure tests as Given/When/Then
+  with a descriptive name.
+- For layout, copy, config and most UI tweaks, the meaningful verification is running the thing; verify by
+  execution and name that verification instead of wrapping the change in a red-then-green unit test.
 - Separate unit / integration / E2E tests. Keep coverage of core business logic at **≥80%**.
 
 ## 9. Branch management
@@ -72,9 +75,10 @@ half: environment and toolchain facts are load-bearing precisely because they ar
   "compliant?"):
   - **DDD (#7)**: anemic domain model — business logic stranded in services while entities are
     getter/setter data bags.
-  - **TDD (#8)**: order can't be seen in a diff → **enforce at development time**. Implementation tasks
-    must include "write the failing test first (Red), then implement (Green)"; at commit/PR, confirm the
-    core logic has tests and adequate coverage.
+  - **TDD (#8)**: order can't be seen in a diff → **enforce at development time**. Implementation tasks for
+    logic must include "write the failing test first (Red), then implement (Green)"; at commit/PR, confirm
+    the core logic has tests and adequate coverage. For a layout/copy/config change, confirm instead that
+    the named execution-based verification actually ran.
   - Review prompts must name each dimension's anti-patterns (authz bypass / paywall leak, anemic model,
     N+1, weak validation, etc.).
 - **Build/run verification is separate from code review** — static review does not guarantee a

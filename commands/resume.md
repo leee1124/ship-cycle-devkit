@@ -32,7 +32,8 @@ Otherwise, resume via the `ship-cycle` skill's PREFLIGHT resume path:
    the part after the resume. If `size` is absent (a run
    started before it was recorded), classify it now per §Stage 0.2 (Change-size tier) — but only **upward**
    from what the completed stages imply: resuming is not an occasion to re-tier a cycle downward.
-3. Do **not** restart already-`pass` stages and do **not** re-initialize the state file — pick up exactly
+3. Do **not** restart stages already recorded `pass` — or `"n/a: <reason>"`, which is a decision the
+   resumed run inherits rather than re-makes — and do **not** re-initialize the state file; pick up exactly
    where the run left off.
 4. **If `reviewJobs` holds a `running` entry, resume by polling it — never by relaunching.** Run that
    reviewer's declared `status` command against the recorded `id`; a relaunch abandons a job that may be

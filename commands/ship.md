@@ -19,10 +19,14 @@ the required upstream gates are `pass`: **G1** (agreed criteria), **G2/G3** (des
 
 - A **conditional gate that is legitimately N/A** counts as satisfied even though it shows `—`, not `pass`:
   **G7** when no artifact ships, **G7b** when the nature declares no `bootCheck`. Treat these as met.
+- A gate recorded as **`"n/a: <reason>"`** — the form the orchestrator writes when a stage plainly had
+  nothing to do on this change (§ship-cycle — Pipeline), e.g. `G4` on a copy fix verified by execution —
+  also counts as satisfied. A bare `—` does not: that is a stage never reached, which is the case this
+  check exists to catch.
 - If **any** required gate is missing or genuinely not `pass` (a `fail`, or `—` on a gate that *does*
   apply): report exactly which gates are unmet and refuse to ship — point back to the stage that owns each
   failing gate (e.g. G8 → `sc-review`). Do **not** skip a gate, and never open a PR when a required gate is
-  unmet (Iron Law #3).
+  unmet (§core 1).
 - If **all** required gates pass: invoke the `sc-ship` skill to run stage 7 — G10 (docs match the change),
   G11 (every claim mapped to evidence), G12 (build/test/review/QA green + clean merge + `Closes`/`Refs`
   tokens; base = overlay `vcs.defaultBase`), then G13 cleanup (delete branch local+remote, remove the

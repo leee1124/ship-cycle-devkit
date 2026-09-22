@@ -5,7 +5,7 @@ description: Stage 5 of ship-cycle. Multi-lens parallel code review — security
 
 # sc-review — multi-lens code review (Stage 5)
 
-**Iron Law #3: no PR without a passing review.** Run the lenses (from overlay `changeNature[].reviews`)
+**No PR without a passing review (§core 1).** Run the lenses (from overlay `changeNature[].reviews`)
 as **separate agents in parallel** — each is blind to the others, so they catch different failure modes.
 
 ## Every review checks (cross-cutting, all lenses)
@@ -62,10 +62,10 @@ with that lens's anti-patterns pasted in as the focus — **never skip the lens 
 type**. Scale fan-out to the host: parallel by default, but on a resource-constrained machine run the
 lenses in smaller batches (or sequentially) rather than all at once.
 
-**Pin the model on every lens spawn — mechanically, not from memory (Iron Law 6).** Because lenses are
+**Pin the model on every lens spawn — mechanically, not from memory (§core 6).** Because lenses are
 `general-purpose` spawns, the review tier lives only in `model=`, and it must be re-applied on *every* spawn.
-One omission silently downgrades a top-tier review to the agent type's cheap default — the exact trap Iron
-Law 6 names, and the easiest to hit across a long run where you spawn lenses dozens of times. Defenses, in
+One omission silently downgrades a top-tier review to the agent type's cheap default — the exact trap
+§core 6 names, and the easiest to hit across a long run where you spawn lenses dozens of times. Defenses, in
 order of strength:
 - **Resolve once, copy every time.** The tier→model is already resolved into `state.models.review` at
   PREFLIGHT. Read that value and pass `model = state.models.review` on each lens `Task` call — never type a
@@ -199,8 +199,8 @@ actually reach the bug? is it already mitigated elsewhere?). Keep only findings 
 count of refuters to the size tier (§ship-cycle Stage 0.2 — Change-size tier): Tier S runs no verification
 fleet — but **never to zero on a surviving Critical/High**, which always gets at least one refuter.
 
-## Triage — fix here, or file and link (Iron Law 5)
-Iron Law 5 fixes the *disposition* of an out-of-scope defect ("found, filed, not fixed here"); it does not
+## Triage — fix here, or file and link (§core 5)
+§core 5 fixes the *disposition* of an out-of-scope defect ("found, filed, not fixed here"); it does not
 make the actually-hard call: of the findings that survived verification, **which belong to this change?**
 Without a rubric this fails in one of two directions every time — scope balloons because everything gets
 fixed, or findings get quietly under-filed because nothing does.
@@ -214,9 +214,9 @@ fixed, or findings get quietly under-filed because nothing does.
 
 Everything else is filed to the tracker with a **one-line rationale** and referenced from the PR body as
 `Refs #NN` (sc-ship asserts the token). "File it" is a real outcome, not a soft skip: an unfiled finding
-is a dropped one, and Iron Law 5 forbids that as firmly as it forbids fixing it here.
+is a dropped one, which §core 5 rules out as firmly as fixing it here.
 
-**Triage runs at `high` effort on every tier** (§ship-cycle Model routing → Effort). It is judgment-dense
+**Triage runs at `high` effort on every tier** (§`${CLAUDE_PLUGIN_ROOT}/docs/model-routing.md` — Effort). It is judgment-dense
 work that wears no impressive artifact, so it is the first thing a right-sizing pass reaches for — and
 misjudging it is how a review either balloons the branch or loses a real defect. Record each finding's
 disposition (fixed-here / filed-as `#NN`) in the review artifact so G8 and sc-ship can both read it.
@@ -248,7 +248,7 @@ model pin.
 resolved at PREFLIGHT) — this is the
 stage the default-model trap bit in practice: spawning a `quality-reviewer`/`security-reviewer` without
 `model=` runs the review on that type's cheaper default instead of the intended high/top tier, silently.
-Never rely on the agent-type default (Iron Law 6).
+Never rely on the agent-type default (§core 6).
 
 **Security-refusing-model guard.** If PREFLIGHT set `models["review.security"]` (overlay
 `modelRouting.securityReviewModel` — §ship-cycle Stage 0.7), spawn the **`security` and `authz` lenses with
@@ -258,5 +258,5 @@ silently no-ops; this pin guarantees the security lens runs on a model that will
 **Telemetry**: when you set `gates.G8` in state, append this stage's row to
 `state.telemetry.stages['review']` — the resolved tier, model and effort, plus whatever usage the host
 actually exposed (tokens/cost/wall-clock) and `null` for what it didn't. **Never estimate a figure.** The
-run's cost readout is assembled from these rows at G13 (§ship-cycle — Cost readout); a stage that writes no
+run's cost readout is assembled from these rows at G13 (§`${CLAUDE_PLUGIN_ROOT}/docs/model-routing.md` — Cost readout); a stage that writes no
 row is simply absent from it, so the readout under-reports rather than lying.

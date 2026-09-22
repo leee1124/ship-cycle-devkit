@@ -5,7 +5,7 @@ description: Stage 1 of ship-cycle. Discovery/brainstorming — refuse to write 
 
 # sc-brainstorm — discovery (Stage 1)
 
-**Iron Law: no code until the problem is agreed.** A fast implementation of the wrong thing is the most
+**No code until the problem is agreed.** A fast implementation of the wrong thing is the most
 expensive outcome. This stage ends when the user accepts a design direction — not before.
 
 ## Do
@@ -50,10 +50,10 @@ re-judges triviality for itself), compress this to a one-line restatement + crit
 Requirements/discovery (analyst) runs at the **high** tier — getting the problem wrong propagates
 everywhere. Often the orchestrator does this inline with the user; **if you spawn an agent, pass
 `model = state.models['brainstorm']` and `effort = state.effort['brainstorm']`** (both resolved at
-PREFLIGHT) — never the agent type's defaults (Iron Law 6).
+PREFLIGHT) — never the agent type's defaults (§core 6).
 
 **Telemetry**: when you set `gates.G1` in state, append this stage's row to
 `state.telemetry.stages['brainstorm']` — the resolved tier, model and effort, plus whatever usage the host
 actually exposed (tokens/cost/wall-clock) and `null` for what it didn't. **Never estimate a figure.** The
-run's cost readout is assembled from these rows at G13 (§ship-cycle — Cost readout); a stage that writes no
+run's cost readout is assembled from these rows at G13 (§`${CLAUDE_PLUGIN_ROOT}/docs/model-routing.md` — Cost readout); a stage that writes no
 row is simply absent from it, so the readout under-reports rather than lying.

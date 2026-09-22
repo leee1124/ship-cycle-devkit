@@ -5,7 +5,9 @@ description: Stage 4 of ship-cycle. Implement minimal code to pass the failing t
 
 # sc-implement — Green + build (Stage 4)
 
-Make the failing tests pass with the **minimum** code, then refactor. Update docs in the same change.
+Make the failing tests pass with the **minimum** code, then refactor. Update docs in the same change. Where
+§core 3 chose execution-based verification over test-first — a layout, copy or config change arriving with
+no failing tests — implement it and run that named verification instead; the rest of the stage is unchanged.
 
 ## Worktree isolation (when it earns its keep)
 If PREFLIGHT created a worktree (`state.worktreePath`) — i.e. this is stack-split or parallel work — do
@@ -49,8 +51,8 @@ a layer), worktree-per-stack doesn't apply — the collision risk is *within* th
   the box.
 
 ## Implement (executor — fresh context)
-Give the implementer **only the plan, the failing tests, and the conventions** (not the whole prior
-conversation) to avoid context contamination. The stack prompt templates —
+Give the implementer **only the plan, the failing tests (or the named execution-based verification), and
+the conventions** (not the whole prior conversation) to avoid context contamination. The stack prompt templates —
 `${CLAUDE_PLUGIN_ROOT}/prompts/impl-backend.md` · `impl-web.md` · `impl-mobile.md` — are **reference, not
 required reading: invoke one when the tier warrants it** (Tier M/L, or any stack you haven't briefed an
 implementer on before) and skip it on Tier S, where the brief is a one-liner and loading a 60-line template
@@ -59,8 +61,9 @@ Follow the engineering constitution (`${CLAUDE_PLUGIN_ROOT}/docs/engineering-con
 authz from the principal only, DTOs not entities, whitelist validation, no N+1, no swallowed exceptions.
 
 ## Verify (this stage owns build + tests, separate from review)
-- **G5**: build succeeds and the **new tests pass** (Green). Run the nature's build/test commands and
-  read the output (Iron Law #2).
+- **G5**: build succeeds and the **new tests pass** (Green) — or, where G4 recorded an execution-based
+  verification instead, that verification ran and its output was read. Run the nature's build/test commands
+  and read the output (§core 2).
 - **G6**: no failures **new vs `state.baseline`** (the base-branch reds captured at PREFLIGHT don't
   block — don't make each implementer re-derive "mine or pre-existing?" by stash-and-compare; diff the
   run against `state.baseline.failing`), core coverage ≥80%. On a genuinely new failure, attach a
@@ -78,7 +81,7 @@ authz from the principal only, DTOs not entities, whitelist validation, no N+1, 
   build reads green; a `command not found` (toolchain not on `PATH` after sourcing the env) is swallowed
   the same way. Run build/test as their **own** step, check `$?`, then read the report. `set -o pipefail`
   alone does **not** rescue a `grep`-in-the-pipe check — `grep` exits `1` on no match, so a *passing* build
-  turns false-RED; drop the pipe, don't just add pipefail. (Iron Law #2.)
+  turns false-RED; drop the pipe, don't just add pipefail. (§core 2.)
 - **G7**: if the change ships an artifact (APK/IPA/binary), run the **real packaging build**.
 - **G7b — boot/context-load smoke (nature declares `bootCheck`)**: unit tests hand-assemble collaborators
   and sliced ITs skip full wiring, so a framework-wiring defect — a new type caught by an **unchanged**
@@ -103,7 +106,7 @@ authz from the principal only, DTOs not entities, whitelist validation, no N+1, 
     constructible**, not the web layer / filters / health endpoint — those stay sc-qa's HTTP bring-up (so
     G7b and G9 are not redundant). A genuinely expensive full-server/health boot belongs in **sc-qa (G9)**,
     not as an always-on G7b floor.
-  - **No vacuous green** (Iron Law #2): a `bootCheck` selector that matches **zero** tests exits `0` — treat
+  - **No vacuous green** (§core 2): a `bootCheck` selector that matches **zero** tests exits `0` — treat
     that as **misconfig → FAIL**, not pass. Assert a non-zero context-load test actually ran (read the
     report/count); don't trust exit `0`.
   - **Environment**: `bootCheck` needs a **full-context-capable** env — a **superset** of the sliced ITs'
@@ -136,11 +139,11 @@ executor + build-fixer run at the **mid** tier. Cheap path first: implement on m
 only the failing fix (or a risk-zone diff) to a higher tier.
 
 **Pass `model = state.models['implement']` and `effort = state.effort['implement']` on the
-executor/build-fixer calls** (both resolved at PREFLIGHT) — never the agent type's defaults (Iron Law 6).
+executor/build-fixer calls** (both resolved at PREFLIGHT) — never the agent type's defaults (§core 6).
 An escalated fix passes the higher tier explicitly too.
 
 **Telemetry**: when you set `gates.G5`…`G7b` in state, append this stage's row to
 `state.telemetry.stages['implement']` — the resolved tier, model and effort, plus whatever usage the host
 actually exposed (tokens/cost/wall-clock) and `null` for what it didn't. **Never estimate a figure.** The
-run's cost readout is assembled from these rows at G13 (§ship-cycle — Cost readout); a stage that writes no
+run's cost readout is assembled from these rows at G13 (§`${CLAUDE_PLUGIN_ROOT}/docs/model-routing.md` — Cost readout); a stage that writes no
 row is simply absent from it, so the readout under-reports rather than lying.

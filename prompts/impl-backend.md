@@ -16,8 +16,9 @@ switch branches). Do not touch the front end ({webPath}, {mobilePath}) — separ
 {Verifiable criteria as bullets. e.g. given a specific input → a specific response/status}
 
 ## Constitution (must follow)
-- **TDD**: write JUnit tests first (Red), then implement (Green). Given/When/Then + descriptive names.
-  Unit (Service/domain) + integration (Controller+DB, spring-security-test).
+- **TDD**: for logic with a contract, write JUnit tests first (Red), then implement (Green).
+  Given/When/Then + descriptive names. Unit (Service/domain) + integration (Controller+DB,
+  spring-security-test). For a config-only change, name the execution-based verification instead (§core 3).
 - **Layered**: separate Controller / Service / Repository / DTO. Depend on interfaces.
 - **DDD**: encapsulate business logic in the domain (entities/domain services). **No anemic model**
   (logic must not pile up in services while entities are getter/setter data bags). Cross-aggregate

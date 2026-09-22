@@ -1,12 +1,18 @@
 ---
 name: sc-tdd
-description: Stage 3 of ship-cycle. Turn acceptance criteria into failing tests BEFORE any implementation (TDD Red). Runs the tests and confirms they fail for the right reason. Test type is chosen by change nature from the project overlay.
+description: Stage 3 of ship-cycle. Turn acceptance criteria into failing tests before implementing (TDD Red). Runs the tests and confirms they fail for the right reason. Test type is chosen by change nature from the project overlay. The default for logic changes; layout/copy/config verify by execution instead.
 ---
 
 # sc-tdd — write failing tests (Stage 3, Red)
 
-**Iron Law #1: no production code without a failing test first.** This stage produces the tests; the
-next stage makes them pass. Rejected excuses: "trivial" · "just once" · "I'll add tests after".
+**Test-first for logic (§core 3).** For anything with a contract — a function, an endpoint, a state
+machine — the failing test comes before the production code, because it is the cheapest way to find out the
+contract is wrong. This stage produces those tests; the next makes them pass.
+
+**When this stage is the wrong tool**, say so in one line and move on: a layout fix, a copy change, a config
+bump or most UI tweaks are verified by running the thing, and a red-then-green unit test around them proves
+little. Name the execution-based verification instead — it is what G4 accepts in place of Red evidence. When
+it is genuinely unclear which case you are in, write the test: it costs little and settles it.
 
 ## Do
 1. For each acceptance criterion, write a test that encodes it: **Given/When/Then**, descriptive name.
@@ -45,15 +51,18 @@ verification to review/QA rather than writing a vacuous test.
 ## Gate G4 (to advance to `sc-implement`)
 - Failing tests exist for the **core logic** of every acceptance criterion, and you have **run them and
   seen them fail** for the right reason. Set `gates.G4 = pass`.
+- **Or**, for a layout/copy/config change where test-first is the wrong tool (§core 3): the
+  execution-based verification is named, was run, and its output read. Record it as
+  `gates.G4 = "n/a: <the verification you ran>"` — a named alternative, never a silent skip.
 
 ## Model routing
 test-engineer runs at the **mid** tier.
 
 **Pass `model = state.models['tdd']` and `effort = state.effort['tdd']` on the test-engineer call** (both
-resolved at PREFLIGHT) — never the agent type's defaults (Iron Law 6).
+resolved at PREFLIGHT) — never the agent type's defaults (§core 6).
 
 **Telemetry**: when you set `gates.G4` in state, append this stage's row to
 `state.telemetry.stages['tdd']` — the resolved tier, model and effort, plus whatever usage the host
 actually exposed (tokens/cost/wall-clock) and `null` for what it didn't. **Never estimate a figure.** The
-run's cost readout is assembled from these rows at G13 (§ship-cycle — Cost readout); a stage that writes no
+run's cost readout is assembled from these rows at G13 (§`${CLAUDE_PLUGIN_ROOT}/docs/model-routing.md` — Cost readout); a stage that writes no
 row is simply absent from it, so the readout under-reports rather than lying.

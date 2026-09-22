@@ -19,13 +19,14 @@ Composable skills — a thin orchestrator that chains one short skill per stage 
 | `ship-cycle` (orchestrator) | `skills/ship-cycle/` | PREFLIGHT + worktree + routing + state + gate chaining + model routing + state-file handoff between stages |
 | `sc-brainstorm` | `skills/sc-brainstorm/` | Discovery: clarify a vague goal, propose a design, get acceptance |
 | `sc-design` | `skills/sc-design/` | Architect design + adversarial critic review |
-| `sc-tdd` | `skills/sc-tdd/` | Write failing tests first (Red) |
+| `sc-tdd` | `skills/sc-tdd/` | Write failing tests first (Red) — the default for logic changes |
 | `sc-implement` | `skills/sc-implement/` | Green + build, in git worktree isolation (parallel stacks) |
 | `sc-review` | `skills/sc-review/` | Multi-lens parallel review (security/quality/perf/algorithm/designer) |
 | `sc-qa` | `skills/sc-qa/` | Integration/E2E + front↔back seam contracts |
 | `sc-ship` | `skills/sc-ship/` | Docs + evidence verify + PR + branch/worktree cleanup |
 | `sc-audit` (à la carte) | `skills/sc-audit/` | Cross-surface parity audit: gap matrix + risks + cutover/ship verdict (not in the default chain) |
 | Engineering constitution | `docs/engineering-constitution.md` | The rules the gates enforce (SOLID/OWASP/DDD/TDD/…) |
+| Reference docs | `docs/{model-routing,state-file,test-baseline,worktree-recovery}.md` | Detail the orchestrator points to instead of carrying every cycle |
 | Impl prompt templates | `prompts/impl-{backend,web,mobile}.md` | Stack-specific implementation prompts (adapt to your stack) |
 | Overlay config + schema | `docs/ship-cycle.config.{example,schema}.json` | The per-project config and its JSON Schema |
 | Observability commands | `commands/` | User-invokable `/status` · `/resume` · `/ship` slash commands (read-only by default) |
@@ -128,9 +129,9 @@ Models are assigned by **cost-of-being-wrong × cost-of-verification**, not by r
 - **Bigger levers than tier choice**: prompt caching, the effort dial, and "cheap path first" for
   implementation.
 - **Enforced, not just documented**: PREFLIGHT pre-resolves each stage's tier into a concrete model
-  (`state.models`) and its effort into `state.effort`, and every stage passes both explicitly. Iron Law 6
-  forbids spawning on an agent type's default — a specialized type (`quality-reviewer`, …) otherwise
-  silently overrides your tier.
+  (`state.models`) and its effort into `state.effort`, and every stage passes both explicitly — a
+  specialized agent type (`quality-reviewer`, …) otherwise silently overrides your tier with its own
+  default (§core 6).
 - **Measured, not just asserted**: every run ends with a **cost readout** — per-stage tier/model/effort plus
   whatever usage your host exposes, the run total, and which risk upgrades fired. So the efficiency claim
   above is checkable on *your* repo, and `tierMap`/`effortMap` are tunable with data instead of intuition.
@@ -171,8 +172,9 @@ test applies to your own `CLAUDE.md`/`AGENTS.md`.
 The Claude Code lifecycle/skill space is well populated — see
 [Superpowers](https://blog.marcnuri.com/superpowers-claude-code-skills-framework) (Jesse Vincent) and
 [claude-code-workflows](https://github.com/shinpr/claude-code-workflows). This kit borrows two of
-Superpowers' best patterns: **Iron Laws + Red Flags** (non-negotiable rules with a pre-empted list of
-the excuses agents use to skip them) and a **discovery gate** (refuse to code a vague goal).
+Superpowers' best patterns: a small set of **non-negotiable rules** — stated with their rationale rather
+than as shouted absolutes, so they generalize instead of over-triggering — and a **discovery gate** (refuse
+to code a vague goal).
 
 Where it differs: a **change-nature routing overlay** (one config maps paths → test/review lenses) and
 **risk-based model routing** — assigning model tiers by cost-of-being-wrong, with a token-cost rationale
