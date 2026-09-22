@@ -99,8 +99,8 @@ reformat for the next tool), priced for that transformation's difficulty.
    branch, since state is keyed by branch.
 2. **Change-size tier (S/M/L), then worktree isolation.** Pick the tier first and out loud — it is the dial
    every later stage reads, and leaving it implicit is how a one-line fix pays Tier-L ceremony. Record it as
-   `state.size`; for **S**, record the corroborating sites as `state.sizeEvidence: ["path:line", ...]`. S
-   with fewer than two recorded sites is M: the party that benefits from S certifies it, so the evidence is
+   `state.size`; for **S** record the corroborating sites as `state.sizeEvidence: ["path:line", ...]`. S
+   with fewer than two recorded sites is M: the party benefiting from S certifies it, so the evidence is
    the check. Print the tier here and with the routing (§Stage 0.7).
 
    | tier | what it is | what it gets |
@@ -129,7 +129,7 @@ reformat for the next tool), priced for that transformation's difficulty.
    fallback, ignores `env`, and continues. `env` alone, because it cannot touch a correctness floor.
 4. **Classify change nature**: map changed paths via overlay `changeNature` (overlapping globs →
    most-specific wins; docs/i18n-only diffs prefer the docs rule) and print the resolved routing so it is
-   auditable. Not one-shot: a later stage finding the change touches a stack the initial diff didn't show —
+   auditable. Not one-shot: a later stage finding the change touches a stack the diff didn't show —
    a "mobile-only" change needing a new backend endpoint — re-runs it and the routing, updates state and
    adds the missing implementer axis. Scope growing at the design gate is normal.
    Classification also sets **G7b applicability**: a nature declaring overlay `bootCheck` has a loadable
@@ -237,13 +237,14 @@ verification, the pre-PR review, root-cause analysis, triage and the conflict ch
 
 **The bright line — dial ceremony, never an outcome.** *Ceremony* (dialable by size tier and risk): stage
 count, model tier and effort level, worktree-or-not **on a single-track change**, lens breadth,
-verifier/agent count, QA-skip-for-trivial, test-harness form. *Outcomes* (never dialed, for a typo fix and
+verifier/agent count, bake-off-or-not (§`${CLAUDE_PLUGIN_ROOT}/docs/bake-off.md`), QA-skip-for-trivial,
+test-harness form. *Outcomes* (never dialed, for a typo fix and
 an auth change alike): the six in §core; the fail-closed floors (security/data/contract); root-cause
 analysis before any defect fix; the pre-PR conflict check (G12); and the git-write freeze while an
 out-of-process reviewer reads the branch (§sc-review — a badly-timed `commit`/`checkout` can hang the reader
 for an hour, and Tier S does not exempt you from waiting). When unsure which side something is on, it is an
 outcome.
 
-Root-cause analysis, triage and the conflict check are the cheapest stages and the first a right-sizing pass
-reaches for. They are also where the cycle earns its keep: they stop you implementing a misdiagnosed
-request, shipping a false positive, and finding a conflict post-PR.
+Root-cause analysis, triage and the conflict check are the cheapest stages and the first a right-sizing
+pass reaches for. They are also where the cycle earns its keep: they stop you implementing a misdiagnosed
+request, shipping a false positive and finding a conflict post-PR.

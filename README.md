@@ -26,7 +26,7 @@ Composable skills — a thin orchestrator that chains one short skill per stage 
 | `sc-ship` | `skills/sc-ship/` | Docs + evidence verify + PR + branch/worktree cleanup |
 | `sc-audit` (à la carte) | `skills/sc-audit/` | Cross-surface parity audit: gap matrix + risks + cutover/ship verdict (not in the default chain) |
 | Engineering constitution | `docs/engineering-constitution.md` | The rules the gates enforce (SOLID/OWASP/DDD/TDD/…) |
-| Reference docs | `docs/{model-routing,state-file,test-baseline,worktree-recovery}.md` | Detail the orchestrator points to instead of carrying every cycle |
+| Reference docs | `docs/{model-routing,state-file,test-baseline,worktree-recovery,bake-off}.md` | Detail the skills point to instead of carrying every cycle |
 | Impl prompt templates | `prompts/impl-{backend,web,mobile}.md` | Stack-specific implementation prompts (adapt to your stack) |
 | Overlay config + schema | `docs/ship-cycle.config.{example,schema}.json` | The per-project config and its JSON Schema |
 | Observability commands | `commands/` | User-invokable `/status` · `/resume` · `/ship` slash commands (read-only by default) |

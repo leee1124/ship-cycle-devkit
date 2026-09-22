@@ -23,11 +23,21 @@ the mechanics that only matter when something unusual happens to its name or its
                    "lens": "external-adversarial", "status": "running", "startedAt": "<iso>",
                    "endedAt": null, "snapshot": "<path outside the worktree>",
                    "resultPath": "<path outside the worktree>" }],
+  "bakeOff": { "stances": ["mvp-first", "risk-first", "performance-first"],
+               "criteria": [{ "name": "reversibility", "weight": "high" }],
+               "judgeLenses": ["algorithm", "cold"],
+               "candidates": [{ "stance": "risk-first", "docPath": "<path>",
+                                "verdict": "winner", "reason": "<why it won or lost>" }],
+               "grafts": [{ "from": "mvp-first", "what": "<the piece>", "why": "<one line>" }],
+               "converged": false },
   "gitFreeze": { "active": false, "branch": null, "since": null, "releasedAt": null, "reason": null,
                  "releaseOn": "snapshot" },
   "telemetry": { "upgrades": ["auth → security lens: high→top"],
                  "stages": { "review": { "tier": "top", "model": "opus", "effort": "high",
-                                         "tokens": null, "cost": null } } } }
+                                         "tokens": null, "cost": null },
+                             "design": { "tier": "high", "model": "opus", "effort": "xhigh",
+                                         "candidates": 3, "stances": ["mvp-first", "risk-first",
+                                         "performance-first"], "tokens": null, "cost": null } } } }
 ```
 
 ## The slug

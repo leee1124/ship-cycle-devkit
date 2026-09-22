@@ -35,7 +35,11 @@ Otherwise, resume via the `ship-cycle` skill's PREFLIGHT resume path:
 3. Do **not** restart stages already recorded `pass` — or `"n/a: <reason>"`, which is a decision the
    resumed run inherits rather than re-makes — and do **not** re-initialize the state file; pick up exactly
    where the run left off.
-4. **If `reviewJobs` holds a `running` entry, resume by polling it — never by relaunching.** Run that
+4. **If `bakeOff` holds candidates but no winner, resume by judging what exists** — or by re-fanning only
+   the stances whose `docPath` is missing. Restarting all N discards finished work and re-spends the
+   multiplier this mode exists to justify; the criteria were fixed before the fan-out and are not re-opened
+   on resume.
+5. **If `reviewJobs` holds a `running` entry, resume by polling it — never by relaunching.** Run that
    reviewer's declared `status` command against the recorded `id`; a relaunch abandons a job that may be
    half an hour in and starts the clock again. If the job is gone on the host side (the process died with
    the previous session), mark it `failed` with that reason and re-launch deliberately, counting it against
