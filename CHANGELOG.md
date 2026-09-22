@@ -24,9 +24,10 @@ of this release as much as the code is.
 - **`scripts/validate_selftest.py`** — because a checker that cannot fail is indistinguishable from one
   that does not check. Fifteen cases, each mutating a throwaway copy of the repo and asserting the
   validator reports it; temp paths contain spaces; CI runs both scripts on Ubuntu **and** Windows. The
-  suite's own first run caught a stale fixture, and review caught a check that was satisfied by prose in
-  the very file it parsed — a state field "read" by its own documentation. Both are fixed and both now have
-  a case.
+  suite's own first run caught a stale fixture, review caught a check that was satisfied by prose in the
+  very file it parsed — a state field "read" by its own documentation — and the first CI run caught findings
+  rendering `docs\state-file.md` on Windows and `docs/state-file.md` elsewhere, making the messages
+  OS-dependent. All three are fixed; every finding now renders its path the same way on every OS.
 - **It found two defects on its first run.** `state.sizeEvidence` was written by PREFLIGHT and absent from
   the documented shape — fixed here. G10/G11/G12 are performed by `sc-ship` and described as gates but
   never recorded, so `/status` shows them as `—` forever — filed as **#63** rather than fixed, since it is a

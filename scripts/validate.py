@@ -75,15 +75,20 @@ def read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def shown(path: Path) -> str:
+    """Path as it appears in a finding: forward slashes on every OS, so messages are comparable."""
+    return path.as_posix()
+
+
 def load_json(root: Path, rel: Path, f: Findings) -> dict | None:
     path = root / rel
     if not path.is_file():
-        f.error(str(rel), "missing")
+        f.error(shown(rel), "missing")
         return None
     try:
         return json.loads(read(path))
     except json.JSONDecodeError as e:
-        f.error(str(rel), f"does not parse: {e}")
+        f.error(shown(rel), f"does not parse: {e}")
         return None
 
 
@@ -102,28 +107,28 @@ def check_doc_references(root: Path, f: Findings) -> None:
         rel = path.relative_to(root)
         for target in DOC_REF_RE.findall(text):
             if not (root / target).is_file():
-                f.error(str(rel), f"references {PLUGIN_ROOT_VAR}/{target}, which does not exist")
+                f.error(shown(rel), f"references {PLUGIN_ROOT_VAR}/{target}, which does not exist")
         for m in ANY_BUNDLED_REF_RE.finditer(text):
             target = m.group(0)
             if not (root / target).is_file():
                 continue  # not one of ours; a project-relative path in an example
-            f.error(str(rel), f"bundled-file reference without {PLUGIN_ROOT_VAR}: {target}")
+            f.error(shown(rel), f"bundled-file reference without {PLUGIN_ROOT_VAR}: {target}")
 
 
 def state_shape_fields(root: Path, f: Findings) -> set[str]:
     """Top-level field names from the documented state shape."""
     path = root / STATE_SHAPE_DOC
     if not path.is_file():
-        f.error(str(STATE_SHAPE_DOC), "missing")
+        f.error(shown(STATE_SHAPE_DOC), "missing")
         return set()
     blocks = re.findall(r"```json\n(.*?)\n```", read(path), re.S)
     if not blocks:
-        f.error(str(STATE_SHAPE_DOC), "no json shape block found")
+        f.error(shown(STATE_SHAPE_DOC), "no json shape block found")
         return set()
     try:
         shape = json.loads(blocks[0])
     except json.JSONDecodeError as e:
-        f.error(str(STATE_SHAPE_DOC), f"shape block does not parse: {e}")
+        f.error(shown(STATE_SHAPE_DOC), f"shape block does not parse: {e}")
         return set()
     return set(shape.keys())
 
@@ -155,16 +160,16 @@ def check_state_producers_consumers(root: Path, f: Findings) -> None:
                 referenced.add(field)
 
     for field in sorted(documented - referenced):
-        f.error(str(STATE_SHAPE_DOC), f"state.{field} is documented but no skill or command reads it")
+        f.error(shown(STATE_SHAPE_DOC), f"state.{field} is documented but no skill or command reads it")
     for field in sorted(referenced - documented):
-        f.error("state references", f"state.{field} is used but absent from {STATE_SHAPE_DOC}")
+        f.error("state references", f"state.{field} is used but absent from {shown(STATE_SHAPE_DOC)}")
 
 
 def check_gate_coverage(root: Path, f: Findings) -> None:
     """Every gate in the orchestrator's table is set by some skill, and vice versa."""
     orchestrator = root / SKILLS_DIR / "ship-cycle" / "SKILL.md"
     if not orchestrator.is_file():
-        f.error(str(orchestrator), "missing")
+        f.error(shown(orchestrator), "missing")
         return
     # A row may compound ids ("G2/G3"), and prose may write "gates.G5/G6/G7/G7b" -- split both.
     tabled: set[str] = set()
@@ -196,33 +201,33 @@ def check_manifests_and_versions(root: Path, f: Findings) -> None:
     if claude is not None:
         for key in CLAUDE_REQUIRED:
             if key not in claude:
-                f.error(str(CLAUDE_MANIFEST), f"missing required field '{key}'")
+                f.error(shown(CLAUDE_MANIFEST), f"missing required field '{key}'")
     if codex is not None:
         for key in CODEX_REQUIRED:
             if key not in codex:
-                f.error(str(CODEX_MANIFEST), f"missing required field '{key}'")
+                f.error(shown(CODEX_MANIFEST), f"missing required field '{key}'")
         interface = codex.get("interface")
         if isinstance(interface, dict):
             for key in CODEX_INTERFACE_REQUIRED:
                 if key not in interface:
-                    f.error(str(CODEX_MANIFEST), f"interface missing required field '{key}'")
+                    f.error(shown(CODEX_MANIFEST), f"interface missing required field '{key}'")
             prompts = interface.get("defaultPrompt", [])
             if not isinstance(prompts, list):
-                f.error(str(CODEX_MANIFEST), "interface.defaultPrompt must be an array")
+                f.error(shown(CODEX_MANIFEST), "interface.defaultPrompt must be an array")
                 prompts = []
             if len(prompts) > 3:
-                f.error(str(CODEX_MANIFEST), "interface.defaultPrompt allows at most 3 entries")
+                f.error(shown(CODEX_MANIFEST), "interface.defaultPrompt allows at most 3 entries")
             for p in prompts:
                 if len(p) > 128:
-                    f.error(str(CODEX_MANIFEST), f"defaultPrompt entry exceeds 128 chars: {p[:40]}...")
+                    f.error(shown(CODEX_MANIFEST), f"defaultPrompt entry exceeds 128 chars: {p[:40]}...")
         elif interface is not None:
-            f.error(str(CODEX_MANIFEST), "interface must be an object")
+            f.error(shown(CODEX_MANIFEST), "interface must be an object")
 
     versions = {}
     if claude is not None:
-        versions[str(CLAUDE_MANIFEST)] = claude.get("version")
+        versions[shown(CLAUDE_MANIFEST)] = claude.get("version")
     if codex is not None:
-        versions[str(CODEX_MANIFEST)] = codex.get("version")
+        versions[shown(CODEX_MANIFEST)] = codex.get("version")
     for where, v in versions.items():
         if v and not SEMVER_RE.match(str(v)):
             f.error(where, f"version '{v}' is not strict semver")
@@ -231,9 +236,9 @@ def check_manifests_and_versions(root: Path, f: Findings) -> None:
     if changelog.is_file():
         found = CHANGELOG_VERSION_RE.search(read(changelog))
         if found:
-            versions[str(CHANGELOG)] = found.group(1)
+            versions[shown(CHANGELOG)] = found.group(1)
         else:
-            f.warn(str(CHANGELOG), "no version heading found")
+            f.warn(shown(CHANGELOG), "no version heading found")
 
     distinct = set(v for v in versions.values() if v)
     if len(distinct) > 1:
@@ -250,27 +255,27 @@ def check_skill_frontmatter(root: Path, f: Findings) -> None:
     """Every skill declares name + description, and name matches its directory."""
     base = root / SKILLS_DIR
     if not base.is_dir():
-        f.error(str(SKILLS_DIR), "missing")
+        f.error(shown(SKILLS_DIR), "missing")
         return
     for skill_md in sorted(base.glob("*/SKILL.md")):
         rel = skill_md.relative_to(root)
         m = FRONTMATTER_RE.match(read(skill_md))
         if not m:
-            f.error(str(rel), "no frontmatter block")
+            f.error(shown(rel), "no frontmatter block")
             continue
         block = m.group(1)
         name = re.search(r"^name:\s*(\S+)\s*$", block, re.M)
         desc = re.search(r"^description:\s*(.+)$", block, re.M)
         if not name:
-            f.error(str(rel), "frontmatter has no 'name'")
+            f.error(shown(rel), "frontmatter has no 'name'")
         elif name.group(1) != skill_md.parent.name:
-            f.error(str(rel), f"frontmatter name '{name.group(1)}' != directory '{skill_md.parent.name}'")
+            f.error(shown(rel), f"frontmatter name '{name.group(1)}' != directory '{skill_md.parent.name}'")
         if not desc:
-            f.error(str(rel), "frontmatter has no 'description'")
+            f.error(shown(rel), "frontmatter has no 'description'")
         else:
             words = len(desc.group(1).split())
             if words > DESCRIPTION_WORD_ADVISORY:
-                f.warn(str(rel), f"description is {words} words; it loads in every session")
+                f.warn(shown(rel), f"description is {words} words; it loads in every session")
 
 
 # --- entry point -------------------------------------------------------------------------------
