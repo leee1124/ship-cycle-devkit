@@ -91,10 +91,10 @@ schema migration or public-API/architecture-boundary change (see the orchestrato
 
 **Pass `model = state.models['design']` and `effort = state.effort['design']` on the architect and critic
 calls** — both were resolved at PREFLIGHT (tier + risk upgrade). Never rely on the agent type's defaults
-(Iron Law 6).
+(§core 6).
 
 **Telemetry**: when you set `gates.G2`/`G3` in state, append this stage's row to
 `state.telemetry.stages['design']` — the resolved tier, model and effort, plus whatever usage the host
 actually exposed (tokens/cost/wall-clock) and `null` for what it didn't. **Never estimate a figure.** The
-run's cost readout is assembled from these rows at G13 (§ship-cycle — Cost readout); a stage that writes no
+run's cost readout is assembled from these rows at G13 (§`${CLAUDE_PLUGIN_ROOT}/docs/model-routing.md` — Cost readout); a stage that writes no
 row is simply absent from it, so the readout under-reports rather than lying.

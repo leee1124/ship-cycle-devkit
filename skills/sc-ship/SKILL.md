@@ -11,7 +11,7 @@ Update README/CHANGELOG/API docs/comments to match the change **in this same cha
 "no docs needed" reason.
 
 ## Verify (G11)
-**Run the verification and read the output** (Iron Law #2). Read pass/fail from the command's own exit
+**Run the verification and read the output** (§core 2). Read pass/fail from the command's own exit
 code or its machine-readable report (surefire/JUnit XML, runner JSON) — **never a piped/tailed stdout line**,
 which reports the pipe's last exit status and turns a red run green. Map **each acceptance criterion 1:1** to
 a passing test/build/QA log. Zero claims without evidence. If anything is unproven, loop back — don't ship.
@@ -91,7 +91,7 @@ live pass. `review-only` is a legitimate outcome, not a failure — but it must 
   before merge (or, if already merged, `comment + close` the issue). This is the same failure class the cold
   lens guards against: the narrative body reads complete while the machine-readable token silently leaked,
   leaving a finished issue open and polluting the backlog.
-- **Assert every finding carries a disposition, and that filed ones were filed (Iron Law 5).** sc-review's
+- **Assert every finding carries a disposition, and that filed ones were filed (§core 5).** sc-review's
   triage split each surviving finding into *fixed here* or *file-and-link* (§sc-review — Triage). Quantify
   over **every finding in the review artifact, not only the ones marked filed**: each must carry a
   disposition — *fixed here* (visible in this diff) or *filed as `#NN`* (the issue **exists** and the PR
@@ -103,7 +103,9 @@ live pass. `review-only` is a legitimate outcome, not a failure — but it must 
   same silent leak as a missing `Closes` token.
 - If `vcs.tracker` defines a board, move the item **In Progress → Done** as work completes.
 - Gate: build + test + review + QA all passed — a `gates.G9: degrade` or `gates.G7b: checklist` counts as
-  satisfied **only** when its item is on the pre-merge manual gate above, with its reason — **the branch
+  satisfied **only** when its item is on the pre-merge manual gate above, with its reason, and a gate
+  recorded as `"n/a: <reason>"` for a stage that plainly had nothing to do (§ship-cycle — Pipeline) counts
+  as satisfied with its reason carried to the PR body — **the branch
   merges cleanly into the base**, the opened PR
   body carries the correct `Closes`/`Refs` token for every tracked issue (re-fetched and asserted, not
   assumed), and every deferred finding is filed and referenced.
@@ -115,8 +117,8 @@ live pass. `review-only` is a legitimate outcome, not a failure — but it must 
   not this cycle's feature worktree and is not yours to prune, and `git worktree prune` is repo-scoped.
   Reaching G13 with a `running` job means G8 was set while a review was still reading: stop and resolve it,
   don't tear down around it.
-- **Emit the cost readout FIRST — before anything in this section deletes anything** (§ship-cycle — Cost
-  readout). Print, and write to an artifact dir **outside the worktree**, one row per stage: **resolved
+- **Emit the cost readout first — before anything in this section deletes anything**
+  (§`${CLAUDE_PLUGIN_ROOT}/docs/model-routing.md` — Cost readout). Print, and write to an artifact dir **outside the worktree**, one row per stage: **resolved
   tier, model, effort** and whatever usage the host actually exposed (tokens/cost/wall-clock), plus the run
   total and which risk-gated upgrades fired (`telemetry.upgrades`). **Record `unavailable` for anything the
   host does not expose — never estimate a number.** Ordering is the whole point, and the branch/state
@@ -177,8 +179,8 @@ readout are `low` mechanics; the evidence mapping at G11 is judgment and stays `
 
 **Pass `model = state.models['ship']` and `effort = state.effort['ship']` on these calls** (both resolved
 at PREFLIGHT) — never the agent type's defaults; a default effort is the same silent override as a default
-model (Iron Law 6). (If a stage splits roles across tiers, resolve each from the same tierMap/effortMap.)
+model (§core 6). (If a stage splits roles across tiers, resolve each from the same tierMap/effortMap.)
 
 **Telemetry**: when setting `gates.G13`, append this stage's row to `state.telemetry.stages['ship']` —
-resolved tier/model/effort plus whatever usage the host exposed, `null` for what it didn't (§ship-cycle —
-Cost readout). Do this *before* the readout is emitted, since the readout reads it.
+resolved tier/model/effort plus whatever usage the host exposed, `null` for what it didn't
+(§`${CLAUDE_PLUGIN_ROOT}/docs/model-routing.md` — Cost readout). Do this *before* the readout is emitted, since the readout reads it.

@@ -51,11 +51,12 @@ switch branches). Do not touch backend/web — separate agents own those.
 - Consume the API's **actual serialized DTO shape** (real field names/types) via the repository — never a
   guessed shape; if the backend returns a raw entity, flag it (constitution #6).
 
-## Testing (TDD — required)
-- Tests come first (Red), then implementation (Green). For UI with no render harness, extract pure logic
-  (formatters, selectors/reducers, i18n resolution, time/geometry math) into testable modules and write
-  the failing tests there; thin view wiring is covered by the designer lens + sc-qa. If a change has no
-  extractable logic, say so explicitly and route verification to review/QA — don't write a vacuous test.
+## Testing (TDD — the default for logic)
+- For logic with a contract, tests come first (Red), then implementation (Green). Extract pure logic
+  (formatters, selectors/reducers, i18n resolution, time/geometry math) into testable modules and write the
+  failing tests there; thin view wiring is covered by the designer lens + sc-qa.
+- For a layout, copy or config change, the meaningful verification is running the thing (§core 3): name the
+  execution-based verification you ran and route it to review/QA instead of writing a vacuous test.
 
 ## Done criteria
 - `tsc`/lint green (incl. a11y lint), no console/type errors. (Release artifact build is via EAS.)

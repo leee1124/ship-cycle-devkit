@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.2.29 — Lighten the harness: rationale over rebuttals, and a smaller orchestrator (#59)
+
+The kit had grown heavy in the direction agentic tooling has moved away from: more imperative rules, more
+pre-rejected excuses, more gating. Emphatic NEVER/MUST phrasing was written for models that under-followed
+instructions; current models follow closely enough that the shouting makes them **over-trigger**, firing a
+rule in places it was never meant for. The cost was paid on every cycle, and 0.2.26's size tiers — the right
+instinct — had added the mechanism for removing weight *as* more weight. Docs-only. Closes #59.
+
+- **`Iron Laws` → `The core — what not to skip`.** Six rules, each stated in plain language with the reason
+  it exists, because a rule whose rationale is understood generalizes to cases it never named while a
+  shouted one gets applied literally. No all-caps NEVER/MUST rules remain anywhere in the kit, and the
+  excuse-rebuttal lists ("trivial" · "just once" · "test after") are gone with them — once the rationale is
+  stated they were buying nothing. Cross-references move from `Iron Law N` to `§core N`.
+- **TDD is the default for logic, a judgment call elsewhere.** Test-first stays for anything with a
+  contract — a function, an endpoint, a state machine — where it is the cheapest way to discover the
+  contract is wrong. For layout, copy, config and most UI tweaks the meaningful verification is running the
+  thing, so `sc-tdd` now says when it is the wrong tool, and **G4 accepts a named execution-based
+  verification in place of Red evidence**. The engineering constitution's §8 and its review checklist say
+  the same.
+- **The pipeline is a default map, not a required path.** Stages still gate, but a stage with nothing to do
+  on this change is skipped with a one-line reason, so the skip is a decision rather than a drift.
+- **Orchestrator: 6,014 → 3,007 words** — exactly half — by moving rationale and rare-path procedure to four
+  reference docs the orchestrator points at instead of carrying every cycle:
+  `docs/model-routing.md` (routing rationale, the security-refusing-model guard, effort consequences, the
+  cost readout), `docs/state-file.md` (full state shape, slug, collision guard, migration),
+  `docs/test-baseline.md` (the `unrunnableHere` evidence and boundary rules) and
+  `docs/worktree-recovery.md` (leftover worktrees, stale `index.lock`). Nothing operational was dropped —
+  PREFLIGHT still carries every instruction it executes, including the effort table it reads at resolve
+  time, and `/ship` plus the stage skills were updated to accept a deliberately-skipped stage
+  (`gates.<G> = "n/a: <reason>"`) and an execution-based G4/G5 rather than treating either as an unmet gate.
+- **What explicitly did not move.** Independent review, execution-based verification, worktree isolation
+  and the baseline/regression split are named as the load-bearing core: they catch what a capable model
+  reliably misses about its **own** work, so they are not compensation for weak models and are not dialable.
+  The bright line between ceremony and outcomes stays in the orchestrator.
+
 ## 0.2.28 — Async external / foreign-agent review as a first-class gate, with a git-write freeze (#48)
 
 `sc-review` assumed every lens is an in-session subagent returning synchronously — and even the spec-blind

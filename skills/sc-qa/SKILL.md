@@ -22,7 +22,7 @@ implementers wrote.
   first real execution — a sequence/identity key `useGeneratedKeys` never populated (so the test binds
   `null`), a NOT-NULL column left unseeded, a migration not applied. `@Disabled`, a suite skipped because
   DDL/seed/auth wasn't provisioned, or "it builds" all read as *done* while covering nothing — the same
-  false-green class as a masked exit code (Iron Law #2). Require the actual **run log** (executed count > 0,
+  false-green class as a masked exit code (§core 2). Require the actual **run log** (executed count > 0,
   all green) as evidence; a **zero-executed or skipped** suite is a FAIL/deferral, not a pass. If the env
   genuinely can't run them, take the honest degrade below (contract-level + log the deferral) — never bank a
   compiled-but-unrun suite as verified.
@@ -146,10 +146,10 @@ filters, health endpoint).
 qa-tester + verifier run at the **mid** tier.
 
 **Pass `model = state.models['qa']` and `effort = state.effort['qa']` on the qa-tester/verifier calls**
-(both resolved at PREFLIGHT) — never the agent type's defaults (Iron Law 6).
+(both resolved at PREFLIGHT) — never the agent type's defaults (§core 6).
 
 **Telemetry**: when you set `gates.G9` in state, append this stage's row to
 `state.telemetry.stages['qa']` — the resolved tier, model and effort, plus whatever usage the host
 actually exposed (tokens/cost/wall-clock) and `null` for what it didn't. **Never estimate a figure.** The
-run's cost readout is assembled from these rows at G13 (§ship-cycle — Cost readout); a stage that writes no
+run's cost readout is assembled from these rows at G13 (§`${CLAUDE_PLUGIN_ROOT}/docs/model-routing.md` — Cost readout); a stage that writes no
 row is simply absent from it, so the readout under-reports rather than lying.

@@ -30,7 +30,9 @@ Otherwise parse the JSON and print a compact, scannable status report:
 - **Goal** and **branch** (plus `worktreePath` if one was created).
 - **Current stage** (`stage`) and its position in the pipeline:
   `sc-brainstorm → sc-design → sc-tdd → sc-implement → sc-review → sc-qa → sc-ship`.
-- **Gate table** — for **G1–G13**, show `pass` / `fail` / `—` (not yet reached) from `gates`.
+- **Gate table** — for **G1–G13**, show the value in `gates`: `pass` / `fail` / `—` (not yet reached) /
+  a three-way value (`degrade`, `checklist`, `skip`) / `"n/a: <reason>"` (a stage deliberately skipped —
+  print the reason, and never fold it in with `fail`).
 - **Loop counts** per gate from `loops`; the loop cap is 3 per gate — flag any gate that has hit the cap.
 - **Resolved model routing** from `models` (per stage) and **effort** from `effort`.
 - **Change nature** (`nature`), **risk** (`risk`), and **size tier** (`size` — S/M/L).
