@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.1 — Delta re-review after fixes, and no auto-relaunch under memory pressure
+
+- **sc-review: the delta pass.** A re-review of fixes is scoped to the fix diff (`git diff <reviewed
+  sha>..HEAD`) and two questions — is each prior finding actually resolved, and did the fix regress
+  anything — run as the cold lens at the same tier and model pin. It escalates to a full re-review when the
+  fix reaches code the first review never read, changes a contract/schema/persisted shape, or answers a
+  design flaw. Observed cost: second and third review rounds re-read the whole branch at full lens breadth
+  to confirm a handful of targeted fixes.
+  The prior findings are input, not a spec, so the pass stays cold; the reviewer may read code around a
+  finding outside the changed hunks; a rewritten history (rebase/amend past the recorded sha) falls back to
+  a full re-review; and the risk floor holds — a fix touching a `state.risk` area re-runs that lens too.
+- **sc-review: memory pressure.** Once the host has killed a background job for memory, remaining lenses run
+  sequentially, a killed job is reported and never relaunched automatically, and a killed lens counts as not
+  run — G8 waits for it or for the user's explicit waiver.
+
 ## 0.3.0 — Codex packaging, and a structural self-check that holds both distributions honest (#47)
 
 `main` was Claude-specific: one manifest, `claude plugin` installation, slash-command invocation, and

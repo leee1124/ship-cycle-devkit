@@ -70,6 +70,10 @@ have no `performance-reviewer`/`algorithm-reviewer`), spawn a `general-purpose` 
 with that lens's anti-patterns pasted in as the focus — **never skip the lens or abort on a missing agent
 type**. Scale fan-out to the host: parallel by default, but on a resource-constrained machine run the
 lenses in smaller batches (or sequentially) rather than all at once.
+This parallel default yields to the host: once it has **killed a background job for memory**, run the
+remaining lenses **sequentially**, and **never auto-relaunch a job the host killed** — report it and let the
+user decide, since the pressure that killed it has not gone away. A killed lens counts as **not run**: G8
+is not met until it has run to completion or the user has explicitly waived it.
 
 **Pin the model on every lens spawn — mechanically, not from memory (§core 6).** Because lenses are
 `general-purpose` spawns, the review tier lives only in `model=`, and it must be re-applied on *every* spawn.
@@ -230,8 +234,40 @@ work that wears no impressive artifact, so it is the first thing a right-sizing 
 misjudging it is how a review either balloons the branch or loses a real defect. Record each finding's
 disposition (fixed-here / filed-as `#NN`) in the review artifact so G8 and sc-ship can both read it.
 
+## Re-review after fixes — the delta pass
+A re-review of fixes for findings you already have is **not a second full review**. Re-running every lens
+over the whole branch re-pays the first review's cost to re-read code nobody changed, and it is where most
+of a cycle's review spend goes once the first pass has landed. Scope it to what moved:
+
+- **Input:** the fix diff — `git diff <sha the last review read>..HEAD` — plus the prior findings list.
+  Record HEAD's sha in the review artifact when a review starts, so the delta is mechanical rather than
+  remembered. If history was rewritten since (rebase, amend) and that sha is no longer an ancestor of
+  HEAD, the delta cannot be trusted: run a full re-review.
+- **The prior findings are input to check, not a spec.** Do not hand the delta reviewer the design doc,
+  the acceptance criteria or the author's account of the fix — that keeps it a cold lens. "Diff-only"
+  means no spec and no author narrative, not no repository: when a finding's defect sits outside the changed
+  hunks, the reviewer reads the surrounding code to judge whether it is resolved.
+- **Two questions, one lens:** (1) is each prior Critical/High, and each finding dispositioned
+  *fixed here* (§Triage), **actually resolved** by the fix, not just touched? (Findings *filed as #NN*
+  have nothing to verify here.) (2) did the fix **introduce a regression** in the lines it changed or the paths it reaches?
+  Run it as the **cold lens** (diff-only, assumes nothing) — fixes are written by the author who missed the
+  original defect, so the independent view matters more here, not less.
+- **Same tier, same model pin** as the review it follows (§Model routing). The delta pass is narrower, not
+  cheaper in judgment.
+- **Escalate to a full re-review** instead when the fix: reaches files or modules the first review never
+  read; changes a contract, schema or persisted shape; or answers a **design flaw** (that loops to
+  `sc-design`, and the redesigned change gets a fresh review).
+- **The risk floor still holds.** If the fix diff touches an area `state.risk` flagged (auth, payment,
+  persisted data, a public contract), also run that area's lens — the security lens above all — on the fix
+  diff. The delta pass narrows scope; it never dials away a lens the Tier S path forbids dialing away.
+- **External/async reviews (§above):** a relaunched external review of a fix follows the same scope — give
+  it the fix diff and the prior findings, not the whole branch — unless an escalation condition applies.
+- A delta pass counts against G8's loop cap like any re-review. Its findings get dispositions (§Triage)
+  exactly like the first pass's.
+
 ## Gate G8 (to advance to `sc-qa`)
-- **0 Critical/High** after verification. Address survivors in `sc-implement`, then re-review.
+- **0 Critical/High** after verification. Address survivors in `sc-implement`, then re-review — a
+  delta pass (§Re-review after fixes) unless an escalation condition calls for a full re-review.
 - **No `state.reviewJobs` entry is still `running` or `launching`**, and `state.gitFreeze` is released. An
   in-flight job means the gate has not been judged yet — wait for it, cancel it as `superseded`, or record
   its terminal status; never set G8 while a review you launched is still reading. A `timeout`/`failed` job
