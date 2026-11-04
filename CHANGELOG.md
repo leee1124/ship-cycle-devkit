@@ -4,10 +4,10 @@
 
 - **Overlay `changeNature[].coverage`** (`command`, `reportPath`, `format`, `corePaths`, `sourceRoots?`,
   `threshold?` = 80). "Core coverage ≥80%" named no command, report or core set, so it was skipped silently.
-- **G6 reads line coverage from the report file**, never stdout, and fails only below
-  `min(threshold, base)` — the base is measured at PREFLIGHT into `baseline.coverage`. A missing, stale or
-  unparseable report is `undetermined` and blocks; environment-gated coverage is `undetermined
-  (ci-deferred)` on the pre-merge manual gate. Rule: sc-implement G6.
+- **G6 reads line coverage from the report file**, never stdout: `pass` at the threshold, and below it
+  only against a measured base (`baseline.coverage`, measured locally at PREFLIGHT when it can run). A
+  missing, stale or unparseable report is `undetermined` and blocks; an unknown base or an unrunnable suite
+  is `undetermined (ci-deferred)` → `gates.G6 = checklist` on the pre-merge manual gate. Rule: sc-implement G6.
 - **No config is recorded, not skipped**: `state.coverage[<nature>] = "n/a: no coverage config"`, carried
   into the PR body.
 - The validator checks the example overlay's `coverage` against the schema; two self-test cases.

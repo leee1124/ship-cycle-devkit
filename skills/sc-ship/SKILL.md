@@ -86,7 +86,7 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   not verify something in this environment and recorded a checklist item — a `gates.G7b: checklist` boot
   deferral (sc-implement couldn't load a full context locally), sc-qa's device-gap / reachability-blocked
   items, a `baseline.unrunnableHere` suite that is a criterion's only coverage, an `undetermined
-  (ci-deferred)` `state.coverage` entry (the CI job whose coverage report must clear its `floor`), or a declared external
+  (ci-deferred)` `state.coverage` entry (the `ciReport` job + artifact whose coverage must clear the threshold), or a declared external
   review that ended `timeout`/`failed` (name the reviewer, the job id, **and the elapsed wait
   `startedAt → endedAt`**, so a review that was never actually waited for is visible as such — §sc-review)
   — list them in the
@@ -115,7 +115,7 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   passing. A finding triaged as out-of-scope and then never filed is not deferred, it is **dropped** — the
   same silent leak as a missing `Closes` token.
 - If `vcs.tracker` defines a board, move the item **In Progress → Done** as work completes.
-- Gate: build + test + review + QA all passed — a `gates.G9: degrade` or `gates.G7b: checklist` counts as
+- Gate: build + test + review + QA all passed — a `gates.G9: degrade` or a `gates.G7b`/`gates.G6: checklist` counts as
   satisfied **only** when its item is on the pre-merge manual gate above, with its reason, and a gate
   recorded as `"n/a: <reason>"` for a stage that plainly had nothing to do (§ship-cycle — Pipeline) counts
   as satisfied with its reason carried to the PR body — **the branch

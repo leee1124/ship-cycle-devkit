@@ -100,19 +100,23 @@ authz from the principal only, DTOs not entities, whitelist validation, no N+1, 
     deduplicated by normalised path — a multi-module or per-class listing does not double its lines, and
     natures sharing a `reportPath` run the command once. `format: "other"` must record a `method` (how the
     per-file counts were extracted), or the entry is undetermined.
-  - **Floor**: `floor = min(threshold, baseline.coverage[<nature>].percent)` (`threshold` default 80) —
-    a base already below the threshold must not get worse; it need not reach 80 in this change. When
-    PREFLIGHT could not measure the base, `baseline.coverage[<nature>]` is `"unmeasured: <reason>"` and the
-    floor is `threshold`. `percent ≥ floor` → `pass`; below → `fail`, which loops back like a new failure.
+  - **Base**: PREFLIGHT measures the base commit the same way (command, staleness, matching, counting)
+    into `baseline.coverage[<nature>]` — **locally whenever the command can run here, even under a CI
+    `baseline.source`**; else from `ciReport`'s artifact for the base commit; else `"unmeasured: <reason>"`.
+  - **Result — set by the evidence, not by choice.** `percent ≥ threshold` (default 80) → `pass`, whatever
+    the base. Below it: base measured → `floor = min(threshold, base percent)` (a base already under the
+    threshold must not get worse); `percent ≥ floor` → `pass`, else `fail`, which loops back like a new
+    failure. Base unmeasured → `undetermined (ci-deferred)`, reason `"base unknown"` — never `fail`.
   - **`undetermined`, which blocks**: the command errored before writing a report; the report is missing,
     or `reportMtime ≤ runStartedAt` (left over from an earlier run); it does not parse as `format`; or **no
     entry matches `corePaths`** — zero core lines is a vacuous 100%, not a pass. Paste the error, fix the
     coverage run, re-run (the three-state rule below).
-  - **`undetermined (ci-deferred)`**: the command needs a suite in `state.baseline.unrunnableHere`, or
-    `baseline.source` is a CI source and this cycle does not run the coverage command locally. Not a pass
-    and not a dead end — sc-ship puts it on the pre-merge manual gate, like `review-only (ci-deferred)`.
+  - **`undetermined (ci-deferred)`**: the command needs a suite in `state.baseline.unrunnableHere`, or the
+    base is unknown as above. Not a pass and not a dead end: set `gates.G6 = "checklist"` (as G7b does) and
+    sc-ship lists it on the pre-merge manual gate, naming `ciReport` (job + artifact) when configured.
   - Entry shape: `{ result, percent, floor, threshold, report, format, runStartedAt, reportMtime }` (+
-    `method` for `other`).
+    `method` for `other`); an undetermined entry has `percent: null` plus `error` (the run's own error
+    text) or `reason` (why it is deferred).
 - **No false-green (how you read G5/G6)**: judge pass/fail from the command's **own exit status or its
   machine-readable report** (surefire/JUnit XML, runner JSON) — never from a piped/tailed/grepped stdout
   line. `mvn test | grep -i fail | tail` returns the *pipeline's last* exit code (the tail's `0`), so a red

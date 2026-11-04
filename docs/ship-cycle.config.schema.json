@@ -59,7 +59,8 @@
               "format": { "enum": ["lcov", "cobertura", "jacoco", "istanbul-json", "other"], "description": "istanbul-json = coverage-summary.json. other = no built-in reading; the extraction method is recorded in state." },
               "corePaths": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Globs over the normalised repo-relative source path of each report entry." },
               "sourceRoots": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Prefixes for report paths given relative \u2014 needed for jacoco, whose report carries package + file name only." },
-              "threshold": { "type": "number", "minimum": 0, "maximum": 100, "default": 80, "description": "Percent. G6 fails below min(threshold, the base commit's measured coverage)." }
+              "ciReport": { "type": "object", "properties": { "job": { "type": "string" }, "artifact": { "type": "string" } }, "required": ["job", "artifact"], "additionalProperties": false, "description": "The CI job and artifact holding this coverage report: a source for the base measurement when it cannot run locally, and the concrete item named on the pre-merge manual gate when G6 coverage is ci-deferred." },
+              "threshold": { "type": "number", "minimum": 0, "maximum": 100, "default": 80, "description": "Percent. At or above it G6 coverage passes; below it, only a measured base can still pass it (sc-implement G6)." }
             },
             "required": ["command", "reportPath", "format", "corePaths"],
             "additionalProperties": false

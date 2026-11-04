@@ -29,7 +29,8 @@
         "format": "jacoco",
         "sourceRoots": ["apps/backend/src/main/java"],
         "corePaths": ["apps/backend/src/main/java/**/domain/**", "apps/backend/src/main/java/**/algorithm/**"],
-        "threshold": 80
+        "threshold": 80,
+        "ciReport": { "job": "backend-tests", "artifact": "backend-jacoco-xml" }
       }
     },
     {
