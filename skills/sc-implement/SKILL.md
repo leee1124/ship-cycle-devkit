@@ -50,7 +50,8 @@ a layer), worktree-per-stack doesn't apply — the collision risk is *within* th
   remains, one cheap read-only reviewer reads that wave's diff — a cold pass, then spec alignment — before
   the next wave starts; the same holds at a multi-stack contract-first barrier. It is advisory: only a
   verified design-level finding stops the waves (routed as the `BLOCKED` (design defect) row), and its
-  unresolved items reach G8. Unless `state.route.waveCheck` skips it, append to `state.waveReviews`. Rule:
+  unresolved items reach G8. Record every green barrier in `state.waveBarriers`, checked or not; unless
+  `state.route.waveCheck` skips it, append to `state.waveReviews`. Rule:
   `${CLAUDE_PLUGIN_ROOT}/docs/wave-check.md`.
 - **Resource-aware concurrency**: the full suite, builds and emulators agents launch are the heavy part
   (separate agent processes cost memory too). Run them under overlay `env.heavyLock` per

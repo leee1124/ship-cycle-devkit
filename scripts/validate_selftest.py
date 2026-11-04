@@ -127,6 +127,16 @@ def mutate(path: Path, old: str, new: str, count: int = 1) -> None:
     path.write_text(text.replace(old, new, count), encoding="utf-8")
 
 
+def swap_wave_passes(root: Path) -> None:
+    """Move the Spec alignment step above the Cold pass in docs/wave-check.md."""
+    path = root / "docs" / "wave-check.md"
+    text = path.read_text(encoding="utf-8")
+    cold = text.index("1. **Cold pass.**")
+    spec = text.index("2. **Spec alignment.**")
+    end = text.index("**Host without live messaging**")
+    path.write_text(text[:cold] + text[spec:end] + text[cold:spec] + text[end:], encoding="utf-8")
+
+
 # (name, mutate_fn, substring that must appear in the output)
 CASES = [
     (
@@ -1730,8 +1740,9 @@ CASES = [
     ),
     (
         "wave check spec-alignment runs before the cold pass",
-        lambda r: mutate(r / "docs" / "wave-check.md", "before it sees the spec", "with the spec"),
-        "wave-check-rule block does not state 'before it sees the spec'",
+        lambda r: mutate(r / "docs" / "wave-check.md", "list before\n   the spec is sent",
+                         "list with\n   the spec"),
+        "wave-check-rule block does not state 'before the spec is sent'",
     ),
     (
         "wave check reviewer model not pinned",
@@ -1828,6 +1839,108 @@ CASES = [
         lambda r: mutate(r / "skills" / "sc-retro" / "SKILL.md", "Read\n   `state.waveReviews`",
                          "Read\n   the wave checks"),
         "skills/sc-retro/SKILL.md: does not read `state.waveReviews`",
+    ),
+    (
+        "wave check spec pass listed before the cold pass",
+        lambda r: swap_wave_passes(r),
+        "wave-check-rule puts Spec alignment before the Cold pass",
+    ),
+    (
+        "wave check cold findings not frozen",
+        lambda r: mutate(r / "docs" / "wave-check.md", "**frozen verbatim**", "noted"),
+        "wave-check-rule block does not state '**frozen verbatim**'",
+    ),
+    (
+        "wave check spec pass may retract cold findings",
+        lambda r: mutate(r / "docs" / "wave-check.md", "never retracts or lowers one — only a refuter can",
+                         "may retract one"),
+        "does not state 'never retracts or lowers one — only a refuter can'",
+    ),
+    (
+        "wave check cheap refutation drops a Critical",
+        lambda r: mutate(r / "docs" / "wave-check.md", "**A cheap refutation never drops a Critical/High.**",
+                         "**Refutations drop findings.**"),
+        "does not state 'A cheap refutation never drops a Critical/High'",
+    ),
+    (
+        "wave check loses the host fallback",
+        lambda r: mutate(r / "docs" / "wave-check.md", "**Host without live messaging**", "**Other hosts**"),
+        "wave-check-rule block does not state 'Host without live messaging'",
+    ),
+    (
+        "wave check design stop no longer counts loops[G5]",
+        lambda r: mutate(r / "docs" / "wave-check.md", "incrementing `loops[G5]`\n  once", "counting"),
+        "does not state 'incrementing `loops[G5]` once'",
+    ),
+    (
+        "wave check re-plan loses its new from",
+        lambda r: mutate(r / "docs" / "wave-check.md", "new `from` is the last recorded\n  barrier",
+                         "new `from` is chosen"),
+        "does not state 'new `from` is the last recorded barrier'",
+    ),
+    (
+        "wave check multi-stack worktree unstated",
+        lambda r: mutate(r / "docs" / "wave-check.md", "the worktree where the contract landed",
+                         "some worktree"),
+        "does not state 'the worktree where the contract landed'",
+    ),
+    (
+        "unchecked barriers not recorded",
+        lambda r: mutate(r / "docs" / "wave-check.md", "recorded, checked or not.**",
+                         "recorded when checked.**"),
+        "wave-check-barriers block does not state 'checked or not'",
+    ),
+    (
+        "pruned from tree has no fallback",
+        lambda r: mutate(r / "docs" / "wave-check.md", "diff from the\nbase instead", "stop"),
+        "wave-check-barriers block does not state 'diff from the base instead'",
+    ),
+    (
+        "waveBarriers shape loses its worktree",
+        lambda r: mutate(r / "docs" / "state-file.md", '"worktree": "<path the barrier was taken in>"',
+                         '"where": "<path>"'),
+        "state shape has no waveBarriers entry with wave/tree/worktree",
+    ),
+    (
+        "refutedItems lose their refutation",
+        lambda r: mutate(r / "docs" / "state-file.md",
+                         '"refutation": "<evidence: path:line or command → output>"', '"why": "<x>"'),
+        "waveReviews.refutedItems entries lack item/where/refutation",
+    ),
+    (
+        "reconcile stops rerunning a dead wave check",
+        lambda r: mutate(r / "docs" / "state-file.md", "a wave check is rerun — cheap and idempotent",
+                         "a wave check is dropped"),
+        "reconcile's subagents-running row does not rerun a wave check",
+    ),
+    (
+        "sc-review brief drops refuted wave items",
+        lambda r: mutate(r / "skills" / "sc-review" / "SKILL.md",
+                         '"previously flagged, refuted at wave N — confirm"', "refuted"),
+        "'## Triage' does not state 'previously flagged, refuted at wave N — confirm'",
+    ),
+    (
+        "growth-only sources omit the wave-check design defect",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md",
+                         "a wave-check /\n  `BLOCKED` design defect", "a design defect"),
+        "'## Route plan' does not state 'a wave-check / `BLOCKED` design defect'",
+    ),
+    (
+        "Tier L row no longer names the wave check as skippable",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "a ceremony stage or the wave check",
+                         "a ceremony stage"),
+        "Tier L row does not let a route skip the wave check",
+    ),
+    (
+        "review.wave not resolved on growth to Tier L",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "grows to Tier L later", "is Tier L"),
+        "review.wave is not resolved when a cycle grows to Tier L",
+    ),
+    (
+        "runtime-adapters loses the two-agent fallback",
+        lambda r: mutate(r / "docs" / "runtime-adapters.md", "**Two-pass agents without live messaging.**",
+                         "**Two passes.**"),
+        "does not state the two-agent fallback for two-pass rules",
     ),
 ]
 

@@ -264,7 +264,9 @@ lenses' brief, not the cold lens's, which stays spec-blind — as an item to ver
 
 **Wave-check items are items to verify, too.** Every `unresolved` entry of `state.waveReviews`
 (§`${CLAUDE_PLUGIN_ROOT}/docs/wave-check.md`) goes into the same lenses' brief by the same mechanism — not
-the cold lens's — and gets a disposition (fixed-here / filed-as `#NN`). A wave check that found nothing,
+the cold lens's — and gets a disposition (fixed-here / filed-as `#NN`). Each `refutedItems` entry is listed
+too, as "previously flagged, refuted at wave N — confirm": a refutation from a tier cheaper than G8's
+never drops a Critical/High, which also stays unresolved for G8. A wave check that found nothing,
 or was skipped by the route, reduces no lens: G8 runs the full fleet either way.
 
 ## Re-review after fixes — the delta pass

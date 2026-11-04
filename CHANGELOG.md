@@ -7,25 +7,42 @@
 - **`docs/wave-check.md`** states the rule once.
   - **Trigger:** Tier L waved or multi-stack (contract-first) work, at every barrier that has a later wave,
     after that barrier's build/typecheck passed; the last barrier gets none (G5–G8 read the whole change).
-    Tier S and Tier M never run it.
-  - **Reviewer:** one read-only agent on `models["review.wave"]` / `effort["review.wave"]` (mid tier,
-    `medium`, resolved at PREFLIGHT), cold pass on `git diff <from> <tree>` (barrier tree identities) first,
-    then spec alignment against the criteria and design, listing what it cannot verify from the diff. No
-    subagents, no suite rerun; a heavy run goes under `env.heavyLock`; an out-of-process reviewer follows
-    sc-review's git-write freeze as written.
-  - **Advisory:** findings follow the review evidence rule (one refuter for Critical/High and design
-    findings). Only a verified design finding stops the waves, routed exactly as the `BLOCKED` (design
-    defect) row (sc-design, loop cap). Everything else lets the next wave start; surviving, undetermined and
-    cannot-verify items are unresolved and go into the sc-review brief as items to verify, each needing a
-    disposition at G8 — the mechanism implementer concerns use. It sets no gate and approves nothing.
-  - **Dialable:** it is ceremony (agent count), so `state.route.waveCheck` may be `"skip: <reason>"`;
-    skipped or not, G8 runs the full fleet.
-- **State.** `state.waveReviews[]` (wave, from/tree, model, effort, findings by severity, refuted, routedTo,
-  unresolved), `route.waveCheck`, `models`/`effort["review.wave"]`. Read by the sc-review brief and G8,
-  sc-ship's cost readout and sc-retro's review-effectiveness pass.
-- **Validator.** `check_wave_check` guards the four doc blocks, the forbidden gate wording, the
-  sc-implement / sc-review / ship-cycle hooks, the effort row, the state shape and the consumers; self-test
-  mutations for each.
+    Tier S and Tier M never run it; a cycle that grows to Tier L resolves `review.wave` then. Multi-stack:
+    read in the worktree where the contract landed (or the integration worktree), with `from`/`tree` taken
+    there.
+  - **Barriers:** every green barrier is recorded in `state.waveBarriers` (wave, tree, worktree), checked or
+    not; a check's `from` is the previous barrier's tree. A pruned `from` (throwaway-index trees are
+    unreferenced) falls back to a diff from the base.
+  - **Reviewer:** `models`/`effort["review.wave"]` (mid tier, `medium`, resolved at PREFLIGHT). Cold pass
+    on `git diff <from> <tree>` first, its findings frozen verbatim into the entry's `cold` list before the
+    spec is sent; then spec alignment against the criteria and design, which may add or raise but never
+    retract or lower a cold finding, and lists what it cannot verify from the diff. A host without live
+    messaging (Codex) runs agent 1 (cold) → agent 2 (spec alignment + triage) on the same pinned model
+    (`docs/runtime-adapters.md`). No subagents, no suite rerun; heavy runs under `env.heavyLock`; an
+    out-of-process reviewer follows sc-review's git-write freeze as written.
+  - **Evidence:** the review evidence rule, one refuter for Critical/High and design findings. Refuted
+    findings go to `refutedItems` (`{item, where, refutation}`) and are listed in the sc-review brief as
+    "previously flagged, refuted at wave N — confirm"; a refutation cheaper than G8's tier never drops a
+    Critical/High, which also stays unresolved for G8.
+  - **Stopping:** only a verified design finding stops the waves, routed as the `BLOCKED` (design defect)
+    row — sc-design grows to `run` (now a named growth-only source; the user is told), `loops[G5]` +1 once.
+    After sc-design returns, the wave that held the defect re-plans with every later wave, its new `from`
+    the last recorded barrier before it. A surviving non-design Critical may be fixed by its owning set's
+    agent before the next wave (a counted fix round) and still goes to G8. Everything else lets the next
+    wave start.
+  - **Carry into G8:** surviving, undetermined and cannot-verify items are unresolved and go into the
+    sc-review brief as items to verify, each needing a disposition at G8 — the mechanism implementer
+    concerns use. It sets no gate and approves nothing.
+  - **Dialable:** ceremony (agent count), so `state.route.waveCheck` may be `"skip: <reason>"` (the Tier L
+    row says so); skipped or not, G8 runs the full fleet.
+- **State.** `state.waveBarriers[]`; `state.waveReviews[]` (wave, from/tree, model, effort, cold, findings by
+  severity, refutedItems, routedTo, unresolved); `route.waveCheck`; `models`/`effort["review.wave"]`. Read by
+  the sc-review brief and G8, sc-ship's cost readout and sc-retro. A check that was running when the session
+  died is rerun by the reconcile (cheap, idempotent).
+- **Validator.** `check_wave_check` guards the five doc blocks (including cold before spec alignment,
+  refuted-item handling and the host fallback), the forbidden gate wording, the sc-implement / sc-review /
+  ship-cycle / runtime-adapters hooks, the effort and Tier L rows, the reconcile row, the state shape and
+  the consumers; 38 self-test mutations.
 
 ## 0.3.18 — Implementer status: one report contract, routed per status (#87)
 

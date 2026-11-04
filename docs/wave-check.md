@@ -12,8 +12,21 @@ parallel waves) or multi-stack work whose contract-first step lands before the s
 every barrier that has a later wave, **after that barrier's build/typecheck has passed**. A red barrier goes
 to sc-implement's bisect route first; the check reads a green barrier only. The last barrier gets none:
 G5–G8 read the whole change next. Tier S and Tier M never run it; a cycle that grows to Tier L
-(§ship-cycle Stage 0.4) runs it from the next barrier on.
+(§ship-cycle Stage 0.2, Stage 0.4) resolves `review.wave` then and runs it from the next barrier on.
+
+**Multi-stack work.** The contract-first barrier is read in the worktree where the contract landed — or the
+integration worktree that merges the stacks — and `from`/`tree` are tree identities taken in that worktree
+(§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Tree identity): `from` is its base (the contract step forks
+from it), `tree` is that worktree after the contract step.
 <!-- /wave-check-trigger -->
+
+<!-- wave-check-barriers -->
+**Every barrier is recorded, checked or not.** At each green barrier append `{wave, tree, worktree}` to
+`state.waveBarriers` — also when the route skips the check or the barrier is the last. A check's `from` is
+the previous barrier's `tree` there (the base for the first barrier). The ids come from a throwaway index
+and nothing references them, so `git gc` may prune one: if `git cat-file -e <from>` fails, diff from the
+base instead and say so in the entry.
+<!-- /wave-check-barriers -->
 
 <!-- wave-check-route -->
 **The route may dial it.** It is ceremony by the kit's own taxonomy — verifier/agent count
@@ -23,23 +36,25 @@ Skipped, nothing else changes: G8 still runs the full fleet, and no gate depends
 <!-- /wave-check-route -->
 
 <!-- wave-check-rule -->
-**One reviewer, two passes, cold first.** One read-only agent, spawned with
-`model = state.models["review.wave"]` and `effort = state.effort["review.wave"]` (mid tier, `medium`,
-resolved at PREFLIGHT — never the agent type's default, §core 6):
+**Two passes, cold first, on one pinned model.** Spawn with `model = state.models["review.wave"]` and
+`effort = state.effort["review.wave"]` (mid tier, `medium`, resolved at PREFLIGHT — never the agent type's
+default, §core 6):
 
-1. **Cold pass.** Hand it only the wave diff — `git diff <from> <tree>`, the previous barrier's recorded tree
-   (the base for the first barrier) to this barrier's tree identity
-   (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Tree identity), so untracked files are in it. No
-   criteria, no design, no author report: the cold lens rules of sc-review, assume nothing. It returns its
-   findings before it sees the spec.
-2. **Spec alignment.** Then send it the acceptance criteria (§sc-brainstorm, in state) and the design:
-   does this wave build what they say, and does it contradict an interface, boundary or contract a later
-   wave will build on? It lists what it **cannot verify from the diff** (a requirement that lives in unchanged
-   code or spans waves) as items, not passes.
+1. **Cold pass.** Hand it only the wave diff — `git diff <from> <tree>` between the two barrier tree
+   identities, so untracked files are in it. No criteria, no design, no author report: the cold lens rules
+   of sc-review, assume nothing. Its findings are **frozen verbatim** into the entry's `cold` list before
+   the spec is sent.
+2. **Spec alignment.** Then send the acceptance criteria (§sc-brainstorm, in state), the design and the
+   frozen cold findings: does this wave build what they say, and does it contradict an interface, boundary
+   or contract a later wave will build on? It lists what it **cannot verify from the diff** (a requirement
+   that lives in unchanged code or spans waves) as items, not passes. It may add findings and raise a cold
+   finding's severity; it never retracts or lowers one — only a refuter can.
 
-A host that cannot message a live agent runs the two passes as two agents on the same pinned model. The
-output is sc-review's lens shape (§sc-review — Output & severity discipline), each issue tagged **design**
-when the defect is in the plan rather than in this wave's own files.
+**Host without live messaging** (Codex, or any host that cannot send a running agent a second message —
+§`${CLAUDE_PLUGIN_ROOT}/docs/runtime-adapters.md`): agent 1 runs the cold pass on the diff only; its frozen
+findings are passed to agent 2, which runs spec alignment and the triage above. Both on the same pinned
+model and effort. The output is sc-review's lens shape (§sc-review — Output & severity discipline), each
+issue tagged **design** when the defect is in the plan rather than in this wave's own files.
 
 - **Read-only and alone.** It edits nothing, spawns no subagent and does not rerun the suite. A focused test
   only for a named doubt; a full suite, build or E2E it does run goes under overlay `env.heavyLock`
@@ -48,16 +63,27 @@ when the defect is in the plan rather than in this wave's own files.
   it; the next wave's edits wait on it like any other write.
 - **Same evidence rule as review findings.** Load-bearing claims cite evidence
   (§`${CLAUDE_PLUGIN_ROOT}/docs/claim-evidence.md`), and a Critical/High or a **design** finding gets one
-  refuter (§sc-review — Verify findings) before anything acts on it. Refuted with evidence → dropped;
-  neither evidenced nor refuted → undetermined, kept at its claimed severity.
+  refuter (§sc-review — Verify findings) before anything acts on it. A finding refuted with evidence leaves
+  the counts and goes to `refutedItems` (`{item, where, refutation}`); neither evidenced nor refuted →
+  undetermined, kept at its claimed severity.
+- **A cheap refutation never drops a Critical/High.** The refuter runs below G8's tier, so a Critical/High
+  it refutes is still recorded in `refutedItems` **and** stays unresolved for G8. A refuted Medium/Low is
+  only listed for G8 to confirm.
 - **When it may stop the waves.** Only a **design** finding that survives verification stops them: the next
-  wave is not dispatched, and it routes exactly as the `BLOCKED` (design defect) row does — to sc-design,
-  counting toward the loop cap as that row defines (§sc-implement — Route the implementer's status). Every
-  other finding, of any severity, lets the next wave start.
+  wave is not dispatched, and it routes exactly as the `BLOCKED` (design defect) row does — to sc-design
+  (which grows to `run` under the route's growth-only rule, and the user is told), incrementing `loops[G5]`
+  once (§sc-implement — Route the implementer's status), under the loop cap. When sc-design returns, the
+  wave whose diff held the defect re-plans with every later wave; its new `from` is the last recorded
+  barrier before it (the base when the redesign reaches wave 0). Every other finding, of any severity, lets
+  the next wave start.
+- **A verified Critical may be fixed first.** Decided: the orchestrator may send a surviving non-design
+  Critical to the agent that owns its file set as a fix round before the next wave (a fix round as
+  sc-implement counts it); it stays unresolved — G8 verifies the fix like any other item.
 - **Unresolved items go to G8.** Every surviving or undetermined finding and every cannot-verify item is
-  **unresolved**. No fix round is dispatched for it here; it is listed in the sc-review brief as an item to
-  verify, gets a disposition there (fixed-here / filed-as `#NN`) and G8 requires one — the mechanism the
-  skipped implementer concerns use, not a second one.
+  **unresolved**; it is listed in the sc-review brief as an item to verify, gets a disposition there
+  (fixed-here / filed-as `#NN`) and G8 requires one — the mechanism the skipped implementer concerns use,
+  not a second one. `refutedItems` are listed there too, as "previously flagged, refuted at wave N —
+  confirm".
 - **Advisory.** It sets no `gates` entry and no `gateTrees`, increments no `loops` except through the routed
   design defect, and approves nothing.
 <!-- /wave-check-rule -->
@@ -66,8 +92,10 @@ when the defect is in the plan rather than in this wave's own files.
 
 <!-- wave-check-record -->
 Append one `state.waveReviews` entry per check: `wave`, `from` and `tree` (the two barrier tree identities
-it read), `model` and `effort` as spawned, `findings` counted by severity (after verification), `refuted`,
-`routedTo` (`"sc-design"` or `null`) and `unresolved` (`{item, severity, where, design}` each). Readers:
-the sc-review brief and G8 (the unresolved items), sc-ship's cost readout (one line per entry) and sc-retro
-(did a wave check catch what G8 would have, or miss what G8 later found). None decides a gate from it.
+it read), `model` and `effort` as spawned, `cold` (the cold pass's findings, verbatim, frozen before the
+spec was sent), `findings` counted by severity (after verification), `refutedItems`, `routedTo`
+(`"sc-design"` or `null`) and `unresolved` (`{item, severity, where, design}` each). Readers: the sc-review
+brief and G8 (unresolved and refuted items), sc-ship's cost readout (one line per entry) and sc-retro (did a
+wave check catch what G8 would have, or miss what G8 later found). None decides a gate from it. A check that
+was running when the session died left no result: the reconcile reruns it — it is cheap and idempotent.
 <!-- /wave-check-record -->

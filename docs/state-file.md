@@ -60,9 +60,14 @@ the mechanics that only matter when something unusual happens to its name or its
                    "lens": "external-adversarial", "status": "running", "startedAt": "<iso>",
                    "endedAt": null, "snapshot": "<path outside the worktree>",
                    "resultPath": "<path outside the worktree>" }],
+  "waveBarriers": [{ "wave": 0, "tree": "<tree id at the green barrier>",
+                     "worktree": "<path the barrier was taken in>" }],
   "waveReviews": [{ "wave": 1, "from": "<tree id of the previous barrier, or the base>",
                     "tree": "<tree id of this barrier>", "model": "sonnet", "effort": "medium",
-                    "findings": { "critical": 0, "high": 0, "medium": 1, "low": 2 }, "refuted": 1,
+                    "cold": ["<cold-pass finding, verbatim>"],
+                    "findings": { "critical": 0, "high": 0, "medium": 1, "low": 2 },
+                    "refutedItems": [{ "item": "<finding>", "where": "src/b.py:12",
+                                       "refutation": "<evidence: path:line or command → output>" }],
                     "routedTo": null,
                     "unresolved": [{ "item": "<finding or cannot-verify item>", "severity": "medium",
                                      "where": "src/a.py:41", "design": false }] }],
@@ -150,11 +155,15 @@ before 0.3.13 — stages then decide from the tier as before.
 `route.waveCheck` is `"run"` or `"skip: <reason>"` on Tier L waved or multi-stack work and absent
 otherwise; it follows the growth-only rule.
 
+`waveBarriers` (written by sc-implement at every green Tier L wave barrier, checked or not) is append-only:
+the wave, its tree identity (§Tree identity) and the worktree it was taken in. A wave check reads its
+`from` from it, and a re-plan after sc-design takes its new `from` from it.
+
 `waveReviews` (written by sc-implement at each Tier L wave barrier) is append-only, one entry per wave check:
-the two barrier tree identities it read (§Tree identity), the model and effort it ran on, findings by
-severity after verification, the refuted count, `routedTo` (`"sc-design"` when a verified design finding
-stopped the waves, else `null`) and the `unresolved` items the sc-review brief carries to G8. It is
-advisory: it sets no gate and the reconcile does not read it. Rules:
+the two barrier tree identities it read (§Tree identity), the model and effort it ran on, the `cold`
+findings frozen verbatim before the spec was sent, findings by severity after verification, the
+`refutedItems`, `routedTo` (`"sc-design"` when a verified design finding stopped the waves, else `null`) and
+the `unresolved` items the sc-review brief carries to G8. It is advisory: it sets no gate. Rules:
 `${CLAUDE_PLUGIN_ROOT}/docs/wave-check.md`.
 
 `route.ownerPresent` (UI natures) says whether the owner will watch the live visual loop. Only `true`
@@ -282,7 +291,7 @@ compares worktree evidence with it and with `gates`:
 | test files in the diff vs the base | **tests exist but G4 not recorded** | continue at `sc-tdd`, which confirms Red (against the base if code is already there) before recording G4 |
 | a recorded `pass` whose other evidence is gone — a missing artifact path, coverage report or test file | the gate and what vanished | clear the gate; continue at its owner |
 | a gate recorded `pass` for a stage **after** the recorded stage (G8 `pass` while it reads `sc-tdd`) | a pass the pipeline could not have produced yet | clear the gate |
-| subagents running when the session died — the recorded stage, `bakeOff` candidates without a `docPath`, `reviewJobs` still `running`/`launching` | their output is lost: partial files are evidence to inspect, not results | their stage is not done; a review job is polled, never relaunched (`/resume` step 6) |
+| subagents running when the session died — the recorded stage, `bakeOff` candidates without a `docPath`, `reviewJobs` still `running`/`launching`, a wave check with a `waveBarriers` entry but no `waveReviews` entry for that wave | their output is lost: partial files are evidence to inspect, not results | their stage is not done; a review job is polled, never relaunched (`/resume` step 6); a wave check is rerun — cheap and idempotent |
 
 **Inference only ever lowers.** The reconcile may move the stage earlier and clear a `pass` (to `—`); it
 never turns a `route` entry from `run` to `skip` (a missing `route` stays missing, §Shape); it

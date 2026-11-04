@@ -118,8 +118,9 @@ re-deriving its own skip.
   of sc-implement, not a stage, so it is never skipped as one; the designer lens and its a11y floor join the
   lens floor for a UI nature and no route or Tier S drops them.
 - **Growth only.** Once confirmed, a stage or lens can be added, never removed. Growth comes from: scope or
-  nature growing (§Stage 0.4); a loop-back to sc-design — the user's choice at a loop cap, or a G8 design
-  flaw — which grows `sc-design` to `run` and tells the user; sc-tdd finding a contract in a routed skip.
+  nature growing (§Stage 0.4); a loop-back to sc-design — the user's choice at a loop cap, a wave-check /
+  `BLOCKED` design defect (§sc-implement), or a G8 design flaw — which grows `sc-design` to `run` and tells
+  the user; sc-tdd finding a contract in a routed skip.
   Re-show the user only the added rows, write them to `state.route`, log a `route` row. **A basis rise**
   — `state.size` above `basis.size`, a risk tag not in `basis.risk`, or a nature not in `basis.nature` —
   invalidates every skip: re-show those rows; each turns `run` unless the user re-confirms it against the
@@ -176,7 +177,7 @@ is not resumed by a new goal: ask "resume or replace?" (`/resume` is the explici
    |---|---|---|
    | **S** | a single expression / constant / comment whose cause is already corroborated by **≥2 independent code sites**, with no runtime-behaviour ambiguity | branch, no worktree; inline self-verification; no verification fleet, except ≥1 independent refuter for a surviving Critical/High; security lens + one lens matched to the nature; release smoke if `appliesTo` is touched; conflict check; PR |
    | **M** | one module, one stack | worktree only if something else earns it; 1–2 lenses/verifiers |
-   | **L** | multi-file, cross-stack, security-sensitive, or a migration | the full set — every stage, full lens breadth, QA (a route may skip a ceremony stage with a reason, §Route plan) |
+   | **L** | multi-file, cross-stack, security-sensitive, or a migration | the full set — every stage, full lens breadth, QA (a route may skip a ceremony stage or the wave check with a reason, §Route plan) |
 
    The tier is the starting point; the route plan at G1 (§Route plan) makes the per-stage call.
    Tier S is a claim about evidence, not diff size. Re-classification is **monotonic**, like risk (step 6):
@@ -247,7 +248,8 @@ is not resumed by a new goal: ask "resume or replace?" (`/resume` is the explici
    tier-resolved model — record it as `models["review.security"]` for sc-review, and when the pin differs
    print `SC-ROUTE-AVOID: security-lens <tier-model>→<securityReviewModel>`.
    On Tier L also resolve the wave check's reviewer — mid tier, `medium` — as `models["review.wave"]` and
-   `effort["review.wave"]` (§`${CLAUDE_PLUGIN_ROOT}/docs/wave-check.md`).
+   `effort["review.wave"]` (§`${CLAUDE_PLUGIN_ROOT}/docs/wave-check.md`), and resolve them then when a cycle
+   grows to Tier L later (§Stage 0.2, Stage 0.4).
 8. **Init state**: write this cycle's `.claude/ship-cycle/<branch-slug>.json` with everything resolved above
    plus an empty `telemetry`, an empty `reviewJobs` and `gitFreeze` inactive, and create its gate log
    `<branch-slug>.log.md` beside it with the first stage's `enter` row — archiving any log a replaced state

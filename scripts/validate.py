@@ -1439,12 +1439,25 @@ WAVE_DOC = Path("docs/wave-check.md")
 WAVE_BLOCK_TOKENS = {
     "wave-check-trigger": ("**Tier L**", "multi-stack", "every barrier that has a later wave",
                            "after that barrier's build/typecheck has passed", "The last barrier gets none",
-                           "Tier S and Tier M never run it"),
+                           "Tier S and Tier M never run it", "resolves `review.wave` then",
+                           "the worktree where the contract landed", "integration worktree",
+                           "`from`/`tree` are tree identities taken in that worktree"),
+    "wave-check-barriers": ("`state.waveBarriers`", "checked or not", "the route skips the check",
+                            "`git cat-file -e <from>`", "diff from the base instead"),
     "wave-check-route": ("ceremony", "`state.route.waveCheck`", "\"skip: <reason the user saw>\"",
                          "growth-only", "G8 still runs the full fleet"),
     "wave-check-rule": ("`model = state.models[\"review.wave\"]`", "`effort = state.effort[\"review.wave\"]`",
-                        "cold first", "Cold pass", "before it sees the spec", "Spec alignment",
-                        "acceptance criteria", "cannot verify from the diff", "Tree identity",
+                        "cold first", "Cold pass", "**frozen verbatim**", "before the spec is sent",
+                        "Spec alignment", "acceptance criteria", "cannot verify from the diff",
+                        "never retracts or lowers one — only a refuter can",
+                        "Host without live messaging", "Codex", "agent 1 runs the cold pass",
+                        "passed to agent 2", "same pinned model",
+                        "`refutedItems` (`{item, where, refutation}`)",
+                        "A cheap refutation never drops a Critical/High", "stays unresolved for G8",
+                        "previously flagged, refuted at wave N — confirm",
+                        "incrementing `loops[G5]` once", "grows to `run`", "the user is told",
+                        "re-plans with every later wave", "new `from` is the last recorded barrier",
+                        "A verified Critical may be fixed first", "Decided:",
                         "Read-only and alone", "`env.heavyLock`", "§sc-review — Git-write freeze",
                         "Same evidence rule as review findings", "claim-evidence.md",
                         "§sc-review — Verify findings",
@@ -1452,21 +1465,34 @@ WAVE_BLOCK_TOKENS = {
                         "`BLOCKED` (design defect)", "loop cap", "lets the next wave start",
                         "sc-review brief as an item to verify", "G8 requires one", "not a second one",
                         "sets no `gates` entry", "approves nothing"),
-    "wave-check-record": ("`state.waveReviews`", "`tree`", "`model`", "`routedTo`", "`unresolved`",
-                          "cost readout", "sc-retro", "None decides a gate"),
+    "wave-check-record": ("`state.waveReviews`", "`tree`", "`model`", "`cold`", "`refutedItems`",
+                          "`routedTo`", "`unresolved`", "cost readout", "sc-retro", "None decides a gate",
+                          "the reconcile reruns it"),
 }
 # A wave check is advisory: these sentences would make it a gate or a lens substitute.
 WAVE_FORBIDDEN = ("wave check is a gate", "replaces G8", "skips the G8", "blocks the next wave on any")
-WAVE_ENTRY_KEYS = ("wave", "from", "tree", "model", "effort", "findings", "refuted", "routedTo", "unresolved")
+WAVE_ENTRY_KEYS = ("wave", "from", "tree", "model", "effort", "cold", "findings", "refutedItems", "routedTo",
+                   "unresolved")
+WAVE_REFUTED_KEYS = ("item", "where", "refutation")
+WAVE_BARRIER_KEYS = ("wave", "tree", "worktree")
 WAVE_SKILL_TOKENS = {
     "sc-implement": ("Large cross-cutting change", ("Wave check at each barrier", "docs/wave-check.md",
                                                      "`state.route.waveCheck`", "`state.waveReviews`",
                                                      "design-level finding stops the waves")),
     "sc-review": ("Triage", ("Wave-check items are items to verify", "`state.waveReviews`",
-                             "not the cold lens's", "G8 runs the full fleet either way")),
+                             "not the cold lens's", "previously flagged, refuted at wave N — confirm",
+                             "never drops a Critical/High", "G8 runs the full fleet either way")),
     "ship-cycle": ("Route plan", ("`state.route.waveCheck`", "G8 still runs the full fleet",
-                                  "docs/wave-check.md")),
+                                  "docs/wave-check.md", "a wave-check / `BLOCKED` design defect")),
 }
+
+
+def shape_reconcile_missing(root: Path) -> bool:
+    """True when the reconcile's subagents-running row does not name the wave check."""
+    path = root / STATE_SHAPE_DOC
+    row = re.search(r"^\| subagents running when the session died(.*)$", read(path), re.M) \
+        if path.is_file() else None
+    return not row or "a wave check is rerun" not in row.group(1)
 
 
 def check_wave_check(root: Path, f: Findings) -> None:
@@ -1492,6 +1518,11 @@ def check_wave_check(root: Path, f: Findings) -> None:
         for token in tokens:
             if token not in body:
                 f.error(where, f"{marker} block does not state {token!r}")
+    rule = re.search(r"<!-- wave-check-rule -->(.*?)<!-- /wave-check-rule -->", text, re.S)
+    body = rule.group(1) if rule else ""
+    if "**Cold pass.**" in body and "**Spec alignment.**" in body and \
+            body.index("**Cold pass.**") > body.index("**Spec alignment.**"):
+        f.error(where, "wave-check-rule puts Spec alignment before the Cold pass")
     for token in WAVE_FORBIDDEN:
         if token in _flat(text):
             f.error(where, f"states {token!r} — a wave check is advisory and G8 stays the gate")
@@ -1508,6 +1539,15 @@ def check_wave_check(root: Path, f: Findings) -> None:
                 "'## Gate G8' does not require a disposition per wave-check item")
     orch = root / SKILLS_DIR / "ship-cycle" / "SKILL.md"
     otext = read(orch) if orch.is_file() else ""
+    if "a ceremony stage or the wave check" not in otext:
+        f.error("skills/ship-cycle/SKILL.md", "Tier L row does not let a route skip the wave check")
+    if "grows to Tier L later" not in otext:
+        f.error("skills/ship-cycle/SKILL.md", "review.wave is not resolved when a cycle grows to Tier L")
+    adapters = root / "docs" / "runtime-adapters.md"
+    if adapters.is_file() and "Two-pass agents without live messaging" not in read(adapters):
+        f.error("docs/runtime-adapters.md", "does not state the two-agent fallback for two-pass rules")
+    if shape_reconcile_missing(root):
+        f.error(shown(STATE_SHAPE_DOC), "reconcile's subagents-running row does not rerun a wave check")
     if 'models["review.wave"]' not in otext:
         f.error("skills/ship-cycle/SKILL.md", 'PREFLIGHT does not resolve models["review.wave"]')
     erow = re.search(r"^\|\s*\*\*medium\*\*\s*\|(.*)$", otext, re.M)
@@ -1526,6 +1566,14 @@ def check_wave_check(root: Path, f: Findings) -> None:
         for key in WAVE_ENTRY_KEYS:
             if key not in entries[0]:
                 f.error(shown(STATE_SHAPE_DOC), f"waveReviews entry lacks '{key}'")
+        refuted = entries[0].get("refutedItems")
+        if not isinstance(refuted, list) or not refuted or \
+                not all(k in refuted[0] for k in WAVE_REFUTED_KEYS):
+            f.error(shown(STATE_SHAPE_DOC), "waveReviews.refutedItems entries lack item/where/refutation")
+    barriers = shape.get("waveBarriers")
+    if not isinstance(barriers, list) or not barriers or \
+            not all(k in barriers[0] for k in WAVE_BARRIER_KEYS):
+        f.error(shown(STATE_SHAPE_DOC), "state shape has no waveBarriers entry with wave/tree/worktree")
     route = shape.get("route") if isinstance(shape.get("route"), dict) else {}
     if "waveCheck" not in route:
         f.error(shown(STATE_SHAPE_DOC), "route lacks 'waveCheck'")
