@@ -7,10 +7,15 @@ the mechanics that only matter when something unusual happens to its name or its
 
 ```json
 { "goal": "...", "branch": "...", "worktreePath": "...", "stage": "sc-design",
-  "gates": { "G1": "pass", "G2": "pass", "G4": "n/a: copy change, verified by execution" },
+  "gates": { "G1": "pass", "G2": "n/a: route — config bump, nothing to design", "G4": "pass" },
   "gateTrees": { "G5": "<tree id of the worktree the build/tests ran on>" },
   "loops": { "G8": 1 },
-  "nature": ["backend"], "risk": ["auth"], "size": "L",
+  "nature": ["backend"], "risk": ["auth"], "size": "L", "branchCreated": true,
+  "route": { "confirmedAt": "<iso>", "basis": { "size": "L", "risk": ["auth"],
+                                                "nature": ["backend"] },
+             "stages": { "sc-design": "skip: config bump, nothing to design", "sc-tdd": "run",
+                         "sc-implement": "run", "sc-review": "run", "sc-qa": "run", "sc-ship": "run" },
+             "lenses": ["security", "quality", "cold"], "qa": "full bring-up + seam checks" },
   "sizeEvidence": ["src/a.py:41", "src/b.py:88"],
   "baseline": { "capturedOn": "<base-sha>", "source": "local",
                 "run": null,
@@ -109,6 +114,15 @@ exits 0, with the docs globs from overlay `changeNature`'s docs rule, anchored a
 code, such as skill files). Any other difference clears the gate. Ignored, untracked files (`.env`, build
 output) are outside the id by design: changing only those does not invalidate a gate.
 
+`route` is the plan confirmed at G1 (§ship-cycle — Route plan): one entry per stage after sc-brainstorm,
+`"run"` or `"skip: <reason>"`; `sc-implement`, `sc-review` and `sc-ship` are always `"run"`, and `sc-tdd`
+skips only for layout, copy or config. A skip becomes `gates.<G> = "n/a: route — <reason>"` when the stage
+is reached. `basis` is `size`, `risk` and `nature` at confirmation: a larger size, or a risk tag or nature
+not in it, invalidates every skip. `lenses`
+and `qa` are what sc-review (with the floor) and sc-qa run. It only grows: entries turn from `skip` to
+`run` and lenses are added, never the reverse. Absent on a cycle started before 0.3.13 — stages then decide
+from the tier as before.
+
 `parked` is `null` unless `stage` is `parked` (§Parking). `reconcile` is append-only, one entry per resume
 (§Resume reconcile).
 
@@ -160,6 +174,9 @@ not appended to.
 
 The seven stage skills are mid-pipeline; `parked` is a deliberate pause (not terminal); `complete`, `failed`
 and `cancelled` are terminal.
+
+`branchCreated` is `true` only when PREFLIGHT created the branch; absent (a pre-0.3.13 or migrated file) is
+treated as `false`, so a cancel cleanup keeps the branch.
 
 ## Resume and selection
 
@@ -220,6 +237,7 @@ compares worktree evidence with it and with `gates`:
 | subagents running when the session died — the recorded stage, `bakeOff` candidates without a `docPath`, `reviewJobs` still `running`/`launching` | their output is lost: partial files are evidence to inspect, not results | their stage is not done; a review job is polled, never relaunched (`/resume` step 6) |
 
 **Inference only ever lowers.** The reconcile may move the stage earlier and clear a `pass` (to `—`); it
+never turns a `route` entry from `run` to `skip` (a missing `route` stays missing, §Shape); it
 never records a `pass` and never continues later than the recorded stage, however finished the worktree
 looks — a gate passes only when its stage produces the evidence. Continue from the earliest stage any row
 points at.
@@ -257,7 +275,8 @@ header; every transition after that appends **one row**:
 |---|---|---|---|---|
 | 2026-11-04T09:02:11Z | sc-brainstorm | — | enter | PREFLIGHT: size M, nature backend, risk auth |
 | 2026-11-04T09:20:40Z | sc-brainstorm | G1 | pass | acceptance criteria: <artifact dir>/criteria.md |
-| 2026-11-04T09:21:05Z | sc-design | G2/G3 | n/a: config bump, nothing to design | — |
+| 2026-11-04T09:20:41Z | sc-brainstorm | route | confirmed | stages.sc-design: skip |
+| 2026-11-04T09:21:05Z | sc-design | G2/G3 | n/a: route — config bump, nothing to design | — |
 | 2026-11-04T10:02:13Z | sc-implement | G6 | fail (loop 1/3) | 2 new failures: RateLimitTest#burst |
 | 2026-11-04T10:40:56Z | sc-implement | G6 | pass | coverage 84.2% ≥ floor 78.1 · tree 4b1e… |
 | 2026-11-04T11:15:00Z | parked | — | parked | waiting on product for the limits · resume sc-review |
@@ -266,11 +285,14 @@ header; every transition after that appends **one row**:
 
 - **at** — UTC ISO-8601 with `Z`, second precision.
 - **stage** — the stage recorded in state when the line is written (one of §Stage values).
-- **gate** — the gate id as the gate table writes it (`G7b`, `G2/G3`), or `—` for a stage change.
+- **gate** — the gate id as the gate table writes it (`G7b`, `G2/G3`), `—` for a stage change, or `route`
+  for a route-plan change (written by sc-brainstorm at G1, and by whoever grows or re-confirms the route —
+  the orchestrator, a stage's "Route first" check, sc-tdd finding a contract).
 - **result** — exactly the value written to `gates` (`pass`, `fail`, `degrade`, `checklist`, `skip`,
   `n/a: <reason>` with the reason verbatim), plus `(loop n/3)` on a `fail`; for a stage change `enter`,
-  `parked`, `resume` or the terminal value; `cleared` for a reconcile clear; `deferred: <part>` for each
-  manual-gate deferral as it is recorded.
+  `parked`, `resume` or the terminal value; for a `route` row `confirmed`, `grew` or `reconfirmed`
+  (evidence: the `state.route` keys it changed, e.g. `stages.sc-design: run · loop cap G8`); `cleared` for
+  a reconcile clear; `deferred: <part>` for each manual-gate deferral as it is recorded.
 - **evidence** — a short pointer, never the evidence itself: a path, a test id, a tree id prefix, a job id,
   a CI link; `—` when there is none.
 
@@ -285,6 +307,9 @@ evidence pointer) is the only thing that can break a row; an unescaped `|` shift
 newline ends the row early. "Verbatim" for a reason carried into a cell (G12's n/a reasons included)
 means verbatim up to the cap.
 <!-- /gate-log-cell-escaping -->
+
+**Route rows** (gate `route`) are not a gate: the Gate summary and the reconcile skip them, and sc-ship
+renders the latest one as a line under the summary table.
 
 **Sub-check rows.** sc-ship's release checklist (overlay `releaseChecklist`) appends one row per item
 with `gate` = `G12` and evidence `releaseChecklist.<id>: exit 0 · tree <prefix>`. These are sub-check rows,

@@ -102,7 +102,14 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   | G9 | degrade | release smoke: signing deferred → Pre-merge manual gate | 0 |
   | G12 | pending (this PR) | — | 0 |
   | G13 | after merge | — | 0 |
+
+  Route: confirmed 2026-11-04T09:20:41Z · skipped sc-design (config bump, nothing to design) · lenses
+  security, quality, cold · QA full bring-up + seams
   ```
+
+  Under the table, one **Route** line from `state.route` (absent → `Route: none (pre-0.3.13)`): when it was
+  confirmed, each skipped stage with its reason, the lenses and the QA form — so a reviewer sees what was
+  planned out, not only what came back `n/a`.
 - If `state.bakeOff` exists, the body records **which stance won and why**, and `converged: true` when the
   candidates agreed — cycle state is deleted at G13, so the PR body is the only place the next person
   choosing for this shape of change can still read it.
@@ -184,7 +191,10 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   `gates.G7b`/`gates.G6: checklist` counts as
   satisfied **only** when its item is on the pre-merge manual gate above, with its reason, and a gate
   recorded as `"n/a: <reason>"` for a stage that plainly had nothing to do (§ship-cycle — Pipeline) counts
-  as satisfied with its reason carried to the PR body (verbatim up to the cell cap) — **the branch
+  as satisfied with its reason carried to the PR body (verbatim up to the cell cap) — except a
+  whole-stage `n/a` (G2/G3, G4, G9) whose `state.route` entry is now `run` — a route `n/a` the stage outgrew
+  or a skip the route never planned — which fails G12 unless it is a config `n/a` (`n/a: no <x> config`)
+  (§ship-cycle — Route plan) — **the branch
   merges cleanly into the base**, the opened PR
   body carries the correct `Closes`/`Refs` token for every tracked issue (re-fetched and asserted, not
   assumed), its Gate summary matches a fresh render from state + log, and every deferred finding is filed

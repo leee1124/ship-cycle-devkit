@@ -14,6 +14,14 @@ bump or most UI tweaks are verified by running the thing, and a red-then-green u
 little. Name the execution-based verification instead — it is what G4 accepts in place of Red evidence. When
 it is genuinely unclear which case you are in, write the test: it costs little and settles it.
 
+**Route first.** When `state.route.stages['sc-tdd']` is `skip: <reason>`, check two things before honouring it
+(§ship-cycle — Route plan): no basis rise against `state.route.basis` (larger `state.size`, or a `state.risk`
+tag or `state.nature` not in it), and the change really is layout, copy or config. If it has a contract after
+all — a function, an endpoint, a state machine — grow the entry to `run` (a `route` log row, the user told)
+and write the tests. Otherwise run the verification the reason names and record `gates.G4 = "n/a: route —
+<reason>"`. When the route says `run`, this stage writes failing tests: the G4 execution alternative below is
+for cycles with no route, where this stage still judges for itself.
+
 ## Do
 1. For each acceptance criterion, write a test that encodes it: **Given/When/Then**, descriptive name.
 2. Choose the test type by **change nature** (from the overlay `changeNature[].tests` for this diff) —
@@ -51,7 +59,8 @@ verification to review/QA rather than writing a vacuous test.
 ## Gate G4 (to advance to `sc-implement`)
 - Failing tests exist for the **core logic** of every acceptance criterion, and you have **run them and
   seen them fail** for the right reason. Set `gates.G4 = pass`.
-- **Or**, for a layout/copy/config change where test-first is the wrong tool (§core 3): the
+- **Or** (no route, or a route skip — see Route first), for a layout/copy/config change where test-first
+  is the wrong tool (§core 3): the
   execution-based verification is named, was run, and its output read. Record it as
   `gates.G4 = "n/a: <the verification you ran>"` — a named alternative, never a silent skip.
 
