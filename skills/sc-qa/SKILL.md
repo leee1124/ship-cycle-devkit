@@ -138,8 +138,8 @@ filters, health endpoint).
 
 ## Gate G9 (to advance to `sc-ship`)
 - Core flows reproduced; **0 new defects** (new vs `state.baseline`, ignoring `baseline.unrunnableHere`;
-  when `baseline.source` is `ci-status-only` there is no failing set, so every defect counts as new unless
-  a base-commit recheck recorded it — `${CLAUDE_PLUGIN_ROOT}/docs/test-baseline.md`);
+  `baseline.flaky` is not exempt; under `ci-status-only` every defect blocks unless its suite is in
+  `baseline.run.rechecked` — `${CLAUDE_PLUGIN_ROOT}/docs/test-baseline.md`);
   front↔back contracts hold; **every integration/seam suite that *can* run here actually ran (executed
   count > 0) and passed — a compiled-but-unrun or `@Disabled` suite does not satisfy G9** (degrade honestly
   if the env can't run them, don't bank it as passed). A suite in `unrunnableHere` doesn't block this gate

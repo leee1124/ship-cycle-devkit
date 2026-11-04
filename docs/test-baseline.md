@@ -8,67 +8,69 @@ them.
 ## Where the baseline comes from: `baseline.source`
 
 Running a nature's full suite on the base commit can take an hour on a constrained host, under a test lock
-other work is queued behind. The base commit has usually been tested already — by CI, on the commit itself.
-Re-running it locally buys little, and without a documented alternative operators substitute "the base
-branch is CI-green" by hand, which is the same claim with nothing recorded. So the baseline has three
-sources, and the state says which one it is:
+other work is queued behind. The base commit has usually been tested already — by CI, on the commit itself —
+and without a documented alternative operators substitute "the base branch is CI-green" by hand, the same
+claim with nothing recorded. So the baseline has three sources, and the state says which one it is:
 
 ```json
 "baseline": { "capturedOn": "<base-sha>", "source": "ci",
               "run": { "ref": "<CI run id or URL>", "commit": "<base-sha>", "job": "<job/check name>",
-                       "report": "<artifact the failing set was read from>", "rechecked": [] },
-              "failing": ["suiteA#case"] }
+                       "report": "<artifact the failing set was read from>", "rechecked": ["suiteC"] },
+              "failing": ["suiteA#case", { "case": "suiteC#case", "capturedAt": "sc-implement" }],
+              "flaky": ["suiteB#case"] }
 ```
 
-- **`local`** (absent `source` means `local` — a baseline recorded before this field existed): the suite
+- **`local`** (an absent `source` means `local` — a baseline recorded before this field existed): the suite
   ran here, on the base commit. Unchanged.
 - **`ci`**: the base commit's CI run for the same suite, **with its machine-readable report** (JUnit XML,
-  runner JSON — whatever the runner emits). PREFLIGHT reads the report and fills `failing` per case exactly
-  as a local run would, so G6/G9 still diff mechanically. No local execution.
-- **`ci-status-only`**: the run exists and **succeeded**, but its report is unavailable (not uploaded,
-  expired, unreadable). `failing` is **absent** — there is no per-case set to diff against.
+  runner JSON). PREFLIGHT reads the report and fills `failing` per case as a local run would, so G6/G9 still
+  diff mechanically. No local execution.
+- **`ci-status-only`**: the run **succeeded** but its report is unavailable (not uploaded, expired,
+  unreadable). There is no per-case set to diff against: **every failure blocks unless its suite was
+  rechecked** (`run.rechecked`, below), and `failing` may hold entries only for rechecked suites.
 
-Any CI host qualifies — the rules ask only for what every host exposes. A run is usable when:
+A red run without a report is not a baseline at all — it says *something* failed, not what. Capture locally.
 
-- its commit is **exactly** `capturedOn`. A run on the branch tip, a merge commit or the previous commit is
+### Which runs qualify
+
+Any CI host qualifies; the rules ask only for what every host exposes. A run is usable when:
+
+- its commit is **exactly** `capturedOn` — a run on the branch tip, a merge commit or the previous commit is
   evidence about a different tree;
-- it **completed** — not queued, running or cancelled. Use the latest completed attempt; a case that
-  failed and passed on an automatic retry is recorded as failing, since the retry hid it;
-- its job runs **the same selection** as the nature's `tests` command. Suites the job does not run are not
-  baselined by it: capture them locally, or they fall under the `ci-status-only` rule below;
-- for `ci`, the report shows an **executed count > 0** for each suite it covers (§core 2 — a report of a
-  skipped suite is not a green one).
+- it **completed** — not queued, running or cancelled; use the latest completed attempt;
+- its job runs **the same selection and configuration** as the nature's `tests` command. Suites the job
+  does not run are not baselined by it;
+- for `ci`, the report shows an **executed count > 0** for each suite it covers (§core 2). Cases missing
+  from a partial or sharded report are not baseline: a failure in one blocks.
 
-Record the run in `baseline.run` (`ref`, `commit`, `job`, and `report` when there is one) so the claim can
-be checked later. Overlay `changeNature[].ciBaseline` names the job and the report artifact per nature, so
-PREFLIGHT does not have to guess which of a dozen checks ran the suite; without it, find the job and say in
-one line why it is the right one.
+A case that failed and then passed on an automatic retry goes to **`baseline.flaky`**, not `failing`. It is
+**not exempt**: a failure in it still blocks unless its suite is rechecked. The retry hid a red; it did not
+establish one.
 
-### The rule for `ci-status-only`: any failure in a touched suite blocks
-
-A green status says the suite passed somewhere; it does not say which cases ran or which were already red,
-so there is nothing to subtract. Under `ci-status-only`, **every failure G6/G9 sees in a suite this cycle
-runs blocks** — "it was probably already red" is exactly the claim the source cannot support. To exempt a
-red that really is pre-existing, run *that suite* on the base commit (never the working tree) and add its
-result; that suite's entry is then local evidence (below).
-
-A red run without a report is not a baseline at all: it says *something* failed, not what. Capture locally.
+Record the run in `baseline.run` so the claim can be checked later. Overlay `changeNature[].ciBaseline`
+names the job and report artifact per nature; without it, find the job and say in one line why it is the
+right one.
 
 ### The trade-off, and the recheck that settles it
 
-CI ran on CI's machine. A test that fails only here — a locale, a timezone, a path separator, a slower disk
-— is absent from a CI baseline and shows up at G6 as a regression the change did not cause. That is the
-price, and it is paid in the safe direction: the CI source can produce a **false regression**, never a
-false green. The remedy is the same targeted step as above — run that one suite against the base commit
-locally, add its failures to `failing`, and list the suite in `baseline.run.rechecked`. That is still
-evidence about the base commit, recorded as such. Re-running a suite against the *changed* tree and calling
-the result baseline is not.
+A CI baseline is evidence about CI's machine, and the error runs both ways:
 
-A CI baseline is evidence about the base commit, **not about this environment**: it cannot populate
-`unrunnableHere`, which needs this environment's own startup error. If the nature's `envProbe` fails, the
-suites gated by it still need their own local startup attempt (cheap — it stops before any test runs) to
-be quarantined. And on a cycle whose suites are short, the local source is still the default; the CI
-sources exist for the suites where a local run is the bottleneck.
+- **False regressions.** A test that fails only here — a locale, a timezone, a path separator, a slower
+  disk — is absent from the CI baseline and shows up at G6 as a regression the change did not cause.
+- **A wider exemption.** A test red only on CI — a missing secret, a network call, the runner image — lands
+  in `failing` and exempts that case here, where it might have passed and where this change might break it.
+
+Both are settled the same way: **run that one suite against the base commit locally** (never the working
+tree), list it in `run.rechecked`, and replace its `failing` entries with the local result. Entries added
+after PREFLIGHT are recorded as `{ "case": "...", "capturedAt": "<stage>" }`, so `/status` can show them as
+mid-cycle additions. For any suite this change touches, prefer the recheck to trusting a CI red.
+
+A CI baseline says nothing about **this environment**, so it cannot populate `unrunnableHere`, which needs
+the suite's own local startup error. Under a CI source, a suite with no local startup attempt at PREFLIGHT
+counts as **not in the baseline run**: it may only *inherit* an existing entry (below); otherwise its failing
+to start is a finding, and its failures block. If the nature's `envProbe` fails, attempt those suites' startup
+at PREFLIGHT — it is cheap, stopping before any test runs. The local source stays the default; the CI sources
+are for suites where a local full run is the bottleneck.
 
 ## Why a third category exists
 

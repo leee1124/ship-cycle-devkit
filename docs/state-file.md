@@ -13,7 +13,7 @@ the mechanics that only matter when something unusual happens to its name or its
   "sizeEvidence": ["src/a.py:41", "src/b.py:88"],
   "baseline": { "capturedOn": "<base-sha>", "source": "local",
                 "run": null,
-                "failing": ["suiteA#case", "..."],
+                "failing": ["suiteA#case", "..."], "flaky": [],
                 "unrunnableHere": [{ "suite": "suiteB", "reason": "no database reachable",
                                      "startupError": "<the suite's own init error, before any test ran>",
                                      "probe": "<dependency ping> → connection refused",
@@ -43,9 +43,10 @@ the mechanics that only matter when something unusual happens to its name or its
                                          "performance-first"], "tokens": null, "cost": null } } } }
 ```
 
-`baseline.source` is `local`, `ci` or `ci-status-only`; under a CI source `baseline.run` holds the run
-reference (`ref`, `commit`, `job`, `report`, `rechecked`) and `ci-status-only` has no `failing` — the
-shape and the rules are in `${CLAUDE_PLUGIN_ROOT}/docs/test-baseline.md`.
+`baseline.source` is `local`, `ci` or `ci-status-only`. Under a CI source `baseline.run` holds the run
+reference (`ref`, `commit`, `job`, `report`, `rechecked`); under `ci-status-only` every failure blocks unless
+its suite is in `run.rechecked`, and `failing` holds entries only for rechecked suites. Shape and rules:
+`${CLAUDE_PLUGIN_ROOT}/docs/test-baseline.md`.
 
 ## The slug
 
