@@ -54,9 +54,11 @@ default, §core 6):
    the spec is sent.
 2. **Spec alignment.** Then send the acceptance criteria (§sc-brainstorm, in state), the design and the
    frozen cold findings: does this wave build what they say, and does it contradict an interface, boundary
-   or contract a later wave will build on? It lists what it **cannot verify from the diff** (a requirement
-   that lives in unchanged code or spans waves) as items, not passes. It may add findings and raise a cold
-   finding's severity; it never retracts or lowers one — only a refuter can.
+   or contract a later wave will build on? What it **cannot verify from the diff** (a requirement that lives
+   in unchanged code or spans waves) it lists as unverifiable-from-diff items, not passes — the one bucket
+   and shape of §`${CLAUDE_PLUGIN_ROOT}/docs/unverifiable-from-diff.md`, which the cold pass may fill too.
+   It may add findings and raise a cold finding's severity;
+   it never retracts or lowers one — only a refuter can.
 
 **Host without live messaging** (Codex, or any host that cannot send a running agent a second message —
 §`${CLAUDE_PLUGIN_ROOT}/docs/runtime-adapters.md`): agent 1 runs the cold pass on the diff only; its frozen
@@ -94,11 +96,12 @@ issue tagged **design** when the defect is in the plan rather than in this wave'
   status; the barrier build/typecheck reruns; a new `waveBarriers` entry for the same wave is appended with `fixRound: true`; the
   next wave starts with its `from` = that new barrier's `tree`. The item stays unresolved — G8 verifies the
   fix like any other.
-- **Unresolved items go to G8.** Every surviving or undetermined finding and every cannot-verify item is
-  **unresolved**; it is listed in the sc-review brief as an item to verify, gets a disposition there
-  (fixed-here / filed-as `#NN`) and G8 requires one — the mechanism the skipped implementer concerns use,
-  not a second one. `refutedItems` are listed there too, as "previously flagged, refuted at wave N —
-  confirm".
+- **Unresolved items go to G8.** Every surviving or undetermined finding is **unresolved**; it is listed in
+  the sc-review brief as an item to verify, gets a disposition there (fixed-here / filed-as `#NN`) and G8
+  requires one — the mechanism the skipped implementer concerns use, not a second one. `refutedItems` are
+  listed there too, as "previously flagged, refuted at wave N — confirm". Its unverifiable-from-diff items
+  are appended to `state.unverifiable` with `source: "wave:<N>"` and dispositioned before G8 by that doc's
+  step (confirmed → finding / cleared / owner-decision), not carried in `unresolved`.
 - **Advisory.** It sets no `gates` entry and no `gateTrees`, increments no `loops` except through the routed
   design defect or a confirmed-Critical fix round, and approves nothing.
 <!-- /wave-check-rule -->

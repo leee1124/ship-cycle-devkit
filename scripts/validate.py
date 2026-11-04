@@ -1973,6 +1973,136 @@ def check_review_focus(root: Path, f: Findings) -> None:
                 f.error(shown(STATE_SHAPE_DOC), f"reviewFocus.{sub} lacks one of {', '.join(keys)}")
 
 
+UV_DOC = Path("docs/unverifiable-from-diff.md")
+# Each marker block in docs/unverifiable-from-diff.md and the tokens it must state (#91).
+UV_BLOCK_TOKENS = {
+    "unverifiable-bucket": (
+        "`unverifiable-from-diff[]`", "the G8 cold lens", "the delta pass", "the wave check's two passes",
+        "one term for all of them", "`{item, where, needs, whyNotChecked}`", "`where` — the `path:line`",
+        "`needs`", "`whyNotChecked`", "**Not a parking lot.**", "docs/claim-evidence.md",
+        "raises a finding or nothing", "**not a licence to read the spec**",
+        "no disposition is ever sent back into its context", "**not a finding**", "carries no severity",
+        "does not change the lens's verdict"),
+    "unverifiable-disposition": (
+        "**Dispositioned before G8.**", "**the orchestrator in triage at `high` effort**",
+        "**scoped pass of a spec-anchored lens**", "**on the same model and effort that lens ran with at G8**",
+        "risk upgrade included", "docs/review-focus.md", "opens the cited evidence itself",
+        "**`confirmed → finding #<n>`**", "gets its refuter", "data-integrity and security floors apply",
+        "**`cleared: <cited reason>`**", "Clearing is a load-bearing claim", "An uncited clearing is no clearing",
+        "**`owner-decision: <the owner's words>`**", "explicit owner decision recorded in the review artifact",
+        "**Never silently dropped, never auto-promoted.**",
+        "**G8 does not pass while any item has no disposition**", "still cleared with its evidence"),
+    "unverifiable-record": (
+        "`state.unverifiable`", "`id` (`UV1`", "`source` (`cold`, `delta` or `wave:<N>`)", "`tree`",
+        "`disposition` (`null` until settled) = `{by, model, effort, outcome, evidence}`", "review artifact",
+        "sc-review", "sc-ship", "G11 re-asserts", "**Unverifiable** line", "sc-retro",
+        "\"what blind lenses couldn't see\"", "It sets no gate value of its own"),
+}
+# Wording that would let the bucket unblind the cold lens, give an item a severity or let it lapse.
+UV_FORBIDDEN = ("the cold lens may read the spec to settle", "an item is a finding", "items may be dropped",
+                "auto-promoted to a finding", "cannot-verify item")
+UV_ENTRY_KEYS = ("id", "source", "tree", "item", "where", "needs", "whyNotChecked", "disposition")
+UV_DISPOSITION_KEYS = ("by", "model", "effort", "outcome", "evidence")
+# (file, section heading or None for the whole file, tokens) — every producer and consumer (#91).
+UV_FILE_TOKENS = (
+    ("skills/sc-review/SKILL.md", "Lenses", (
+        "`unverifiable-from-diff[]` items (`{item, where, needs, whyNotChecked}`), not as findings",
+        "not a licence to read the spec", "docs/unverifiable-from-diff.md")),
+    ("skills/sc-review/SKILL.md", "Output & severity discipline", (
+        "**Unverifiable from diff** (blind readers only", "no severity",
+        "never a finding until a disposition confirms it", "not parked here")),
+    ("skills/sc-review/SKILL.md", "Triage", (
+        "**Unverifiable-from-diff items are dispositioned before G8.**", "`state.unverifiable`",
+        "at `high` effort", "on the same model and effort as that lens at G8",
+        "`confirmed → finding #<n>`", "`cleared: <cited reason>`", "`owner-decision: <the owner's words>`",
+        "Never silently dropped, never auto-promoted",
+        "no disposition goes back into the cold lens's context")),
+    ("skills/sc-review/SKILL.md", "Re-review after fixes", (
+        "unverifiable-from-diff items (`source: \"delta\"`)", "dispositioned before G8 is re-judged")),
+    ("skills/sc-review/SKILL.md", "Gate G8", ("**Every `state.unverifiable` item has a `disposition`**",
+                                             "one without fails G8")),
+    ("skills/sc-implement/SKILL.md", "Large cross-cutting change", (
+        "`state.unverifiable` (`source: \"wave:<N>\"`)",)),
+    ("skills/sc-ship/SKILL.md", "Verify (G11)", ("**Unverifiable from diff.**", "`state.unverifiable`",
+                                                 "has a `disposition`", "loops back to sc-review",
+                                                 "an undispositioned item is a dropped one")),
+    ("skills/sc-ship/SKILL.md", "PR (G12)", ("one **Unverifiable**", "counts by outcome",
+                                             "every `owner-decision` in the owner's words")),
+    ("skills/sc-retro/SKILL.md", "Dimensions", ("`state.unverifiable`", "\"what blind lenses couldn't see\"",
+                                                "items `confirmed`", "where a cleared item pointed")),
+    ("docs/wave-check.md", None, ("unverifiable-from-diff items, not passes", "docs/unverifiable-from-diff.md",
+                                  "`state.unverifiable` with `source: \"wave:<N>\"`",
+                                  "not carried in `unresolved`")),
+    ("docs/claim-evidence.md", None, ("**An unverifiable-from-diff item is not an unevidenced claim.**",
+                                      "docs/unverifiable-from-diff.md", "never auto-promoted")),
+)
+
+
+def check_unverifiable(root: Path, f: Findings) -> None:
+    """#91: a blind reader's third bucket -- doubts it could not settle -- dispositioned with evidence before G8.
+
+    Guards the doc's bucket, disposition and record blocks; that the cold lens, delta pass and wave check
+    produce the one bucket (the wave check's old "cannot-verify" term gone), claim-evidence reconciles it,
+    G8 and the orchestrator's G8 row require every item dispositioned, sc-ship and sc-retro read it, and the
+    state shape carries the entry and disposition keys.
+    """
+    doc = root / UV_DOC
+    where = shown(UV_DOC)
+    if not doc.is_file():
+        f.error(where, "missing")
+        return
+    text = read(doc)
+    for marker, tokens in UV_BLOCK_TOKENS.items():
+        m = re.search(rf"<!-- {marker} -->(.*?)<!-- /{marker} -->", text, re.S)
+        if not m:
+            f.error(where, f"no <!-- {marker} --> block")
+            continue
+        body = _flat(m.group(1))
+        for token in tokens:
+            if token not in body:
+                f.error(where, f"{marker} block does not state {token!r}")
+    for rel in (UV_DOC, Path("docs/wave-check.md"), Path("skills/sc-review/SKILL.md"), STATE_SHAPE_DOC):
+        path = root / rel
+        flat = _flat(read(path)) if path.is_file() else ""
+        for token in UV_FORBIDDEN:
+            if token in flat:
+                f.error(shown(rel), f"states {token!r} — an unverifiable item is not a finding and is never "
+                                    "dropped or answered from the spec by the blind lens")
+    for rel, heading, tokens in UV_FILE_TOKENS:
+        path = root / rel
+        raw = read(path) if path.is_file() else ""
+        if heading:
+            raw = _section(raw, heading)
+        sec = _flat(raw)
+        label = f"'## {heading}'" if heading else "the file"
+        for token in tokens:
+            if _flat(token) not in sec:
+                f.error(rel, f"{label} does not state {_flat(token)!r} (unverifiable from diff)")
+    orch = root / SKILLS_DIR / "ship-cycle" / "SKILL.md"
+    otext = read(orch) if orch.is_file() else ""
+    row = re.search(r"^\| G8 \|(.*)$", otext, re.M)
+    if not row or "every `state.unverifiable` item dispositioned" not in row.group(1):
+        f.error("skills/ship-cycle/SKILL.md",
+                "gate table's G8 row does not require every unverifiable item dispositioned")
+    shape_path = root / STATE_SHAPE_DOC
+    shape_text = read(shape_path) if shape_path.is_file() else ""
+    blocks = re.findall(r"```json\n(.*?)\n```", shape_text, re.S)
+    try:
+        shape = json.loads(blocks[0]) if blocks else {}
+    except json.JSONDecodeError:
+        shape = {}  # reported by state_shape_fields
+    entries = shape.get("unverifiable")
+    if not isinstance(entries, list) or not entries or not isinstance(entries[0], dict):
+        f.error(shown(STATE_SHAPE_DOC), "state shape has no unverifiable entry")
+        return
+    for key in UV_ENTRY_KEYS:
+        if key not in entries[0]:
+            f.error(shown(STATE_SHAPE_DOC), f"unverifiable entry lacks '{key}'")
+    disp = entries[0].get("disposition")
+    if not isinstance(disp, dict) or not all(k in disp for k in UV_DISPOSITION_KEYS):
+        f.error(shown(STATE_SHAPE_DOC), f"unverifiable.disposition lacks one of {', '.join(UV_DISPOSITION_KEYS)}")
+
+
 def main(argv: list[str]) -> int:
     root = Path(argv[1]).resolve() if len(argv) > 1 else Path(__file__).resolve().parent.parent
     f = Findings()
@@ -1999,6 +2129,7 @@ def main(argv: list[str]) -> int:
     check_wave_check(root, f)
     check_red_gate(root, f)
     check_review_focus(root, f)
+    check_unverifiable(root, f)
 
     for w in f.warnings:
         print(f"warning  {w}")

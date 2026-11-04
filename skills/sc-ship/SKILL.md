@@ -69,6 +69,11 @@ like a criterion: to its `pinnedBy` test's passing run (`test`) — `covered` en
 backs a claim only with `verify.pinFixedBy` and its `pinFixEvidence` (the fixed pin failing on the
 pre-change tree); one filed as `#NN` is listed as open, not claimed. Superseded entries are not mapped.
 
+**Unverifiable from diff.** Re-assert that every `state.unverifiable` item
+(§`${CLAUDE_PLUGIN_ROOT}/docs/unverifiable-from-diff.md`) has a `disposition`; one without loops back to
+sc-review — an undispositioned item is a dropped one. A `confirmed` item is a finding and is mapped as one;
+a `cleared` item backs no claim of its own; an `owner-decision` item goes into the PR body verbatim.
+
 When every criterion is mapped, set `gates.G11 = pass` in state, so `/status` and resume can tell "claims
 mapped" from "just entered sc-ship". While an unproven criterion loops back, leave G11 unset; record a bare
 `fail` only if the cycle stops at G11, and name the criterion in the loop-back report, not in the value.
@@ -136,7 +141,9 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
 
   Under the table, one **Route** line from `state.route` (absent → `Route: none (pre-0.3.13)`): when it was
   confirmed, each skipped stage with its reason, the lenses and the QA form — so a reviewer sees what was
-  planned out, not only what came back `n/a`.
+  planned out, not only what came back `n/a`. When `state.unverifiable` holds items, one **Unverifiable**
+  line follows it: counts by outcome (`confirmed → #…`, `cleared`, `owner-decision`) and every
+  `owner-decision` in the owner's words — what the blind lenses could not see stays visible on the PR.
 - If `state.bakeOff` exists, the body records **which stance won and why**, and `converged: true` when the
   candidates agreed — cycle state is deleted at G13, so the PR body is the only place the next person
   choosing for this shape of change can still read it.

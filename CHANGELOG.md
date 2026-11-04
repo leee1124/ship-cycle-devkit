@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.3.22 — Unverifiable from diff: the blind lens's third bucket (#91)
+
+- **Why.** A diff-only reader meets doubts the diff cannot answer — a requirement in unchanged code, a
+  behaviour spanning waves, an intent only the spec states. Without a place to put them it either inflates
+  them into guessed findings or drops them, and the defect a blind lens exists to see is lost either way.
+- **`docs/unverifiable-from-diff.md`** states the rule once:
+  - **The bucket.** The G8 cold lens, the delta pass and the wave check's two passes return
+    `unverifiable-from-diff[]` beside their findings — `{item, where (path:line in the diff), needs,
+    whyNotChecked}`. One term for all of them: the wave check's "cannot verify from the diff" items are
+    these items (recorded in `state.unverifiable` with `source: "wave:<N>"`, no longer in `unresolved`).
+  - **Not a parking lot, not a licence.** A doubt that reading the repo would settle is read and raised or
+    dropped (#72). The bucket is how the cold lens says "I'd need X": it never asks for the spec, and no
+    disposition is sent back into its context. An item is not a finding — no severity, no verdict change.
+  - **Dispositioned before G8** by triage at `high` effort or a scoped spec-anchored pass on the same model
+    and effort that lens ran with at G8 (the #90 Verify rule), opening the evidence itself:
+    `confirmed → finding #<n>` (then severity, refuter, floors, triage as usual), `cleared: <cited reason>`
+    (a load-bearing claim — uncited is no clearing) or `owner-decision: <the owner's words>` (neither could
+    be evidenced — claim-evidence's undetermined exit). Never silently dropped, never auto-promoted.
+- **Consumers.** sc-review (the bucket in the cold lens and output shape, the triage step, the delta pass,
+  G8), the orchestrator's G8 row, sc-implement's wave check, `docs/claim-evidence.md` (an item is not an
+  unevidenced claim), sc-ship (G11 re-asserts every item dispositioned; the PR body's **Unverifiable** line
+  of counts and owner decisions), sc-retro ("what blind lenses couldn't see") and the state shape
+  (`state.unverifiable`). It sets no gate value of its own.
+- **Validator.** `check_unverifiable` guards the doc's three blocks, every producer and consumer section,
+  the G8 row and the state shape's entry and `disposition` keys, and forbids the old "cannot-verify item"
+  term and wording that would let an item be dropped or auto-promoted; 20 self-test mutations fail it.
+
 ## 0.3.21 — Review focus: the inputs the spec implies and no test exercises (#90)
 
 - **Why.** Spec silence is where users break software, and the kit's generic edge classes (legacy rows,

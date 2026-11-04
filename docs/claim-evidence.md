@@ -30,5 +30,11 @@ the author's duty only (the data-integrity and security floors still apply).
 The author attaches the evidence when writing the claim; the reviewer opens the cited line instead of
 trusting the sentence. A citation that does not say what the claim says is itself an objection.
 
+**An unverifiable-from-diff item is not an unevidenced claim.** A blind lens that cannot evidence a doubt
+from what it may read does not raise it as a finding held at a guessed severity; it lists it as an item
+(§`${CLAUDE_PLUGIN_ROOT}/docs/unverifiable-from-diff.md`). The item has no severity until a disposition with
+evidence confirms it as a finding (then the rules above apply) or clears it with a cited reason; neither
+leaves it as an explicit owner decision. It is never silently dropped and never auto-promoted.
+
 This differs from sc-ship's G11 claim map: G11 maps the change's own acceptance criteria to proof; this
 rule covers the factual premises inside design and review reports.
