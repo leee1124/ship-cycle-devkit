@@ -141,6 +141,12 @@ for that transformation's difficulty.
    nature's suite on the **base commit once** and record the pass/fail set in `state.baseline`. G6/G9 diff
    against it — a failure already there is not a regression, only a new one blocks — sparing later stages
    from re-deriving "mine or pre-existing?".
+   `baseline.source` says where the set came from: `local` (run here; the default), `ci` (the base
+   commit's own CI run for the same suite, its machine-readable report ingested into `failing` — no local
+   run), or `ci-status-only` (a green CI run whose report is unavailable: no `failing` set, so **any
+   failure in a suite this cycle runs blocks**). `baseline.run` records the run reference. Use a CI source
+   where a local full run is the bottleneck; which runs qualify, the false-regression trade-off and the
+   one-suite local recheck are in `${CLAUDE_PLUGIN_ROOT}/docs/test-baseline.md`.
    `baseline.unrunnableHere` records suites this environment **cannot start at all** (no database
    reachable, a service absent, a sandbox policy refusing it): neither a failure to diff against nor
    something that counts as passed. It is pre-committed against the base commit, may only shrink, and
@@ -194,11 +200,11 @@ an active `gitFreeze` or a `running` `reviewJobs` entry, and treat another cycle
 | G2/G3 | interfaces specified + 0 unresolved critic objections | re-design |
 | G4 | failing tests exist for the change's logic (Red evidence) — or, for layout/copy/config, the execution-based verification is named instead (§core 3) | reject |
 | G5 | build succeeds + new tests pass (Green) | build-fixer |
-| G6 | no failures **new vs `state.baseline`** (`unrunnableHere` suites are neither pass nor regression); core coverage ≥80% | debugger → sc-implement |
+| G6 | no failures **new vs `state.baseline`** (`unrunnableHere` suites are neither pass nor regression; under `source: ci-status-only` **every** failure blocks); core coverage ≥80% | debugger → sc-implement |
 | G7 | (if an artifact ships) real build succeeds | build-fixer |
 | G7b | (if the nature declares `bootCheck`) full-context **eager** boot/context-load smoke passes on a non-inert change | build-fixer (env can't load → checklist) |
 | G8 | 0 Critical/High (authz, paywall, anemic, N+1); every finding has a disposition (fixed-here / filed `#NN`); no `reviewJobs` entry still `running`/`launching`, `gitFreeze` released; UI → designer passes | → sc-implement (design flaw → sc-design) |
-| G9 | 0 new defects in integration/E2E vs `state.baseline` (ignoring `unrunnableHere`); seams reproduced; ITs that **can** run here actually ran | → sc-implement |
+| G9 | 0 new defects in integration/E2E vs `state.baseline` (ignoring `unrunnableHere`; under `ci-status-only` any defect is new); seams reproduced; ITs that **can** run here actually ran | → sc-implement |
 | G10 | docs matching the change exist | writer |
 | G11 | every claim mapped 1:1 to a test/build/QA log | rework |
 | G12 | build+test+review+QA passed — a `degrade` G9 / `checklist` G7b counts **only** when its item is on the pre-merge manual gate, and an `"n/a: <reason>"` gate counts with its reason carried to the PR body; **branch merges cleanly into** overlay `vcs.defaultBase` (merge-tree probe + host `mergeable`) | merge base + resolve, re-verify |

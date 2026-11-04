@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.3.3 — A CI-green base commit counts as baseline evidence (#66)
+
+- **`state.baseline.source`: `local`, `ci` or `ci-status-only`.** PREFLIGHT (§Stage 0.5) required running
+  the nature's full suite on the base commit for Tier M/L. On a constrained host that is an hour or more
+  under a test lock, so operators substituted "the base branch is CI-green" by hand — the same claim with
+  nothing recorded. `ci` takes the base commit's own CI run for the same suite and ingests its
+  machine-readable report (JUnit XML, runner JSON) into `failing`, so G6/G9 still diff mechanically with no
+  local run. `ci-status-only` is a green run whose report is unavailable: there is no failing set, so any
+  failure in a suite the cycle runs blocks. An absent `source` reads as `local`, so existing state files
+  keep their meaning.
+- **`state.baseline.run`** records the run (`ref`, `commit`, `job`, `report`, `rechecked`). A run qualifies
+  only on exactly the base commit, completed, running the same selection as the nature's `tests`, with an
+  executed count > 0 per suite — rules any CI host can meet, so none is named.
+- **The trade-off is stated, not hidden.** CI ran on CI's machine; a test that fails only here shows up at
+  G6 as a regression the change did not cause. The cost falls on the safe side — a false regression, never a
+  false green — and is settled by running that one suite on the base commit locally (`rechecked`). A CI
+  baseline says nothing about this environment, so it cannot populate `unrunnableHere`.
+- Overlay `changeNature[].ciBaseline` (`job`, `report`) names the CI job and report artifact per nature.
+  G6/G9 wording, sc-implement, sc-qa and `/status` cover the CI sources.
+
 ## 0.3.2 — sc-ship records G10–G12 (#63)
 
 - **sc-ship sets the gates it evaluates.** `gates.G10` after the docs check (or `"n/a: <reason>"` with the
