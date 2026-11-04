@@ -35,8 +35,9 @@ Produce a design doc, not an implementation:
 - **Review focus**: `state.reviewFocus[]` — at most five inputs or failure modes the criteria or the design
   imply but no existing test exercises, ranked by likelihood × harm: `{id, input, impliedBy, uncovered
   (cited), expected}`. Per feature and concrete, never a generic edge class (legacy rows, N≥2, unsaved id
-  are hunted by every review already); `[]` means checked and found none. It is in the design doc the user
-  sees at G2/G3, with no separate approval round. Rule: `${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md`.
+  are hunted by every review already), never a restated acceptance criterion (promote it instead); `[]`
+  means checked and found none. It is in the design doc the user sees at G2/G3, with no separate approval
+  round; after G3 it is append- or annotate-only. Rule: `${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md`.
 - **Tradeoffs & alternatives**: at least one alternative considered, with why the chosen one wins.
 - **Constitution fit**: layered separation (Controller/Service/Repository/DTO); depend on interfaces;
   business logic **inside the domain** (no anemic model). See
@@ -82,9 +83,10 @@ A separate agent attacks the design (the **union** of all architect docs when th
   code outside the change, an external API contract, a persisted data shape) needs its evidence
   (`${CLAUDE_PLUGIN_ROOT}/docs/claim-evidence.md`); open the cited line rather than trust the sentence. An
   unevidenced one, or a citation that does not say what the claim says, is an objection.
-- **Review focus**: an entry that names a generic class instead of this feature's input, an `uncovered`
-  without its citation (open it — a test that already drives the input means the entry is wrong), or a
-  likelier input the list left off is an objection (`${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md`).
+- **Review focus**: an entry that names a generic class instead of this feature's input, restates a
+  criterion, has an `uncovered` without its citation (open it — a test that already drives the input means
+  the entry is wrong), is a logic item planned for an `n/a` pin (`n/a` is only for a layout, copy or config
+  item), or a likelier input the list left off is an objection (`${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md`).
 - **Inter-axis seam mismatches**: when architects were split, the critic's first job is to check their
   seams line up (names, signatures, who-owns-what) and that no two axes made contradictory scope
   assumptions.

@@ -77,9 +77,13 @@ the mechanics that only matter when something unusual happens to its name or its
                     "impliedBy": "<the criterion or design line that implies it>",
                     "uncovered": "<why no test covers it: path:line, or search → no hits>",
                     "expected": "<the behaviour a user would expect>", "source": "sc-design",
-                    "pinnedBy": "<test id, seen failing first> | n/a: <the verification that covers it>",
+                    "superseded": false,
+                    "pinnedBy": "<test id, seen failing first> | n/a: <layout/copy/config verification>",
                     "cold": { "raised": false, "finding": null, "pinHolds": true,
-                              "evidence": "<path:line>", "tree": "<tree id G8 read>" } }],
+                              "evidence": "<path:line>", "tree": "<tree id G8 read>" },
+                    "verify": { "by": "quality lens (scoped)", "model": "opus", "effort": "high",
+                                "outcome": "covered: <pinnedBy>", "pinFixedBy": null,
+                                "pinFixEvidence": null } }],
   "bakeOff": { "stances": ["mvp-first", "risk-first", "performance-first"],
                "criteria": [{ "name": "reversibility", "weight": "high" }],
                "judgeLenses": ["algorithm", "cold"],
@@ -188,8 +192,11 @@ Rules:
 
 `reviewFocus` (written by sc-design with the design, or by sc-tdd when sc-design did not run) holds at most
 five per-feature inputs the spec implies and no test exercises (two when sc-tdd writes it); `[]` means
-checked and none found, absent means nobody wrote one. sc-tdd adds `pinnedBy` at G4; sc-review adds `cold`
-after the cold lens's frozen blind pass; sc-ship maps each entry at G11 and sc-retro reads them. Rules:
+checked and none found, absent means nobody wrote one. Append- or annotate-only after G3 (a rewrite marks
+old entries `superseded`). sc-tdd adds `pinnedBy` at G4; sc-review adds `cold` after the cold lens's frozen
+blind pass (`null` when no cold lens ran) and `verify` (who verified a missed or uncovered entry, the
+outcome, and a fixed pin's failing-first evidence); sc-ship maps each entry at G11 and sc-retro reads them.
+Rules:
 `${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md`.
 
 `route.ownerPresent` (UI natures) says whether the owner will watch the live visual loop. Only `true`

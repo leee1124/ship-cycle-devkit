@@ -8,28 +8,33 @@
 - **`docs/review-focus.md`** states the rule once:
   - **sc-design writes `state.reviewFocus[]`** with the design: at most five per-feature inputs or failure
     modes the criteria or design imply but no existing test exercises, ranked by likelihood × harm —
-    `{id, input, impliedBy, uncovered (cited, per claim-evidence), expected}`. Never a generic class and
-    never an a11y-floor check (the designer lens owns those); `[]` means checked, absent means not written.
-    Shown in the design doc at G2/G3 with no separate approval round; the critic may object to an entry.
-  - **G4 pins every entry**: a failing-first test (`pinnedBy: "<test id>"`) or a named
-    `pinnedBy: "n/a: <reason>"` naming the execution-based verification that covers a layout/copy item. An
-    entry whose test passes before the change is not pinned. G4 does not pass with an entry unpinned.
-  - **The cold lens gets the list only after its blind pass**: its findings are frozen verbatim into the
-    review artifact (the wave check's pattern), then it reports per entry `raised` and `pinHolds` (does the
-    pin drive the input through the real construction path), recorded as the entry's `cold`. Two agents on
-    hosts without live messaging. The delta pass does not get the list.
-  - **Missed or not covered → items to verify** in the lenses' G8 brief, the mechanism implementer concerns
-    (#87) and wave-check items (#88) already use, each with a disposition; a missed entry whose pin holds is
-    fixed-here citing `pinnedBy`.
-  - **Tier S and route skips**: with no sc-design, sc-tdd writes at most two entries (`source: "sc-tdd"`);
-    when sc-tdd is route-skipped too the field stays absent and the cold lens has no compare step.
-- **Consumers.** sc-tdd (pins), sc-review (compare, brief, G8), sc-ship G11 (each entry mapped to its pin's
-  evidence; a pin that did not hold backs no claim until fixed here) and sc-retro (what the cold lens missed,
-  later defects in inputs the list left off). The orchestrator's G4 row and Tier S path, the runtime-adapter
-  two-pass note and the state shape carry it. It sets no gate value of its own.
-- **Validator.** `check_review_focus` guards the five doc blocks (freeze → compare → record in order, and
-  forbidden early-list / approval-round / class-as-entry wording), every producer and consumer section, the
-  G4 row, the runtime-adapter note and the state shape's entry and `cold` keys; 33 self-test mutations.
+    `{id, input, impliedBy, uncovered (cited, per claim-evidence), expected}`. Never a generic class, an
+    a11y-floor check or a restated criterion (promote it instead); `[]` means checked, absent means not
+    written. Shown at G2/G3 with no separate approval round; the critic may object to an entry. After G3 the
+    list is append- or annotate-only: a corrected entry keeps its id with `pinnedBy` the existing test, a
+    rewrite marks old entries `superseded` and G4 re-pins, scope growth re-opens it at sc-design.
+  - **G4 pins every entry**: a failing-first test (`pinnedBy: "<test id>"`), or `pinnedBy: "n/a: <reason>"`
+    only for a layout, copy or config item (§core 3) — a logic entry always needs a failing-first test, and
+    a misused `n/a` is a critic objection and `pinHolds: false`. G4 does not pass with an entry unpinned.
+  - **The cold lens gets the list only after its blind pass**: never in its blind brief, a fresh agent each
+    time (after a redesign too). Its findings are frozen verbatim first (the wave check's pattern), then it
+    records per entry `raised` and `pinHolds` as `cold`; findings it adds then are `postList: true`.
+  - **Verify after the compare.** Misses surface after the parallel lenses ran, so a scoped second pass of a
+    spec-anchored lens (quality or algorithm, pinned model) or triage at `high` effort verifies each and is
+    recorded in `verify`. Outcomes: `covered: <pinnedBy>` (the pin holds — verified, not fixed-here, not sent
+    to the delta pass), `fixed-here` (a fixed pin shown failing on the pre-change tree: `pinFixedBy` +
+    `pinFixEvidence`) or `filed-as #NN`. The delta pass sees only code locations, never input/expected text.
+  - **Tier S and route skips**: with no sc-design, sc-tdd writes at most two entries (`source: "sc-tdd"`) or
+    `[]`; when sc-tdd is route-skipped it still pins existing entries and a logic entry grows it to `run`;
+    with no list the field stays absent. No cold lens at all → `cold: null`, "not compared".
+- **Consumers.** sc-tdd (pins, route-skip path), sc-review (compare, verify step, delta pass, G8), sc-ship G11
+  (each entry mapped to its pin; a fixed pin needs its failing-first evidence) and sc-retro (`covered` misses
+  counted as "cold-lens miss, caught by the pin"; `cold: null` skipped). The orchestrator's G4 row and Tier S
+  path, the runtime-adapter two-pass note and the state shape carry it. It sets no gate value of its own.
+- **Validator.** `check_review_focus` guards the five doc blocks (freeze → compare → record → verify in
+  order; forbidden early-list, approval-round, class-as-entry and miss-as-fix wording), every producer and
+  consumer section — the list staying out of the cold lens's blind brief included — the G4 row, the
+  runtime-adapter note and the state shape's entry, `cold` and `verify` keys; 55 self-test mutations.
 
 ## 0.3.20 — When a gate goes red: reproduce, one hypothesis at a time, keep the record (#89)
 
