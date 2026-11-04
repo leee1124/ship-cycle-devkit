@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.3.5 — `parked` stage and a resume reconcile (#68)
+
+- **`stage: "parked"`** with `parked: { reason, resumeStage, at, holds }`, from any non-terminal stage on
+  request. Re-prioritising mid-cycle had no state, so the operator tracked it by hand.
+- **Parking never strands a reader.** A live-tree (`snapshot: false`) freeze blocks parking; live snapshot
+  jobs and an active freeze survive only if `holds` names them, and another cycle may release a parked
+  freeze once its held jobs are terminal or past `maxWaitMinutes` (`gitFreeze.releasedBy`). Parking
+  records no gate and does not reset `loops`.
+- **Resume reconcile** on `/resume` and PREFLIGHT resume, appended to `state.reconcile`. Inference only
+  lowers: it may move the stage earlier or clear a `pass`, never record one; a clear does not count against
+  `loops`. Evidence table: `docs/state-file.md` — Resume reconcile.
+- **`state.gateTrees`**: G5–G9 record the worktree's tree identity (temp-index `git add -A` + `write-tree`),
+  not `HEAD` — code is uncommitted until sc-ship. A different tree clears the pass; sc-ship's commits and
+  docs-only additions don't. A pre-0.3.5 file without trees clears G5–G9 on resume.
+- A new goal on a parked branch asks "resume or replace?". `/status` lists every cycle's stage and parked
+  details; `/ship` refuses a parked cycle.
+- **Validator: stage vocabulary.** One list in `docs/state-file.md`; `stage`/`resumeStage`/`recordedStage`/
+  `continueFrom` literals outside it are errors (JSON fences and inline code only, not prose). Five
+  failing self-test cases and one must-pass case.
+
 ## 0.3.4 — G6 coverage has a measurement path (#67)
 
 - **Overlay `changeNature[].coverage`** (`command`, `reportPath`, `format`, `corePaths`, `sourceRoots?`,

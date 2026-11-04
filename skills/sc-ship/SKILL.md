@@ -11,6 +11,8 @@ Update README/CHANGELOG/API docs/comments to match the change **in this same cha
 "no docs needed" reason.
 Record it: `gates.G10 = pass` in state before moving on (a no-docs reason is a pass — the reason lives in the
 PR body) — a cycle interrupted later in sc-ship then resumes past the docs check instead of re-deciding it.
+Keep G10 edits inside the docs globs: they are the only change the recorded `gateTrees` of G5–G9 tolerate;
+anything else invalidates them and routes back to sc-implement (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Tree identity).
 
 ## Verify (G11)
 **Run the verification and read the output** (§core 2). Read pass/fail from the command's own exit

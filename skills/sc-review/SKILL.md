@@ -120,7 +120,7 @@ return":
    worktree**, the same rule the cost readout follows and for the same reason (§sc-ship G13): G12
    `git clean`s untracked files and G13 removes the worktree and this cycle's state file, so anything
    inside is gone before the PR merges — and a deferral whose evidence was deleted is a claim, not a record.
-2. **Release the freeze as soon as the snapshot exists — explicitly, recording `releasedAt` — before you
+2. **Release the freeze as soon as the snapshot exists — explicitly, recording `releasedAt` and `releasedBy: "self"` — before you
    launch.** The reviewer then reads something nobody will touch and the branch is free for the whole
    review. Prefer this always: it is the difference between "this branch is locked for forty minutes" and
    "this branch is locked while a diff is written".
@@ -277,7 +277,8 @@ of a cycle's review spend goes once the first pass has landed. Scope it to what 
   list with no dispositions does not pass; sc-ship re-asserts this at G12, and an assertion that quantifies
   only over the findings *marked* filed would pass vacuously on an artifact that was never triaged.
 - If a finding is a **design flaw** (not an impl bug), loop back to `sc-design`, not `sc-implement`.
-- Set `gates.G8` and loop count in state (respect the orchestrator's loop cap).
+- Set `gates.G8`, `state.gateTrees.G8` (the reviewed tree identity, §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Tree identity) and loop count in state (respect the
+  orchestrator's loop cap).
 
 ## Model routing
 security/quality/algorithm review run at the **high** tier; upgrade the matching lens to **top** for

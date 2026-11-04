@@ -77,7 +77,7 @@ This is the default map, not a required path. Run it in order unless a stage pla
 never reached. For every stage that does run, **its gate must pass before the
 next stage starts; on failure, loop back per the gate table's "On failure" column.**
 **Loop cap: 3 per gate** (tracked in *this cycle's* state file, not in your head) — beyond that, return to
-`sc-design` and notify the user.
+`sc-design` and notify the user. Parking and resuming do not reset it (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Parking).
 
 Between every stage, artifacts pass through the state-file handoff rule below.
 
@@ -94,6 +94,12 @@ for that transformation's difficulty.
 ## Stage 0 — PREFLIGHT
 
 (`§Stage 0.N` elsewhere in the kit means PREFLIGHT list item N.)
+
+**Resuming** (a mid-pipeline state file for this branch): skip init and run the **resume reconcile**
+first; it prints its mismatches, appends to `state.reconcile`, and picks the stage to continue from.
+Inference only lowers — it may move the stage earlier or clear a `pass`, never record one. A **parked** file
+is not resumed by a new goal: ask "resume or replace?" (`/resume` is the explicit resume). Rules:
+`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Resume reconcile, Resume and selection.
 
 1. **Branch guard**: if on a protected branch (overlay `vcs.protectedBranches`), create `feature/*`|`fix/*`.
    A detached HEAD (empty `git branch --show-current`) has no cycle key — refuse and ask for a named
@@ -179,16 +185,22 @@ for that transformation's difficulty.
 (slug = branch with `/` → `-`). It lives in the cycle's own working directory — its worktree if PREFLIGHT
 created one, else the main checkout — so concurrent cycles never clobber a shared file and each owns its
 `loops`. It carries `goal`/`branch`/`stage`/`gates`/`loops`, the PREFLIGHT results (`nature`, `risk`,
-`size`, `baseline`, `models`, `effort`), `coverage`, `reviewJobs`, `gitFreeze` and `telemetry`; the full shape, naming,
-collision guard, resume/selection and legacy migration are in
+`size`, `baseline`, `models`, `effort`), `coverage`, `reviewJobs`, `gitFreeze`, `parked`, `reconcile` and
+`telemetry`; the full shape, stage values, naming, collision guard, resume/selection, parking, the resume
+reconcile and legacy migration are in
 `${CLAUDE_PLUGIN_ROOT}/docs/state-file.md`.
 Write it at every transition; read this cycle's file at PREFLIGHT to **resume** and to enforce **its** loop
 cap, rather than counting loops in your head.
 
+**Park on request, from any stage** — `stage = "parked"` with `parked = {reason, resumeStage, at, holds}`;
+never with a live-tree freeze, and never with a live job or freeze that `holds` does not name
+(§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Parking).
+
 **One exception to per-cycle isolation: `gitFreeze` describes a repo-wide hazard.** `git worktree add /
 remove / prune` and an `index.lock` recovery reach outside the cycle that runs them, and `prune` is
 repo-scoped. Before any of those, scan **every** `.claude/ship-cycle/*.json` in this working directory for
-an active `gitFreeze` or a `running` `reviewJobs` entry, and treat another cycle's freeze as binding
+an active `gitFreeze` or a `running`/`launching` `reviewJobs` entry — parked cycles included (a parked freeze has one
+release valve, §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Parking) — and treat another cycle's freeze as binding
 (§sc-review — Git-write freeze).
 
 ## Gate criteria

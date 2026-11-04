@@ -199,7 +199,9 @@ authz from the principal only, DTOs not entities, whitelist validation, no N+1, 
   `releaseOn: "job-complete"` the reviewer is on the live tree, so the edits themselves must wait. The
   better move is usually neither: if the fix will rewrite what the reviewer is reading, that job is
   **superseded** — cancel it, release the freeze, and re-launch against the fixed head (§sc-review).
-- Set `gates.G5/G6/G7/G7b` in state, and `state.coverage` with G6.
+- Set `gates.G5/G6/G7/G7b` in state, each with `state.gateTrees[G]` = the tree identity it ran on
+  (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Tree identity), and
+  `state.coverage` with G6.
 
 ## Model routing
 executor + build-fixer run at the **mid** tier. Cheap path first: implement on mid → verify → escalate

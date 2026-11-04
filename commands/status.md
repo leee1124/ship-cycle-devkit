@@ -9,9 +9,10 @@ Show the current ship-cycle run status by reading its state file (read-only — 
 !`slug="$(git branch --show-current | tr '/' '-')"; if [ -z "$slug" ]; then echo "NO_BRANCH"; else cat ".claude/ship-cycle/$slug.json" 2>/dev/null || echo "NO_STATE"; fi`
 
 All cycles in this working directory (`.claude/ship-cycle/` — this cwd only, not sibling worktrees;
-includes the current branch's own file):
+includes the current branch's own file), one line per file: stage, and for a parked one its reason, resume
+stage, `at` and holds:
 
-!`ls .claude/ship-cycle/*.json 2>/dev/null || echo "(none)"`
+!`python3 -c 'import glob,json;fs=sorted(glob.glob(".claude/ship-cycle/*.json"));[print(f,"|",*(lambda s:[s.get("branch"),s.get("stage")]+([s.get("parked")] if s.get("stage")=="parked" else []))(json.load(open(f))),sep=" ") for f in fs] or print("(none)")' 2>/dev/null || ls .claude/ship-cycle/*.json 2>/dev/null || echo "(none)"`
 
 If the first output is `NO_BRANCH`, you are on a **detached HEAD** — ship-cycle state is keyed by branch, so
 there is no run to inspect here; report that and stop.
@@ -30,6 +31,13 @@ Otherwise parse the JSON and print a compact, scannable status report:
 - **Goal** and **branch** (plus `worktreePath` if one was created).
 - **Current stage** (`stage`) and its position in the pipeline:
   `sc-brainstorm → sc-design → sc-tdd → sc-implement → sc-review → sc-qa → sc-ship`.
+- **Parked**: when `stage` is `parked`, say so first — `parked.reason`, `parked.resumeStage` (its place
+  in the pipeline), and age since `parked.at` — and name any `parked.holds` (a held review job or freeze is
+  still live while parked). In the **All cycles** list, print the same fields for every parked file; if
+  that list fell back to bare file names (no `python3`, or a file that does not parse), say parked details for other cycles are
+  unavailable rather than guessing.
+- **Last reconcile** from `reconcile`, when present: the recorded stage, the stage it continued from, and
+  its mismatches and cleared gates — a cleared `pass` is a finding, not a footnote.
 - **Gate table** — for **G1–G13**, show the value in `gates`: `pass` / `fail` / `—` (not yet reached) /
   a three-way value (`degrade`, `checklist`, `skip`) / `"n/a: <reason>"` (a stage deliberately skipped —
   print the reason, and never fold it in with `fail`).
