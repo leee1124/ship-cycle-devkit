@@ -478,6 +478,9 @@ def check_release_checklist(root: Path, f: Findings) -> None:
         f.error(shown(OVERLAY_EXAMPLE), "releaseChecklist must be an array")
         items = []
     seen: set = set()
+    natures = {n.get("nature") for n in example.get("changeNature", []) if isinstance(n, dict)} \
+        if isinstance(example, dict) else set()
+    uses_release = False
     for i, it in enumerate(items):
         where = f"{shown(OVERLAY_EXAMPLE)} releaseChecklist[{i}]"
         if not isinstance(it, dict):
@@ -486,20 +489,44 @@ def check_release_checklist(root: Path, f: Findings) -> None:
         for name in ("id", "when", "check", "evidence"):
             if name not in it:
                 f.error(where, f"missing required field '{name}'")
-        if it.get("id") in seen:
-            f.error(where, f"duplicate id '{it.get('id')}'")
-        seen.add(it.get("id"))
+        iid = it.get("id")
+        if not isinstance(iid, str) or not re.fullmatch(r"[a-z0-9][a-z0-9-]*", iid):
+            f.error(where, f"id {iid!r} must match ^[a-z0-9][a-z0-9-]*$")
+        elif iid in seen:
+            f.error(where, f"duplicate id '{iid}'")
+        else:
+            seen.add(iid)
+        for name in ("check", "evidence"):
+            if name in it and (not isinstance(it[name], str) or not it[name].strip()):
+                f.error(where, f"'{name}' must be a non-empty string")
+        if "manual" in it and not isinstance(it["manual"], bool):
+            f.error(where, "'manual' must be a boolean")
         when = it.get("when")
         if not isinstance(when, dict) or not when or set(when) - {"changeNature", "paths", "release"}:
             f.error(where, "'when' must be a non-empty object using only changeNature/paths/release")
+        else:
+            uses_release = uses_release or when.get("release") is True
+            for n in when.get("changeNature", []) if isinstance(when.get("changeNature"), list) else []:
+                if n not in natures:
+                    f.error(where, f"when.changeNature '{n}' is not a declared nature")
+    if uses_release and not (isinstance(example, dict) and isinstance(example.get("vcs"), dict)
+                             and example["vcs"].get("releaseBranch")):
+        f.error(shown(OVERLAY_EXAMPLE), "an item uses when.release but vcs.releaseBranch is not declared")
+    try:
+        import jsonschema  # optional extra check
+        jsonschema.validate(example, schema)
+    except ImportError:
+        pass
+    except Exception as e:  # jsonschema.ValidationError
+        f.error(shown(OVERLAY_EXAMPLE), f"fails schema validation: {str(e).splitlines()[0]}")
     ship = root / SKILLS_DIR / "sc-ship" / "SKILL.md"
     orch = root / SKILLS_DIR / "ship-cycle" / "SKILL.md"
     if ship.is_file():
-        m = re.search(r"\*\*Release checklist \(overlay `releaseChecklist`\).*?(?=\n- \*\*)",
+        m = re.search(r"\*\*Release checklist \(overlay `releaseChecklist`\).*?(?=\n- \*\*|\n\n##|\Z)",
                       read(ship), re.S)
         if not m:
             f.error(shown(ship.relative_to(root)), "no 'Release checklist' rule naming releaseChecklist")
-        elif "pre-merge manual gate" not in m.group(0).lower():
+        elif '"Pre-merge manual gate"' not in m.group(0):
             f.error(shown(ship.relative_to(root)),
                     "Release checklist rule is not tied to the pre-merge manual gate")
     if orch.is_file():

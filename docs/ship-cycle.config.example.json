@@ -5,6 +5,7 @@
     "provider": "github",
     "repo": "your-org/your-repo",
     "defaultBase": "dev",
+    "releaseBranch": "main",
     "protectedBranches": ["main", "master", "dev"],
     "tracker": {
       "milestones": true,
@@ -65,7 +66,7 @@
       "id": "mobile-version-bump",
       "when": { "changeNature": ["mobile"], "release": true },
       "check": "node scripts/check-version-bump.js apps/mobile",
-      "evidence": "exit 0: versionCode/versionName are above the last released values"
+      "evidence": "exit 0: versionCode/versionName are higher than the last released values"
     },
     {
       "id": "oauth-release-key-hash",

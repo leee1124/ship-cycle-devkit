@@ -129,7 +129,8 @@ is not resumed by a new goal: ask "resume or replace?" (`/resume` is the explici
    `prune`, leftover directories and a stale `index.lock` from a timed-out add each have an order a
    recursive delete gets wrong — see `${CLAUDE_PLUGIN_ROOT}/docs/worktree-recovery.md`.
 3. **Load overlay**: read `${CLAUDE_PROJECT_DIR}/<projectConfig>` (plugin setting; default
-   `.claude/ship-cycle.config.json`). Absent → built-in heuristics + log "defaults in use". Malformed →
+   `.claude/ship-cycle.config.json`). Absent → built-in heuristics + log "defaults in use". A `releaseChecklist` item with
+   `when.release: true` but no `vcs.releaseBranch` never matches: say so. Malformed →
    **fail closed**: stop and report, rather than running on defaults the operator didn't choose. One
    carve-out: a file that parses whose only problem is a schema-invalid `env` block — an opportunistic cost
    knob whose fallback is "spin up fresh" (see sc-qa) — emits `SC-DEGRADE-ENV` naming the section and

@@ -120,24 +120,38 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   deferral can't slip in as a silent pass. For an unrunnable-here item the observable check is the **CI
   job that must show that suite executed (count > 0) and green on this branch's head commit** — a link a
   reviewer can click, not a claim they have to trust; name the suite and its recorded `reason` beside it.
-  Matched `releaseChecklist` items with `manual: true` go here too (see Release checklist above).
+  Matched `releaseChecklist` items with `manual: true` go here too (see Release checklist below).
   A `gates.G9: degrade` goes here too, with its reason — and each deferred flow or part of a
   `state.releaseSmoke` entry as its own item, to be run on the release-form artifact (§sc-qa
   Release-artifact smoke). If none were recorded, say so.
-- **Release checklist (overlay `releaseChecklist`) — run it right before G12's gate.** Release steps
-  tracked in someone's head get skipped on the one PR that needs them (version bump, signing-key
-  registration, release notes, backend-first deploy order, symbol-map upload). Select the items whose
-  `when` matches: every key given must hold — `changeNature` names the diff touches, `paths` globs any
-  changed path matches, `release: true` the PR base is the release branch. Not releaseSmoke (G9: does the
-  release artifact run); this is bookkeeping. Absent field or no match = no-op.
-  - **Machine item** (no `manual`): run `check`, judge by `evidence`, append one **G12** gate-log row per
-    item (`releaseChecklist.<id>`, `pass`/`fail`, the exit status or file as evidence pointer). A failed
-    item is a G12 `fail` and loops back; it is never waived, only fixed or removed from the overlay by
-    its owner.
+- **Release checklist (overlay `releaseChecklist`).** Release steps tracked in someone's head get skipped
+  on the one PR that needs them (version bump, signing-key registration, release notes, backend-first
+  deploy order, symbol-map upload). Not releaseSmoke (G9: does the release artifact run); this is
+  bookkeeping. Absent field or no match = no-op.
+  - **Select** before writing the PR body, from the **final diff**, with the same glob rules as
+    `changeNature.match`. Every `when` key given must hold: `changeNature` names the diff touches, `paths`
+    any changed path, `release: true` the PR's actual base (as created or read from the host) equals
+    `vcs.releaseBranch` (unset: never matches; PREFLIGHT notes it).
+  - **Read the list from the base branch** (`git show <base>:<overlay path>`) when the overlay is tracked:
+    a PR that edits its own checklist must not be able to delete the item that would fail it. If the diff
+    edits `releaseChecklist`, list that edit on the pre-merge manual gate. A gitignored local overlay
+    cannot be read from the base; its owner edits it outside the cycle.
+  - **Machine item** (no `manual`): run `check` before push, alongside the merge-tree probe; judge by
+    `evidence`. On a failure set `gates.G12 = fail` first, then append the row with the loop count; never
+    waived, only fixed or removed by the overlay's owner.
+  - **`undetermined`**: the check errored before reaching what it checks (binary missing, needs network
+    or credentials). It never passes: list it on the pre-merge manual gate with the command and the
+    reason, else G12 fails.
   - **Manual item** (`manual: true`): never run by the agent; list it under **"Pre-merge manual gate"**
-    with its `id`, `check` and the `evidence` that closes it, and log `deferred: <id>`. G12 counts it as
-    satisfied **only** when listed, like a `degrade` G9.
-  - A matched item the PR neither ran nor listed fails G12 (a silent skip is the failure this exists to stop).
+    with its `id`, `check` and the `evidence` that closes it ("reviewer confirms …", never the value), and
+    log `deferred: <id>`. G12 counts it as satisfied **only** when listed, like a `degrade` G9.
+  - **Gate log**: one sub-check row per item (`gate=G12`, evidence `releaseChecklist.<id>: exit 0 ·
+    tree <prefix>`; §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Gate log). **Record only** exit status,
+    file path and tree id in the log and PR body, never stdout/stderr or key/hash values.
+  - **Right before merge**, re-select and re-run the machine items if the tree or base changed since they
+    ran (the logged tree id mismatching is stale), and re-verify the manual items are still listed in
+    the body.
+  - A matched item the PR neither ran nor listed fails G12 (a silent skip is what this exists to stop).
 - **Verify the closing token actually landed (don't trust that you wrote it).** After opening the PR,
   **re-fetch the created body** and assert it contains the exact intended token for **every** tracked issue
   in `state`: `Closes #NN` when that issue is fully done, `Refs #NN` when partial. A bare mention (`#NN`,

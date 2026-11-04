@@ -292,10 +292,27 @@ CASES = [
         "example overlay releaseChecklist item missing its evidence",
         lambda r: mutate(
             r / "docs" / "ship-cycle.config.example.json",
-            '"evidence": "exit 0: versionCode/versionName are above the last released values"',
+            '"evidence": "exit 0: versionCode/versionName are higher than the last released values"',
             '"x": 1',
         ),
         "missing required field 'evidence'",
+    ),
+    (
+        "example overlay releaseChecklist duplicate id",
+        lambda r: mutate(r / "docs" / "ship-cycle.config.example.json", '"id": "oauth-release-key-hash"',
+                         '"id": "mobile-version-bump"'),
+        "duplicate id",
+    ),
+    (
+        "example overlay releaseChecklist bad when key",
+        lambda r: mutate(r / "docs" / "ship-cycle.config.example.json", '"paths": ["apps/mobile/android',
+                         '"path": ["apps/mobile/android'),
+        "'when' must be a non-empty object",
+    ),
+    (
+        "example overlay uses when.release without vcs.releaseBranch",
+        lambda r: mutate(r / "docs" / "ship-cycle.config.example.json", '"releaseBranch": "main",', ""),
+        "vcs.releaseBranch is not declared",
     ),
     (
         "sc-ship PR template drops the Gate summary",

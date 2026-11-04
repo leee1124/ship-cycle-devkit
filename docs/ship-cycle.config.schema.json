@@ -10,6 +10,7 @@
         "provider": { "type": "string" },
         "repo": { "type": "string" },
         "defaultBase": { "type": "string" },
+        "releaseBranch": { "type": "string", "description": "Optional. The branch a release PR targets. releaseChecklist `when.release: true` matches only when the PR's actual base equals it; unset, such items never match (PREFLIGHT says so)." },
         "protectedBranches": { "type": "array", "items": { "type": "string" } },
         "tracker": {
           "type": "object",
@@ -88,7 +89,7 @@
     },
     "releaseChecklist": {
       "type": "array",
-      "description": "Optional. Release bookkeeping for projects that ship to a store, installer channel, registry or production host: version bump, third-party signing-key registration, release notes, backend-first deploy order, symbol/deobfuscation-map upload. Top-level, not per nature, because one release step often spans natures. sc-ship runs the items whose `when` matches right before G12: machine items (`manual` absent/false) run and are logged to the gate log; `manual: true` items go on the PR body's pre-merge manual gate. Not releaseSmoke (does the release artifact run, G9). Omit it and nothing changes. Full rule: sc-ship \u2014 Release checklist.",
+      "description": "Optional. Release bookkeeping for projects that ship to a store, installer channel, registry or production host: version bump, third-party signing-key registration, release notes, backend-first deploy order, symbol/deobfuscation-map upload. Top-level, not per nature, because one release step often spans natures. sc-ship runs the items whose `when` matches right before G12: machine items (`manual` absent/false) run and are logged to the gate log; `manual: true` items go on the PR body's pre-merge manual gate. Not releaseSmoke (does the release artifact run, G9). Omit it and nothing changes. Evaluated from the base-branch copy of the overlay. Full rule: sc-ship \u2014 Release checklist.",
       "items": {
         "type": "object",
         "properties": {
@@ -100,7 +101,7 @@
             "properties": {
               "changeNature": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Matches when the change touches one of these changeNature names." },
               "paths": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Globs; matches when any changed path matches." },
-              "release": { "type": "boolean", "description": "true: matches only when the PR base (vcs.defaultBase) is the release branch, i.e. this PR cuts a release." }
+              "release": { "type": "boolean", "description": "true: matches only when the PR base, as created or read from the host, equals vcs.releaseBranch (unset: never matches)." }
             },
             "additionalProperties": false
           },

@@ -11,6 +11,12 @@
   `fail`, never waived. `manual: true` items go on the PR body's pre-merge manual gate and count for G12
   only when listed, like a `degrade` G9. A matched item neither run nor listed fails G12. Undeclared
   field = no-op.
+- **Hardening (cold review)**: `vcs.releaseBranch` defines `when.release` (unset: never matches). The list
+  is read from the base-branch overlay so a PR cannot delete its own failing item; an edit to
+  `releaseChecklist` goes on the manual gate. `undetermined` (check could not run) never passes. The
+  pre-merge re-check re-runs machine items when tree or base changed. Gate-log rows are G12 sub-check rows
+  (documented in state-file.md); only exit status, paths and tree ids are recorded, never output or key
+  values.
 - **Validator** guards that the schema documents the field (item keys, `when` keys, `manual`), that the
   example overlay's items are well-formed with unique ids, that sc-ship's rule is tied to the pre-merge
   manual gate, and that the G12 row references `releaseChecklist`; five self-test mutations. It does not

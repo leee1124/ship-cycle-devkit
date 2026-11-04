@@ -286,6 +286,11 @@ newline ends the row early. "Verbatim" for a reason carried into a cell (G12's n
 means verbatim up to the cap.
 <!-- /gate-log-cell-escaping -->
 
+**Sub-check rows.** sc-ship's release checklist (overlay `releaseChecklist`) appends one row per item
+with `gate` = `G12` and evidence `releaseChecklist.<id>: exit 0 · tree <prefix>`. These are sub-check rows,
+not the G12 value: the Gate summary and the reconcile take the latest G12 row whose evidence does not
+start with `releaseChecklist.`. A failing item sets `gates.G12 = fail` first, then appends its row.
+
 ### Who appends
 
 **Whoever writes a gate value or a stage change appends its line in the same step** — the stage skill
