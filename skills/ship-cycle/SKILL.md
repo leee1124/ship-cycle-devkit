@@ -84,12 +84,12 @@ Between every stage, artifacts pass through the state-file handoff rule below.
 
 ## Route plan — which stages run, decided at G1
 
-PREFLIGHT sets the size tier from the diff before the requirements exist; it has to, since brainstorm
-already needs a model and an effort. Which stages the cycle owes is better decided once the criteria are
-agreed, so sc-brainstorm ends G1 with a **route plan** beside them, the user confirms both in one answer,
-and it goes to `state.route` with the `basis` it was judged on — `state.size` and `state.risk` at that
-moment (shape: `${CLAUDE_PLUGIN_ROOT}/docs/state-file.md`). Each stage reads `state.route` on entry
-instead of re-deriving its own skip.
+PREFLIGHT sets the size tier from the diff before the requirements exist; it has to, since brainstorm already
+needs a model and an effort. Which stages the cycle owes is better decided once the criteria are agreed, so
+sc-brainstorm ends G1 with a **route plan** beside them, the user confirms both in one answer, and it goes to
+`state.route` with the `basis` it was judged on — `state.size`, `state.risk` and `state.nature` at that moment
+(shape: `${CLAUDE_PLUGIN_ROOT}/docs/state-file.md`). Each stage reads `state.route` on entry instead of
+re-deriving its own skip.
 
 - **Start from the tier** (§Stage 0.2, §Tier S path) and say where the plan departs from it: a stage added,
   the lenses and QA form chosen, a stage skipped with a one-line reason.
@@ -109,23 +109,24 @@ instead of re-deriving its own skip.
 - **Growth only.** Once confirmed, a stage or lens can be added, never removed. Growth comes from: scope or
   nature growing (§Stage 0.4); a loop-back to sc-design — a loop cap or a G8 design flaw — which grows
   `sc-design` to `run` and tells the user; sc-tdd finding a contract in a routed skip. Re-show the user only
-  the added rows, write them to `state.route`, log a `route` row. **A rise in size or risk after
-  `confirmedAt`** (`state.size`/`state.risk` above `route.basis`) invalidates every skip: re-show those rows;
-  each turns `run` unless the user re-confirms it against the new basis (which then updates `basis`).
-  Every stage's "Route first" check makes this comparison before honouring a skip.
+  the added rows, write them to `state.route`, log a `route` row. **A basis rise** — `state.size` above
+  `basis.size`, a risk tag not in `basis.risk`, or a nature not in `basis.nature` — invalidates every skip:
+  re-show those rows; each turns `run` unless the user re-confirms it against the new basis (which then
+  updates `basis`). Every stage's "Route first" check makes this comparison before honouring a skip.
 - **Growing a stage already passed.** When a grown stage's gate holds `n/a: route — …`, clear it to `—`
   with a `cleared` log row, move `stage` back to that stage, and let later gates clear as their evidence
   goes: G5–G9 by §Tree identity when the re-run changes the tree; G4 when a re-run design changes the
   criteria or the tests. A clear does not count against `loops`. G12 refuses an `n/a: route` gate whose
-  route entry is now `run` (§sc-ship G12, and the G12 row below).
+  route entry is now `run`, and any other whole-stage `n/a` (G2/G3, G4, G9) whose entry is `run`, unless
+  it is a config `n/a` (`n/a: no <x> config`) — §sc-ship G12 and the G12 row below.
 - **One stage's job → no cycle.** When the criteria reduce to a single stage's work ("just review this
   branch", "just critique the design", a parity audit), recommend that skill standalone — `sc-review`,
   `sc-design`, `sc-audit` — over a pipeline. If the user takes it, end the cycle `cancelled` with a log row
   naming the skill, then run the G13 subset that applies: archive the log
-  (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Gate log); remove a worktree PREFLIGHT created,
-  unlinking shared dep stores first (§sc-ship G13 step 1); delete the branch, from the base, if it has no
-  commits beyond it; delete the state file. A standalone skill ignores a terminal state file; the §core
-  outcomes ride with that skill.
+  (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Gate log); remove a worktree PREFLIGHT created, unlinking
+  shared dep stores first (§sc-ship G13 step 1); delete the branch, from the base, only if PREFLIGHT created
+  it (`state.branchCreated`) and it has no commits beyond the base; delete the state file. A standalone skill
+  ignores a terminal state file; the §core outcomes ride with that skill.
 - **No route** (a cycle started before 0.3.13): stages decide from the tier and their own `n/a` as before;
   the reconcile does not reconstruct one.
 
@@ -149,7 +150,8 @@ Inference only lowers — it may move the stage earlier or clear a `pass`, never
 is not resumed by a new goal: ask "resume or replace?" (`/resume` is the explicit resume). Rules:
 `${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Resume reconcile, Resume and selection.
 
-1. **Branch guard**: if on a protected branch (overlay `vcs.protectedBranches`), create `feature/*`|`fix/*`.
+1. **Branch guard**: if on a protected branch (overlay `vcs.protectedBranches`), create `feature/*`|`fix/*`
+   and record `state.branchCreated = true` (false when the cycle started on an existing branch).
    A detached HEAD (empty `git branch --show-current`) has no cycle key — refuse and ask for a named
    branch, since state is keyed by branch.
 2. **Change-size tier (S/M/L), then worktree isolation.** Pick the tier first and out loud — it is the dial
@@ -279,7 +281,7 @@ release valve, §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Parking) — and
 | G9 | 0 new defects in integration/E2E vs `state.baseline` (ignoring `unrunnableHere`; `flaky` not exempt; under `ci-status-only` every defect blocks unless its suite is in `run.rechecked`); seams reproduced; ITs that **can** run here actually ran; release-artifact smoke when `appliesTo` is touched (§sc-qa Release-artifact smoke) | → sc-implement |
 | G10 | docs matching the change exist | writer |
 | G11 | every claim mapped 1:1 to a test/build/QA log | rework |
-| G12 | build+test+review+QA passed, and every matched overlay `releaseChecklist` item ran green or (`manual`) is on the pre-merge manual gate — a `degrade` G9 / `checklist` G7b or G6 counts **only** when its item is on the pre-merge manual gate (a `deferred` release smoke included), and an `"n/a: <reason>"` gate counts with its reason carried to the PR body (not an `n/a: route` gate whose route entry is now `run`); **branch merges cleanly into** overlay `vcs.defaultBase` (merge-tree probe + host `mergeable`); PR body's **Gate summary** matches a fresh render from state + log, re-checked right before merge | merge base + resolve, re-verify |
+| G12 | build+test+review+QA passed, and every matched overlay `releaseChecklist` item ran green or (`manual`) is on the pre-merge manual gate — a `degrade` G9 / `checklist` G7b or G6 counts **only** when its item is on the pre-merge manual gate (a `deferred` release smoke included), and an `"n/a: <reason>"` gate counts with its reason carried to the PR body (not a whole-stage G2/G3, G4 or G9 `n/a` whose route entry is `run`, unless it is a config `n/a`); **branch merges cleanly into** overlay `vcs.defaultBase` (merge-tree probe + host `mergeable`); PR body's **Gate summary** matches a fresh render from state + log, re-checked right before merge | merge base + resolve, re-verify |
 | G13 | merged branch deleted (local + remote); feature worktree removed if created (**linked dep stores unlinked first**, never deleted through); cycle state file deleted; gate log archived, not deleted; base synced | — |
 
 ## Model routing (resolved at PREFLIGHT)

@@ -703,7 +703,8 @@ ROUTE_ALWAYS_RUN = ("sc-implement", "sc-review", "sc-ship")
 ROUTE_READERS = ("sc-design", "sc-tdd", "sc-review", "sc-qa")
 ROUTE_RULE_TOKENS = ("never removed", "standalone", "§core", "n/a: route — <reason>", "Tier S floor",
                      "layout, copy or config", "Effective lenses", "`cleared`", "`basis`", "loop cap",
-                     "now `run`", "ignores a terminal state file")
+                     "now `run`", "ignores a terminal state file", "not in `basis.risk`",
+                     "not in `basis.nature`", "`state.branchCreated`")
 REVIEW_LENS_TOKENS = ("effective lenses", "Tier S floor", "risk-matched", "`state.nature`")
 
 
@@ -735,6 +736,10 @@ def check_route_plan(root: Path, f: Findings) -> None:
             for key in ("confirmedAt", "basis", "stages", "lenses", "qa"):
                 if key not in route:
                     f.error(shown(STATE_SHAPE_DOC), f"route lacks '{key}'")
+            basis = route.get("basis") if isinstance(route.get("basis"), dict) else {}
+            for key in ("size", "risk", "nature"):
+                if "basis" in route and key not in basis:
+                    f.error(shown(STATE_SHAPE_DOC), f"route.basis lacks '{key}'")
             stages = route.get("stages") if isinstance(route.get("stages"), dict) else {}
             expected = [s for s in pipeline if s != "sc-brainstorm"]
             if expected and sorted(stages) != sorted(expected):
@@ -760,6 +765,9 @@ def check_route_plan(root: Path, f: Findings) -> None:
         row = re.search(r"^\|\s*G1\s*\|(.*)$", text, re.M)
         if not row or "route plan" not in row.group(1):
             f.error(where, "G1 row of the gate table does not require the route plan")
+        row12 = G12_ROW_RE.search(text)
+        if not row12 or "whole-stage G2/G3, G4 or G9 `n/a` whose route entry is `run`" not in row12.group(1):
+            f.error(where, "G12 row does not refuse a whole-stage n/a whose route entry is `run`")
     brainstorm = root / SKILLS_DIR / "sc-brainstorm" / "SKILL.md"
     if brainstorm.is_file():
         where = shown(brainstorm.relative_to(root))
@@ -789,8 +797,14 @@ def check_route_plan(root: Path, f: Findings) -> None:
         if path.is_file() and "state.route.basis" not in read(path):
             f.error(shown(path.relative_to(root)), "does not check state.route.basis before a route skip")
     ship = root / SHIP_SKILL
-    if ship.is_file() and "whose `state.route` entry is now `run`" not in read(ship):
-        f.error(shown(SHIP_SKILL), "G12 does not refuse an `n/a: route` gate whose route entry is now `run`")
+    if ship.is_file():
+        text = read(ship)
+        if "whose `state.route` entry is now `run`" not in text:
+            f.error(shown(SHIP_SKILL),
+                    "G12 does not refuse an `n/a: route` gate whose route entry is now `run`")
+        elif "whole-stage `n/a` (G2/G3, G4, G9)" not in text or "unless it is a config `n/a`" not in text:
+            f.error(shown(SHIP_SKILL), "G12 does not refuse every whole-stage n/a whose route entry is `run` "
+                                       "(config n/a exempt)")
     status = root / "commands" / "status.md"
     if status.is_file():
         text = read(status)

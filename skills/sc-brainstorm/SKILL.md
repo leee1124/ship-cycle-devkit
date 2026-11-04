@@ -47,7 +47,7 @@ expensive outcome. This stage ends when the user accepts a design direction — 
   plan** — one confirmation for both, not two.
 - Record the agreed problem + acceptance criteria in this cycle's state file
   (`.claude/ship-cycle/<branch-slug>.json`), the route plan as `state.route` with its `confirmedAt` and
-  `basis` (the current `size` and `risk`), and a `route` / `confirmed` row in the gate log; set
+  `basis` (the current `size`, `risk` and `nature`), and a `route` / `confirmed` row in the gate log; set
   `gates.G1 = pass`. Advance to the first stage the route runs.
 
 ## Root-cause analysis (defect goals) — the stage that pays for the cycle

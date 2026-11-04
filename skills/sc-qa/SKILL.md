@@ -127,13 +127,15 @@ mobile nature:
 
 ## When to run / skip
 - **Run** for real features and any change that crosses a seam.
-- **Skip only when `state.size` is `S`, or when the confirmed route says so**
-  (`state.route.stages['sc-qa']` = `skip: <reason>`, and `state.size`/`state.risk` have not risen above
-  `state.route.basis` — a rise re-shows the skip first, §ship-cycle Route plan) — log the skip reason —
+- **Skip only as decided.** With a route, only the route decides: skip when
+  `state.route.stages['sc-qa']` = `skip: <reason>` and there is no basis rise against `state.route.basis`
+  (larger `state.size`, or a `state.risk` tag or `state.nature` not in it — a rise re-shows the skip first,
+  §ship-cycle Route plan). With no route, skip only when `state.size` is `S`. Log the skip reason —
   except the release smoke, which a touched `appliesTo` still requires (§Release-artifact smoke). When it
-  runs, run the route's QA form (`state.route.qa`; absent, the full set). A stage does not re-judge triviality for itself: PREFLIGHT owns the tier, the user confirmed
-  the route at G1, and both only grow (§ship-cycle Stage 0.2, Route plan), so a run that recorded `M`/`L`
-  with no route skip cannot skip QA by deciding on its own that it looks isolated.
+  runs, run the route's QA form (`state.route.qa`; absent, the full set). A stage does not re-judge
+  triviality for itself: PREFLIGHT owns the tier, the user confirmed the route at G1, and both only grow
+  (§ship-cycle Stage 0.2, Route plan), so a run that recorded `M`/`L` with no route skip cannot skip QA by
+  deciding on its own that it looks isolated.
 
 ## Boot smoke (G7b) vs. this stage's bring-up
 G7b already ran the eager context-load back in Green (sc-implement). When this stage does a **full

@@ -191,9 +191,10 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   `gates.G7b`/`gates.G6: checklist` counts as
   satisfied **only** when its item is on the pre-merge manual gate above, with its reason, and a gate
   recorded as `"n/a: <reason>"` for a stage that plainly had nothing to do (§ship-cycle — Pipeline) counts
-  as satisfied with its reason carried to the PR body (verbatim up to the cell cap) — except an
-  `n/a: route — …` gate whose `state.route` entry is now `run`, which fails G12 (the stage grew and is
-  owed, §ship-cycle — Route plan) — **the branch
+  as satisfied with its reason carried to the PR body (verbatim up to the cell cap) — except a
+  whole-stage `n/a` (G2/G3, G4, G9) whose `state.route` entry is now `run` — a route `n/a` the stage outgrew
+  or a skip the route never planned — which fails G12 unless it is a config `n/a` (`n/a: no <x> config`)
+  (§ship-cycle — Route plan) — **the branch
   merges cleanly into the base**, the opened PR
   body carries the correct `Closes`/`Refs` token for every tracked issue (re-fetched and asserted, not
   assumed), its Gate summary matches a fresh render from state + log, and every deferred finding is filed

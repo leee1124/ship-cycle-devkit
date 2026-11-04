@@ -58,7 +58,8 @@ Otherwise parse the JSON and print a compact, scannable status report:
   the lenses, the QA form, `confirmedAt` and `basis`. Absent (a cycle started before 0.3.13, or G1 not yet
   passed): say so; the tier then decides as before. Flag, loudly: a whole-stage gate (G2/G3, G4, G9) that
   is `n/a` while its stage's route entry is `run` — a skip the route did not plan, which G12 refuses — except
-  a config `n/a` (`n/a: no <x> config`); and `size`/`risk` above `route.basis` with a skip still standing.
+  a config `n/a` (`n/a: no <x> config`); and a basis rise (larger `size`, or a `risk` tag
+  or `nature` not in `route.basis`) with a skip still standing.
 - **Loop counts** per gate from `loops`; the loop cap is 3 per gate — flag any gate that has hit the cap.
 - **Resolved model routing** from `models` (per stage) and **effort** from `effort`.
 - **Change nature** (`nature`), **risk** (`risk`), and **size tier** (`size` — S/M/L).

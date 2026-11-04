@@ -10,8 +10,9 @@ the mechanics that only matter when something unusual happens to its name or its
   "gates": { "G1": "pass", "G2": "n/a: route — config bump, nothing to design", "G4": "pass" },
   "gateTrees": { "G5": "<tree id of the worktree the build/tests ran on>" },
   "loops": { "G8": 1 },
-  "nature": ["backend"], "risk": ["auth"], "size": "L",
-  "route": { "confirmedAt": "<iso>", "basis": { "size": "L", "risk": ["auth"] },
+  "nature": ["backend"], "risk": ["auth"], "size": "L", "branchCreated": true,
+  "route": { "confirmedAt": "<iso>", "basis": { "size": "L", "risk": ["auth"],
+                                                "nature": ["backend"] },
              "stages": { "sc-design": "skip: config bump, nothing to design", "sc-tdd": "run",
                          "sc-implement": "run", "sc-review": "run", "sc-qa": "run", "sc-ship": "run" },
              "lenses": ["security", "quality", "cold"], "qa": "full bring-up + seam checks" },
@@ -116,7 +117,8 @@ output) are outside the id by design: changing only those does not invalidate a 
 `route` is the plan confirmed at G1 (§ship-cycle — Route plan): one entry per stage after sc-brainstorm,
 `"run"` or `"skip: <reason>"`; `sc-implement`, `sc-review` and `sc-ship` are always `"run"`, and `sc-tdd`
 skips only for layout, copy or config. A skip becomes `gates.<G> = "n/a: route — <reason>"` when the stage
-is reached. `basis` is `size` and `risk` at confirmation: a rise above it invalidates every skip. `lenses`
+is reached. `basis` is `size`, `risk` and `nature` at confirmation: a larger size, or a risk tag or nature
+not in it, invalidates every skip. `lenses`
 and `qa` are what sc-review (with the floor) and sc-qa run. It only grows: entries turn from `skip` to
 `run` and lenses are added, never the reverse. Absent on a cycle started before 0.3.13 — stages then decide
 from the tier as before.

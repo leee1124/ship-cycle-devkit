@@ -592,7 +592,7 @@ CASES = [
     (
         "route plan: the documented shape has no basis",
         lambda r: mutate(
-            r / "docs" / "state-file.md", '"basis": { "size": "L", "risk": ["auth"] },', ""
+            r / "docs" / "state-file.md", '"basis": { "size"', '"basisGone": { "size"'
         ),
         "route lacks 'basis'",
     ),
@@ -600,6 +600,33 @@ CASES = [
         "route plan: the pipeline table yields no stages",
         lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "| `sc-", "| sc-", count=-1),
         "pipeline table yields no stage skills",
+    ),
+    (
+        "route plan: G12 row accepts any whole-stage n/a",
+        lambda r: mutate(
+            r / "skills" / "ship-cycle" / "SKILL.md",
+            "whole-stage G2/G3, G4 or G9 `n/a` whose route entry is `run`", "stale route n/a",
+        ),
+        "G12 row does not refuse a whole-stage n/a",
+    ),
+    (
+        "route plan: sc-ship G12 refuses only n/a: route, not unplanned whole-stage n/a",
+        lambda r: mutate(
+            r / "skills" / "sc-ship" / "SKILL.md", "whole-stage `n/a` (G2/G3, G4, G9)", "`n/a: route` gate"
+        ),
+        "G12 does not refuse every whole-stage n/a",
+    ),
+    (
+        "route plan: basis has no nature",
+        lambda r: mutate(
+            r / "docs" / "state-file.md", '"nature": ["backend"] },', '"natureGone": ["backend"] },'
+        ),
+        "route.basis lacks 'nature'",
+    ),
+    (
+        "route plan: cancel cleanup deletes a branch PREFLIGHT did not create",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "(`state.branchCreated`) ", ""),
+        "Route plan section does not state '`state.branchCreated`'",
     ),
 ]
 
