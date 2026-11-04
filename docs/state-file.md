@@ -236,8 +236,10 @@ evidence (path, sha, missing file), and the gates it `cleared` — or `no mismat
 
 The state file says where a cycle **is**; nothing in it says how it got there, and G13 deletes it. A
 reviewer, a hook or the user who wants to check that the cycle was actually followed needs a record that
-survives the merge. That record is an **append-only gate log** beside the state file:
-`.claude/ship-cycle/<branch-slug>.log.md` (same slug, same working directory, §The slug).
+survives the merge. That record is an **append-only gate log** in the host's state directory, beside the
+state file: `<state dir>/<branch-slug>.log.md`, where the state dir is `.claude/ship-cycle/` on Claude Code
+and `.codex/ship-cycle/` on Codex (§`${CLAUDE_PLUGIN_ROOT}/docs/runtime-adapters.md`; same slug, same
+working directory, §The slug). The rest of this section writes the Claude path; read it as the host's.
 
 **The state file stays authoritative.** The log is a history for humans, sc-ship's PR summary and
 `/resume`'s explanation; no gate, loop count, reconcile row or stage choice is ever *decided* from it. When
@@ -246,8 +248,8 @@ the two disagree, the state file wins and the disagreement is reported — the l
 
 ### Format
 
-PREFLIGHT's init creates the file with a header line naming the exact branch and a table header; every
-transition after that appends **one row**:
+PREFLIGHT's init creates the file with a header line naming the exact `branch` and `goal` and a table
+header; every transition after that appends **one row**:
 
 ```markdown
 <!-- ship-cycle gate log · branch: feat/rate-limit · goal: add rate limiting to login -->
@@ -270,7 +272,14 @@ transition after that appends **one row**:
   `parked`, `resume` or the terminal value; `cleared` for a reconcile clear; `deferred: <part>` for each
   manual-gate deferral as it is recorded.
 - **evidence** — a short pointer, never the evidence itself: a path, a test id, a tree id prefix, a job id,
-  a CI link. One line, no `|` (write `/` instead) and no newline; `—` when there is none.
+  a CI link; `—` when there is none.
+
+<!-- gate-log-cell-escaping -->
+**Cell escaping — one rule for every cell, applied by the log writer and again by sc-ship's Gate summary:**
+`|` → `\|`, each newline (CR, LF or CRLF) → one space, then cut the cell to **200 characters**, ending a cut
+cell with `…`. Free text (an n/a reason, a parked reason, an evidence pointer) is the only thing that can
+break a row; an unescaped `|` shifts every later column and a newline ends the row early.
+<!-- /gate-log-cell-escaping -->
 
 ### Who appends
 
@@ -278,7 +287,7 @@ transition after that appends **one row**:
 setting `gates.<G>`, PREFLIGHT entering the first stage, a stage handing over to the next, the loop-back
 that records a `fail`, parking (§Parking step 4), a resume (one `resume` line plus one `cleared` line per
 gate the reconcile cleared), and a terminal `stage`. Write the state first, then the line: a crash between
-the two leaves the log one row short, never ahead of the state.
+the two leaves the log one row short, never ahead of the state. The one exception is G13 (§Lifetime).
 
 **Never rewrite, reorder or delete a past line** — a cleared gate is a new `cleared` row, a retry is a new
 row, a corrected mistake is a new row that says so. The log is the only place a cleared or retried pass is
@@ -289,17 +298,31 @@ transition with a first row `| <at> | <stage> | — | resume | log started mid-c
 
 ### Lifetime, archive and git
 
-The log sits under `.claude/ship-cycle/`, which is gitignored run-state like the state file — never commit
-it (the PR body's Gate summary is the committed, reviewable record). It is outside the tree identity for
-the same reason the state file is (§Tree identity), so appending never invalidates a gate.
+The log sits in the state dir, which is gitignored run-state like the state file — never commit it (the PR
+body's Gate summary is the committed, reviewable record). It is outside the tree identity for the same
+reason the state file is (§Tree identity), so appending never invalidates a gate.
 
-At G13 the log is **archived, not deleted**: sc-ship moves it to the **main checkout's**
-`.claude/ship-cycle/archive/<branch-slug>-<YYYY-MM-DD>.log.md` (the first entry of `git worktree list` —
-when the cycle ran in a worktree, the worktree is about to be removed with the live log inside it), adding
-`-2`, `-3`, … if that name exists — an archive is never overwritten. The move happens **before** the
-worktree removal, and the final G13 row is appended to the archived copy. The kit **never prunes**
-`archive/`; it lives until the user deletes it. The freeze scan and `/status`'s cycle list read
-`*.json` only, so neither a live log nor an archive is ever mistaken for a cycle.
+**Archiving** — the one procedure, used at G13 and at init:
+
+1. Target dir: the **main checkout's** `<state dir>/archive/` — the main checkout is the first entry of
+   `git worktree list`, because a cycle's worktree is removed with its live log inside it. Create it with
+   `mkdir -p`.
+2. Name: `<branch-slug>-<YYYY-MM-DD>.log.md`, the date in **UTC**. If that name exists, add `-2`, `-3`, … —
+   an archive is never overwritten. The existence check and the move are not atomic; two archivers racing
+   for one name is accepted, because only one cycle owns a slug at a time (§Collision guard).
+3. **Move** the live log there (do not copy and leave it).
+
+**At G13** sc-ship archives the log **before** it removes the worktree. G13's own outcome is then written
+**only** to the archived copy — the final row goes to the archive *instead of* to the state file, because
+the state file is deleted in the same step and nothing would read it.
+
+**At init**, when PREFLIGHT replaces a state file — a fresh cycle on a branch whose previous file is
+terminal, or a parked one the user chose to replace (§Resume and selection) — it archives any existing live
+log for that slug first, then creates the new one. A new goal never appends to the previous goal's log;
+the `goal` in the header is what tells the two apart in the archive.
+
+The kit **never prunes** `archive/`; it lives until the user deletes it. The freeze scan and `/status`'s
+cycle list read `*.json` only, so neither a live log nor an archive is ever mistaken for a cycle.
 
 ## Migration (PREFLIGHT-only, one-time)
 

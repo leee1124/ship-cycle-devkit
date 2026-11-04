@@ -27,7 +27,7 @@ Otherwise, resume via the `ship-cycle` skill's PREFLIGHT resume path:
 1. Re-read the state; confirm the recorded `branch` (and `worktreePath`, if set) still exist and are
    checked out. If the branch/worktree is gone, say so and stop — don't guess.
    If `stage` is `parked`, print `parked.reason`, `parked.resumeStage` and how long it has been parked.
-   Read the gate log `.claude/ship-cycle/<branch-slug>.log.md` if it exists and use its last rows to
+   Read the gate log `<branch-slug>.log.md` beside the state file if it exists and use its last rows to
    **explain** what happened before the interruption (which gate failed last, what was cleared, why it was
    parked). It is history only: the state file decides the stage, gates and loops, and a log row is never
    evidence for a `pass` (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Gate log).

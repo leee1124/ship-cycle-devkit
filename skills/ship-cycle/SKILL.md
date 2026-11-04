@@ -178,7 +178,8 @@ is not resumed by a new goal: ask "resume or replace?" (`/resume` is the explici
    print `SC-ROUTE-AVOID: security-lens <tier-model>→<securityReviewModel>`.
 8. **Init state**: write this cycle's `.claude/ship-cycle/<branch-slug>.json` with everything resolved above
    plus an empty `telemetry`, an empty `reviewJobs` and `gitFreeze` inactive, and create its gate log
-   `.claude/ship-cycle/<branch-slug>.log.md` with the first stage's `enter` row. Migrate a legacy bare state
+   `<branch-slug>.log.md` beside it with the first stage's `enter` row — archiving any log a replaced state
+   file left behind first (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Gate log). Migrate a legacy bare state
    file for this branch first if one exists, and refuse if the target already belongs to a different
    `branch` (§State).
 
@@ -194,8 +195,8 @@ reconcile and legacy migration are in
 `${CLAUDE_PLUGIN_ROOT}/docs/state-file.md`.
 Write it at every transition; read this cycle's file at PREFLIGHT to **resume** and to enforce **its** loop
 cap, rather than counting loops in your head. **Every gate value or stage change also appends one row to the
-append-only gate log** `.claude/ship-cycle/<branch-slug>.log.md` — never rewritten, archived at G13, never
-authoritative over the state (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Gate log).
+append-only gate log** `<branch-slug>.log.md` in the host's state dir — never rewritten, archived at G13,
+never authoritative over the state (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Gate log).
 
 **Park on request, from any stage** — `stage = "parked"` with `parked = {reason, resumeStage, at, holds}`;
 never with a live-tree freeze, and never with a live job or freeze that `holds` does not name
@@ -223,7 +224,7 @@ release valve, §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Parking) — and
 | G9 | 0 new defects in integration/E2E vs `state.baseline` (ignoring `unrunnableHere`; `flaky` not exempt; under `ci-status-only` every defect blocks unless its suite is in `run.rechecked`); seams reproduced; ITs that **can** run here actually ran; release-artifact smoke when `appliesTo` is touched (§sc-qa Release-artifact smoke) | → sc-implement |
 | G10 | docs matching the change exist | writer |
 | G11 | every claim mapped 1:1 to a test/build/QA log | rework |
-| G12 | build+test+review+QA passed — a `degrade` G9 / `checklist` G7b or G6 counts **only** when its item is on the pre-merge manual gate (a `deferred` release smoke included), and an `"n/a: <reason>"` gate counts with its reason carried to the PR body; **branch merges cleanly into** overlay `vcs.defaultBase` (merge-tree probe + host `mergeable`) | merge base + resolve, re-verify |
+| G12 | build+test+review+QA passed — a `degrade` G9 / `checklist` G7b or G6 counts **only** when its item is on the pre-merge manual gate (a `deferred` release smoke included), and an `"n/a: <reason>"` gate counts with its reason carried to the PR body; **branch merges cleanly into** overlay `vcs.defaultBase` (merge-tree probe + host `mergeable`); PR body's **Gate summary** matches the gate log, re-rendered right before merge | merge base + resolve, re-verify |
 | G13 | merged branch deleted (local + remote); feature worktree removed if created (**linked dep stores unlinked first**, never deleted through); cycle state file deleted; gate log archived, not deleted; base synced | — |
 
 ## Model routing (resolved at PREFLIGHT)

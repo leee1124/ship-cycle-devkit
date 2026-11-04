@@ -73,16 +73,11 @@ def set_manifest_key(root: Path, key: str, value: object) -> None:
     _write_codex(path, data)
 
 
-def mutate(path: Path, old: str, new: str) -> None:
+def mutate(path: Path, old: str, new: str, count: int = 1) -> None:
+    """Replace the first `count` occurrences of `old` (`count=-1`: every one)."""
     text = path.read_text(encoding="utf-8")
     assert old in text, f"self-test fixture is stale: {old[:50]!r} not in {path.name}"
-    path.write_text(text.replace(old, new, 1), encoding="utf-8")
-
-
-def replace_all(path: Path, old: str, new: str) -> None:
-    text = path.read_text(encoding="utf-8")
-    assert old in text, f"self-test fixture is stale: {old[:50]!r} not in {path.name}"
-    path.write_text(text.replace(old, new), encoding="utf-8")
+    path.write_text(text.replace(old, new, count), encoding="utf-8")
 
 
 # (name, mutate_fn, substring that must appear in the output)
@@ -272,13 +267,32 @@ CASES = [
     ),
     (
         "sc-ship PR template drops the Gate summary",
-        lambda r: replace_all(r / "skills" / "sc-ship" / "SKILL.md", "Gate summary", "Summary"),
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "Gate summary", "Summary", count=-1),
         "does not include the 'Gate summary'",
     ),
     (
         "state-file.md loses its Gate log section",
         lambda r: mutate(r / "docs" / "state-file.md", "## Gate log", "## History"),
         "no '## Gate log' section",
+    ),
+    (
+        "gate-log cell-escaping rule drops the length cap",
+        lambda r: mutate(r / "docs" / "state-file.md", "**200 characters**", "a reasonable length"),
+        "does not state '200 characters'",
+    ),
+    (
+        "G12 row no longer requires the Gate summary",
+        lambda r: mutate(
+            r / "skills" / "ship-cycle" / "SKILL.md",
+            "; PR body's **Gate summary** matches the gate log, re-rendered right before merge",
+            "",
+        ),
+        "G12 row of the gate table does not require the Gate summary",
+    ),
+    (
+        "sc-ship names no gate-log path",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "<branch-slug>.log.md", "the log", count=-1),
+        "does not name the gate log",
     ),
 ]
 
@@ -291,6 +305,15 @@ PASSING_CASES = [
             r / "skills" / "sc-qa" / "SKILL.md",
             "## Model routing",
             'When the stage = `G4`, stop.\n\n```bash\nstage="whatever"\n```\n\n## Model routing',
+        ),
+    ),
+    (
+        "sc-ship names the gate log by its Codex state dir",
+        lambda r: mutate(
+            r / "skills" / "sc-ship" / "SKILL.md",
+            "<state dir>/<branch-slug>.log.md",
+            ".codex/ship-cycle/<branch-slug>.log.md",
+            count=-1,
         ),
     ),
 ]

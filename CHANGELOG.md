@@ -17,9 +17,21 @@
   `.claude/ship-cycle/archive/<slug>-<date>.log.md` (never overwritten), before the worktree removal. The
   kit never prunes the archive; the log is gitignored run-state like the state file and outside the tree
   identity.
-- `/status` prints the log's last rows; `/resume` uses them to explain the interruption.
-- Rule: `docs/state-file.md` — Gate log. The validator checks that section exists and that sc-ship's PR
-  template names the Gate summary and the log; two self-test cases.
+- **The summary cannot go stale silently.** G12's right-before-merge re-check re-renders it and patches the
+  body when it differs; the G12 row of the gate table requires it. A gate with a state value but no log row
+  renders from `state.gates`, marked `(no log row)`.
+- **One cell-escaping rule** for the log writer and the summary: `|` → `\|`, newline → space, cut at 200
+  characters.
+- **Archiving is one procedure** (`mkdir -p`, UTC date, `-2`… suffix, move), used at G13 and at init when a
+  state file is replaced, so a new goal never appends to the previous goal's log; the header names `goal`
+  too. G13's final row goes to the archive instead of to state.
+- The log lives in the host's state dir (`.claude/ship-cycle/` or `.codex/ship-cycle/`).
+- `/status` prints the log's last rows, or the archive paths when there is no live log; `/resume` uses
+  them to explain the interruption.
+- Rule: `docs/state-file.md` — Gate log. The validator checks that section, its cell-escaping rule, that
+  sc-ship's PR template names the Gate summary and the log (either state dir), and that the G12 row
+  requires the summary; five failing self-test cases and one must-pass case. The self-test's `mutate` takes
+  a `count`.
 
 ## 0.3.6 — G9 requires a release-artifact smoke for build-config/native changes (#69)
 

@@ -58,7 +58,16 @@ REQUIRED_NON_SKILL_STAGES = ("parked", "complete", "failed", "cancelled")
 SHIP_SKILL = Path("skills/sc-ship/SKILL.md")
 GATE_LOG_HEADING = "## Gate log"
 GATE_SUMMARY_PHRASE = "Gate summary"
-GATE_LOG_PATH_RE = re.compile(r"\.claude/ship-cycle/<branch-slug>\.log\.md")
+# The log lives in the host's state dir: `.claude/ship-cycle/` (Claude), `.codex/ship-cycle/` (Codex), or the
+# generic `<state dir>/` placeholder.
+GATE_LOG_PATH_RE = re.compile(
+    r"(?:\.claude/ship-cycle/|\.codex/ship-cycle/|<state dir>/)<branch-slug>\.log\.md"
+)
+GATE_LOG_ESCAPING_RE = re.compile(
+    r"<!-- gate-log-cell-escaping -->(.*?)<!-- /gate-log-cell-escaping -->", re.S
+)
+GATE_LOG_ESCAPING_TOKENS = ("`|` → `\\|`", "newline", "200 characters")
+G12_ROW_RE = re.compile(r"^\|\s*G12\s*\|(.*)$", re.M)
 
 CLAUDE_REQUIRED = ("name", "version", "description", "skills")
 CODEX_REQUIRED = ("name", "version", "description", "author", "interface")
@@ -252,8 +261,25 @@ def check_gate_summary(root: Path, f: Findings) -> None:
     cycle was followed. The rule is prose, so the cheap mechanical part is that both halves still exist.
     """
     doc = root / STATE_SHAPE_DOC
-    if doc.is_file() and GATE_LOG_HEADING not in read(doc):
-        f.error(shown(STATE_SHAPE_DOC), f"no '{GATE_LOG_HEADING}' section documenting the gate log")
+    if doc.is_file():
+        doc_text = read(doc)
+        if GATE_LOG_HEADING not in doc_text:
+            f.error(shown(STATE_SHAPE_DOC), f"no '{GATE_LOG_HEADING}' section documenting the gate log")
+        # One escaping rule for every cell: an unescaped `|` or newline in free text breaks the table.
+        m = GATE_LOG_ESCAPING_RE.search(doc_text)
+        if not m:
+            f.error(shown(STATE_SHAPE_DOC), "no <!-- gate-log-cell-escaping --> rule for gate-log cells")
+        else:
+            for token in GATE_LOG_ESCAPING_TOKENS:
+                if token not in m.group(1):
+                    f.error(shown(STATE_SHAPE_DOC), f"gate-log cell-escaping rule does not state {token!r}")
+    orchestrator = root / SKILLS_DIR / "ship-cycle" / "SKILL.md"
+    if orchestrator.is_file():
+        # The summary is rendered at PR open and goes stale; G12 is where it is re-checked before merge.
+        row = G12_ROW_RE.search(read(orchestrator))
+        if not row or GATE_SUMMARY_PHRASE not in row.group(1):
+            f.error(shown(orchestrator.relative_to(root)),
+                    f"G12 row of the gate table does not require the {GATE_SUMMARY_PHRASE}")
     ship = root / SHIP_SKILL
     if not ship.is_file():
         f.error(shown(SHIP_SKILL), "missing")
