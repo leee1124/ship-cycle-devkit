@@ -177,7 +177,8 @@ dev-build E2E was green. This section is the one source of truth for the rule; o
   skipped on Tier S and `appliesTo` is touched, this stage runs the release smoke and only that. Then
   `gates.G9` is the smoke's outcome (`pass` / `degrade` / `fail`), and the rest of QA is recorded beside it as
   `n/a: Tier S — <skip reason>`, carried to the PR body. Tier S with nothing touched: `gates.G9 = "n/a: Tier S
-  — <reason>"`.
+  — <reason>"`. That `n/a` depends on the diff, so record `gateTrees.G9` with it too — a later commit that
+  touches `appliesTo` must clear it on resume.
 - **Staleness.** When the resume reconcile clears G9 (tree mismatch), it clears every `releaseSmoke` entry
   with it: a smoke run on another tree is evidence for that tree only.
 

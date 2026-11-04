@@ -32,7 +32,7 @@ the mechanics that only matter when something unusual happens to its name or its
                                  "device": "<emulator or device>",
                                  "flows": [{ "flow": "login", "evidence": "<log or screenshot path>" }],
                                  "deferred": [{ "part": "signature-bound login", "reason": "no release key; ran on substitute signing" }] },
-                    "web": { "result": "deferred", "tree": "<tree id>", "reason": "no emulator could start",
+                    "wearable": { "result": "deferred", "tree": "<tree id>", "reason": "no emulator could start",
                              "buildLog": "<release-form build log>", "deviceAttempt": "<start attempt log>" },
                     "backend": "n/a" },
   "models": { "brainstorm": "opus", "design": "opus", "tdd": "sonnet", "implement": "sonnet",
@@ -208,7 +208,7 @@ compares worktree evidence with it and with `gates`:
 
 | evidence | mismatch it reports | effect |
 |---|---|---|
-| a tree-dependent gate (G5–G9) with any value other than `n/a: <reason>` — `pass`, `degrade`, `checklist` or `fail` — whose `gateTrees[G]` is missing, or differs from the current tree identity outside the docs globs (§Tree identity) | the gate judged a different tree | clear the gate (clearing G9 also clears every `releaseSmoke` entry); continue at its owner |
+| a tree-dependent gate (G5–G9) with any value — `pass`, `degrade`, `checklist`, `fail`, or a diff-dependent `n/a` such as `n/a: Tier S — <reason>` — whose `gateTrees[G]` is missing, or differs from the current tree identity outside the docs globs (§Tree identity). Only a config-based `n/a` (e.g. `n/a: no releaseSmoke config`) is exempt | the gate judged a different tree | clear the gate (clearing G9 also clears every `releaseSmoke` entry, `"n/a"` included — applicability depends on the diff); continue at its owner |
 | uncommitted or untracked files (`git status --porcelain`) | changes while the recorded stage is before `sc-tdd` | report only — tree-dependent gates are judged by the row above |
 | commits since the base (`git log <base>..HEAD`) | code committed while the recorded stage is before `sc-tdd`; a G4/G5 `pass` with no change at all | report; clear a pass that lost its evidence |
 | test files in the diff vs the base | **tests exist but G4 not recorded** | continue at `sc-tdd`, which confirms Red (against the base if code is already there) before recording G4 |
