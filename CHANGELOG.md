@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.8 — sc-design: UI/navigation changes inventory every entry path (#71)
+
+- **Entry-path inventory** in sc-design for UI/navigation natures: direct controls (nav buttons, tabs),
+  deep links and external opens, links from other screens, and programmatic navigation (redirects,
+  post-action navigation, route restore). Each path gets an acceptance criterion — arrival state/params and
+  what Back does. Entry paths are factual premises behind default state and back-stack behaviour; a design
+  that assumed one way in had silently dropped the primary one.
+- **The critic checks it against the code**, grepping the route/screen name for real call sites rather than
+  trusting the design doc; a missing path or a path without a criterion is an objection.
+- **Validator** requires both the design section and the critic pass to name the inventory (+ self-tests).
+
 ## 0.3.7 — Append-only gate log and a Gate summary in the PR (#70)
 
 - **Gate log** `.claude/ship-cycle/<branch-slug>.log.md`, created at PREFLIGHT init. One table row per

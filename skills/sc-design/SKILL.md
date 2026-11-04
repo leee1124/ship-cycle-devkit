@@ -56,6 +56,10 @@ the judge panel, synthesis, and how synthesis goes wrong — in `${CLAUDE_PLUGIN
 A separate agent attacks the design (the **union** of all architect docs when the axis was split, or the
 **synthesized** doc when a bake-off ran — synthesis is new work and has not been reviewed as a whole):
 - Hidden assumptions, unhandled failure modes, contract mismatches, security/authz gaps, scaling/N+1.
+- **Entry-path inventory** (UI/navigation natures): check the design's entry-path inventory against the code itself —
+  grep the route/screen name and list its real call sites, links and redirects — and flag any entry path
+  missing from the inventory or lacking an acceptance criterion (arrival state/params, Back behaviour). The
+  design doc is the claim under test, not the evidence.
 - **Inter-axis seam mismatches**: when architects were split, the critic's first job is to check their
   seams line up (names, signatures, who-owns-what) and that no two axes made contradictory scope
   assumptions.
@@ -76,6 +80,23 @@ For a pure UI change (new component/screen, no new domain logic), this stage and
 naturally under a **designer**: the "design" is the component/interaction design, produced alongside the
 code. Keep the critic pass (accessibility/contract), but don't force a separate READ-ONLY architecture
 doc for a widget.
+
+### Entry-path inventory — every way into a screen
+A design that restructures a screen, tab or window tends to assume one way in, and the way it forgot is
+often the primary one (a real run reworked a tab and the critic later found the bottom-tab button itself
+was missing). Entry paths are factual premises: they decide the default state, how params are handled and
+what Back does, so each acceptance criterion hangs off one. For UI/navigation natures the design therefore
+includes an **entry-path inventory**, built from the code (grep the route/screen name), not from memory:
+- **Direct controls**: nav buttons, tabs, menu items, window/launcher entries.
+- **Deep links and external opens**: URLs, app links, notification taps, shortcuts, file/protocol handlers.
+- **Links from other screens**: every call site that navigates to it.
+- **Programmatic navigation**: redirects, guards, post-action navigation (after save/login/delete), restore
+  of the last route on relaunch.
+
+Give each path one acceptance criterion: the state and params it arrives with (including none), and what
+Back/close does from there. A path the design deliberately removes or leaves unchanged is listed too, with
+that stated, so a silent omission can't hide among them. Skip for changes that add no route and move no
+entry (copy, styling inside one screen).
 
 ### Design-consistency gate — reuse before create
 Consistency isn't a review afterthought; it is decided **here**, when the UI change is designed. A crude,

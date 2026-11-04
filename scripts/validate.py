@@ -70,6 +70,7 @@ GATE_LOG_ESCAPING_RE = re.compile(
 GATE_LOG_ESCAPING_TOKENS = ("`|` → `\\|`", "newline", "200 characters", "applied exactly once")
 G12_ROW_RE = re.compile(r"^\|\s*G12\s*\|(.*)$", re.M)
 
+ENTRY_PATH_PHRASE = "entry-path inventory"
 CLAUDE_REQUIRED = ("name", "version", "description", "skills")
 CODEX_REQUIRED = ("name", "version", "description", "author", "interface")
 CODEX_INTERFACE_REQUIRED = (
@@ -478,6 +479,25 @@ def check_skill_frontmatter(root: Path, f: Findings) -> None:
 # --- entry point -------------------------------------------------------------------------------
 
 
+def check_entry_path_inventory(root: Path, f: Findings) -> None:
+    """sc-design asks UI designs for an entry-path inventory and its critic pass checks it against the code.
+
+    #71: a restructured tab shipped a design that assumed one entry path; the critic found the primary one
+    missing late. The rule is prose, so the mechanical part is that both halves still name it.
+    """
+    skill = root / SKILLS_DIR / "sc-design" / "SKILL.md"
+    if not skill.is_file():
+        return
+    text = read(skill)
+    before, sep, rest = text.partition("## Design review (critic)")
+    critic, _, after = rest.partition("\n## ")
+    head = before + after
+    if ENTRY_PATH_PHRASE not in head:
+        f.error(shown(skill.relative_to(root)), f"design section does not require the {ENTRY_PATH_PHRASE}")
+    if not sep or ENTRY_PATH_PHRASE not in critic:
+        f.error(shown(skill.relative_to(root)), f"critic review does not check the {ENTRY_PATH_PHRASE}")
+
+
 def main(argv: list[str]) -> int:
     root = Path(argv[1]).resolve() if len(argv) > 1 else Path(__file__).resolve().parent.parent
     f = Findings()
@@ -488,6 +508,7 @@ def main(argv: list[str]) -> int:
     check_stage_vocabulary(root, f)
     check_manifests_and_versions(root, f)
     check_gate_summary(root, f)
+    check_entry_path_inventory(root, f)
     check_skill_frontmatter(root, f)
     check_example_coverage(root, f)
     check_example_release_smoke(root, f)
