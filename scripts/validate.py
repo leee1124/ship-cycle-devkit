@@ -26,6 +26,8 @@ CLAUDE_MANIFEST = Path(".claude-plugin/plugin.json")
 CODEX_MANIFEST = Path(".codex-plugin/plugin.json")
 CHANGELOG = Path("CHANGELOG.md")
 STATE_SHAPE_DOC = Path("docs/state-file.md")
+OVERLAY_SCHEMA = Path("docs/ship-cycle.config.schema.json")
+OVERLAY_EXAMPLE = Path("docs/ship-cycle.config.example.json")
 SKILLS_DIR = Path("skills")
 DOC_DIRS = (Path("skills"), Path("commands"), Path("docs"), Path("prompts"))
 
@@ -250,6 +252,39 @@ def check_manifests_and_versions(root: Path, f: Findings) -> None:
             f.error("skill parity", f"manifests expose different skill paths: {c_skills!r} vs {x_skills!r}")
 
 
+def check_example_coverage(root: Path, f: Findings) -> None:
+    """The example overlay's `changeNature[].coverage` satisfies the schema's coverage block.
+
+    The example is what users copy. A `format` outside the enum, or a missing required key, ships a config
+    that G6 can only read as undetermined -- so the copied example would block every cycle it runs in.
+    Checked against the schema's own enum and `required`, not a second hard-coded list.
+    """
+    schema = load_json(root, OVERLAY_SCHEMA, f)
+    example = load_json(root, OVERLAY_EXAMPLE, f)
+    if schema is None or example is None:
+        return
+    try:
+        spec = schema["properties"]["changeNature"]["items"]["properties"]["coverage"]
+        formats = set(spec["properties"]["format"]["enum"])
+        required = spec["required"]
+    except (KeyError, TypeError):
+        f.error(shown(OVERLAY_SCHEMA), "changeNature.items.properties.coverage (format enum, required) missing")
+        return
+    for i, nature in enumerate(example.get("changeNature", [])):
+        cov = nature.get("coverage") if isinstance(nature, dict) else None
+        if cov is None:
+            continue
+        where = f"{shown(OVERLAY_EXAMPLE)} changeNature[{i}].coverage"
+        for key in required:
+            if key not in cov:
+                f.error(where, f"missing required field '{key}'")
+        if "format" in cov and cov["format"] not in formats:
+            f.error(where, f"format '{cov['format']}' is not in the schema enum {sorted(formats)}")
+        threshold = cov.get("threshold", 80)
+        if not isinstance(threshold, (int, float)) or isinstance(threshold, bool) or not 0 <= threshold <= 100:
+            f.error(where, f"threshold {threshold!r} is not a number in 0..100")
+
+
 def check_skill_frontmatter(root: Path, f: Findings) -> None:
     """Every skill declares name + description, and name matches its directory."""
     base = root / SKILLS_DIR
@@ -289,6 +324,7 @@ def main(argv: list[str]) -> int:
     check_gate_coverage(root, f)
     check_manifests_and_versions(root, f)
     check_skill_frontmatter(root, f)
+    check_example_coverage(root, f)
 
     for w in f.warnings:
         print(f"warning  {w}")

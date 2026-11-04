@@ -73,6 +73,10 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   file in this diff** (host API: open PRs → changed files) and, if any overlap, warn in the PR body which
   sibling PR shares which file so the merge order is a conscious choice (union-merge at merge time, not a
   surprise). This is a heads-up, not a gate.
+- **Coverage line, per nature, from `state.coverage`**: the measured `percent` against `threshold` over
+  `corePaths`, or the recorded `"n/a: no coverage config"` verbatim — absence of measurement is stated,
+  not omitted, so a reviewer can tell "covered" from "never measured". An `undetermined` entry never
+  reaches here; G6 blocked it.
 - If `state.bakeOff` exists, the body records **which stance won and why**, and `converged: true` when the
   candidates agreed — cycle state is deleted at G13, so the PR body is the only place the next person
   choosing for this shape of change can still read it.

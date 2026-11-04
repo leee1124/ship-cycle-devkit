@@ -177,7 +177,7 @@ for that transformation's difficulty.
 (slug = branch with `/` → `-`). It lives in the cycle's own working directory — its worktree if PREFLIGHT
 created one, else the main checkout — so concurrent cycles never clobber a shared file and each owns its
 `loops`. It carries `goal`/`branch`/`stage`/`gates`/`loops`, the PREFLIGHT results (`nature`, `risk`,
-`size`, `baseline`, `models`, `effort`), `reviewJobs`, `gitFreeze` and `telemetry`; the full shape, naming,
+`size`, `baseline`, `models`, `effort`), `coverage`, `reviewJobs`, `gitFreeze` and `telemetry`; the full shape, naming,
 collision guard, resume/selection and legacy migration are in
 `${CLAUDE_PLUGIN_ROOT}/docs/state-file.md`.
 Write it at every transition; read this cycle's file at PREFLIGHT to **resume** and to enforce **its** loop
@@ -197,7 +197,7 @@ an active `gitFreeze` or a `running` `reviewJobs` entry, and treat another cycle
 | G2/G3 | interfaces specified + 0 unresolved critic objections | re-design |
 | G4 | failing tests exist for the change's logic (Red evidence) — or, for layout/copy/config, the execution-based verification is named instead (§core 3) | reject |
 | G5 | build succeeds + new tests pass (Green) | build-fixer |
-| G6 | no failures **new vs `state.baseline`** (`unrunnableHere` suites are neither pass nor regression; `baseline.flaky` cases are not exempt; under `ci-status-only` every failure blocks unless its suite is in `run.rechecked`); core coverage ≥80% | debugger → sc-implement |
+| G6 | no failures **new vs `state.baseline`** (`unrunnableHere` suites are neither pass nor regression; `baseline.flaky` cases are not exempt; under `ci-status-only` every failure blocks unless its suite is in `run.rechecked`); core coverage ≥ `threshold` (default 80%) **read from the nature's coverage report** — no `coverage` config records `"n/a: no coverage config"` in `state.coverage`, a missing/unparseable report is `undetermined` and blocks | debugger → sc-implement (undetermined → fix the coverage run) |
 | G7 | (if an artifact ships) real build succeeds | build-fixer |
 | G7b | (if the nature declares `bootCheck`) full-context **eager** boot/context-load smoke passes on a non-inert change | build-fixer (env can't load → checklist) |
 | G8 | 0 Critical/High (authz, paywall, anemic, N+1); every finding has a disposition (fixed-here / filed `#NN`); no `reviewJobs` entry still `running`/`launching`, `gitFreeze` released; UI → designer passes | → sc-implement (design flaw → sc-design) |

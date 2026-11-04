@@ -63,7 +63,7 @@ half: environment and toolchain facts are load-bearing precisely because they ar
   with a descriptive name.
 - For layout, copy, config and most UI tweaks, the meaningful verification is running the thing; verify by
   execution and name that verification instead of wrapping the change in a red-then-green unit test.
-- Separate unit / integration / E2E tests. Keep coverage of core business logic at **≥80%**.
+- Separate unit / integration / E2E tests. Keep coverage of core business logic at **≥80%** — measured at G6 from the overlay's `changeNature[].coverage` report, or recorded as `n/a: no coverage config`.
 
 ## 9. Branch management
 - Delete merged feature/fix branches immediately (local + remote).
