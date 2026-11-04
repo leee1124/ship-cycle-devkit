@@ -94,6 +94,9 @@ These are **speed knobs, not correctness ones**: if a reused server or its resid
 change under test, boot clean and say so. Absent the `env` section, always spin up fresh.
 
 ## Mobile visual QA — emulator/simulator screenshot loop
+A release build and a full suite are heavy: run them under overlay `env.heavyLock`; an emulator is
+long-lived, so check headroom and launch it detached, never building while it runs on a tight host
+(`${CLAUDE_PLUGIN_ROOT}/docs/heavy-work.md`). A lock-wait timeout leaves the QA step **not run**, reported.
 Native UI changes **can** be verified automatically when an emulator/simulator is available: drive the
 app, capture the screen, and let a vision agent read it — a real "agent sees the UI and iterates" loop,
 not just a manual checklist. Two setup traps eat hours if unanticipated — surface them in PREFLIGHT for a

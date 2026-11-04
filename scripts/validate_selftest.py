@@ -310,6 +310,62 @@ CASES = [
         "'when' must be a non-empty object",
     ),
     (
+        "schema env loses heavyLock",
+        lambda r: mutate(r / "docs" / "ship-cycle.config.schema.json", '"heavyLock": {', '"heavyLockx": {'),
+        "env lacks heavyLock",
+    ),
+    (
+        "schema maxConcurrentHeavy loses its minimum 1",
+        lambda r: mutate(
+            r / "docs" / "ship-cycle.config.schema.json",
+            '"minimum": 1,\n          "description": "Heavy jobs allowed',
+            '"minimum": 0,\n          "description": "Heavy jobs allowed'),
+        "env lacks heavyLock (string)",
+    ),
+    (
+        "schema heavyHeadroomMB loses its maximum",
+        lambda r: mutate(r / "docs" / "ship-cycle.config.schema.json", '"maximum": 1048576,', ""),
+        "needs minLength 1 and heavyHeadroomMB a maximum",
+    ),
+    (
+        "heavy-work doc drops the nesting guard",
+        lambda r: mutate(r / "docs" / "heavy-work.md", "SC_HEAVY_HELD", "SC_X", count=-1),
+        "does not state 'SC_HEAVY_HELD'",
+    ),
+    (
+        "example env maxConcurrentHeavy is zero",
+        lambda r: mutate(r / "docs" / "ship-cycle.config.example.json", '"maxConcurrentHeavy": 1',
+                         '"maxConcurrentHeavy": 0'),
+        "env.maxConcurrentHeavy must be an integer >= 1",
+    ),
+    (
+        "heavy-work doc drops the no-flock fallback",
+        lambda r: mutate(r / "docs" / "heavy-work.md", "mkdir", "makedir", count=-1),
+        "does not state 'mkdir'",
+    ),
+    (
+        "heavy-work doc drops the fd-closing wrapper",
+        lambda r: mutate(r / "docs" / "heavy-work.md", "{fd}>&-", "", count=-1),
+        "does not state '{fd}>&-'",
+    ),
+    (
+        "schema env has no properties (no crash)",
+        lambda r: mutate(r / "docs" / "ship-cycle.config.schema.json", '"env": {\n      "type": "object",\n      "properties": {',
+                         '"env": {\n      "type": "object",\n      "propertiesx": {'),
+        "env lacks heavyLock",
+    ),
+    (
+        "sc-qa stops referencing heavy-work",
+        lambda r: mutate(r / "skills" / "sc-qa" / "SKILL.md", "docs/heavy-work.md", "docs/other.md"),
+        "does not reference docs/heavy-work.md",
+    ),
+    (
+        "sc-review regains smaller-batches advice",
+        lambda r: mutate(r / "skills" / "sc-review" / "SKILL.md", "Lenses are read-only, so",
+                         "Run in smaller batches; lenses are read-only, so"),
+        "ad-hoc 'smaller batches'",
+    ),
+    (
         "example overlay uses when.release without vcs.releaseBranch",
         lambda r: mutate(r / "docs" / "ship-cycle.config.example.json", '"releaseBranch": "main",', ""),
         "vcs.releaseBranch is not declared",

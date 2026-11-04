@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.3.11 — Serialize heavy stages on resource-constrained hosts (#74)
+
+- **New optional overlay `env` keys** `heavyLock` (lock-file path shared by every heavy command, across
+  sessions and worktrees), `maxConcurrentHeavy` (integer >= 1; N slot locks `<heavyLock>.1..N`, default 1
+  when a lock is set) and `heavyHeadroomMB` (free-memory floor, default off). All unset = today's behaviour.
+- **One rule, `docs/heavy-work.md`**: heavy = jobs (full suites, builds, emulators, dev servers, same-box CI),
+  not read-only reviewers. Orchestrator tags and queues heavy work, passes lock and worker caps into every
+  agent prompt (subagents do not inherit), kills runaways by PID. No-`flock` hosts use a `mkdir` lock or
+  degrade to sequential. A schema-invalid `env` (SC-DEGRADE-ENV) loses the lock: run heavy work sequentially.
+- **ship-cycle, sc-implement, sc-review and sc-qa point to it**; sc-review's ad-hoc "smaller batches" advice
+  is gone.
+- **Cold-review hardening**: always slot files `<heavyLock>.1..N` (N=1 too, so sessions with different N
+  still exclude each other); one-shot jobs run `flock -n -E 99 -o` in a bounded-wait loop so daemons do not
+  inherit the lock fd; long-lived jobs (emulator, dev server) are governed by the headroom check, not the
+  lock; `SC_HEAVY_HELD` prevents nested self-deadlock; a lock-wait timeout leaves the step "not run",
+  never a pass; hardened `mkdir` fallback (pid file, stale lock reported, never stolen); headroom uses
+  available memory per OS and runs inside the lock; SC-DEGRADE-ENV names both fallbacks; "no `heavyLock`
+  on a small host: run sequentially" restored in sc-review/sc-implement; locking row in runtime-adapters.
+- **Delta-review fixes**: the doc now ships a tested `heavy-run.sh` — the wrapper shell holds the slot on an
+  fd and closes it for the job, so the job runs exactly once, returns its own code, and a busy slot is told
+  from a `flock` error (98) without re-running; headroom hook inside the lock; `HEAVY_WAIT` default 540 s kept
+  under agent tool timeouts, a tool-killed wait is "not run"; exact fork-and-exit form for long-lived jobs;
+  SC-DEGRADE-ENV also names the dropped `heavyHeadroomMB`.
+- **Validator** guards the schema entries (types, bounds, `heavyLock` minLength), the example env values
+  (non-object env errors, unknown keys warn), that the doc states the lock-fd, nesting and fallback rules,
+  that the four skills reference it and that "smaller batches" does not return; eight self-test
+  mutations. It does not judge the prose.
+
 ## 0.3.10 — Overlay `releaseChecklist` for store-distributed apps (#73)
 
 - **New optional overlay field** `releaseChecklist: [{ id, when, check, evidence, manual? }]`, top-level

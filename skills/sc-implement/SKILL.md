@@ -46,9 +46,10 @@ a layer), worktree-per-stack doesn't apply — the collision risk is *within* th
   alarms; agents may "fix" each other). So either isolate (`isolation: worktree`, costly at high fan-out)
   and self-verify, or keep a shared tree with a **single barrier typecheck** and, on failure, **bisect —
   map each error to its owning file → re-dispatch only that owner**, rather than stalling the whole wave.
-- **Resource-aware concurrency**: cap concurrent agents to what the machine sustains — with a heavy local
-  process up (emulator/simulator/device for visual QA), too many parallel agents can exhaust RAM and freeze
-  the box.
+- **Resource-aware concurrency**: the full suite, builds and emulators agents launch are the heavy part
+  (separate agent processes cost memory too). Run them under overlay `env.heavyLock` per
+  `${CLAUDE_PLUGIN_ROOT}/docs/heavy-work.md`; with no `heavyLock` on a small host, run heavy-launching agents
+  sequentially.
 
 ## Implement (executor — fresh context)
 Give the implementer **only the plan, the failing tests (or the named execution-based verification), and

@@ -135,7 +135,12 @@ is not resumed by a new goal: ask "resume or replace?" (`/resume` is the explici
    **fail closed**: stop and report, rather than running on defaults the operator didn't choose. One
    carve-out: a file that parses whose only problem is a schema-invalid `env` block — an opportunistic cost
    knob whose fallback is "spin up fresh" (see sc-qa) — emits `SC-DEGRADE-ENV` naming the section and
-   fallback, ignores `env`, and continues. `env` alone, because it cannot touch a correctness floor.
+   fallback, ignores `env`, and continues. `env` alone, because it cannot touch a correctness floor. Say both
+   fallbacks: spin up fresh; and, only if the raw `env` had `heavyLock`/`maxConcurrentHeavy`, the lock
+   and `heavyHeadroomMB` are gone, so run heavy work sequentially, one job at a time (`${CLAUDE_PLUGIN_ROOT}/docs/heavy-work.md`).
+   With `env.heavyLock` / `maxConcurrentHeavy` set, tag heavy work (full suite, release build, device QA) and
+   queue one-shot jobs under the lock (long-lived ones go by headroom), and paste the lock path, slots, wait bound and the overlay's worker caps into
+   every agent prompt that may run it — subagents do not inherit the rule; see that doc.
 4. **Classify change nature**: map changed paths via overlay `changeNature` (overlapping globs →
    most-specific wins; docs/i18n-only diffs prefer the docs rule) and print the resolved routing so it is
    auditable. Not one-shot: a later stage finding the change touches a stack the diff missed —

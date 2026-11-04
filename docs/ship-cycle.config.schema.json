@@ -250,7 +250,23 @@
           "type": "boolean",
           "description": "Share one dep store across worktrees (pnpm store or linked node_modules). The only env knob that is destructive on teardown: a linked node_modules must be swept for and unlinked before a worktree is deleted, or the delete reaches the shared store — see sc-ship Cleanup (G13) step 1."
         },
-        "reuseE2EInstall": { "type": "boolean" }
+        "reuseE2EInstall": { "type": "boolean" },
+        "heavyLock": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Base path of the slot lock files (<path>.1..N) every one-shot heavy command (full test suite, release build) runs under, so sessions and worktrees serialize. Opt-in: absent, no serialization. See docs/heavy-work.md."
+        },
+        "maxConcurrentHeavy": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Heavy jobs allowed at once (N slot locks); effective value 1 when unset. Without heavyLock it only caps this orchestrator. See docs/heavy-work.md."
+        },
+        "heavyHeadroomMB": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1048576,
+          "description": "Available memory (MB) required before launching a heavy job, with or without heavyLock; below it, wait or stop a job this session started. Opt-in, default off. See docs/heavy-work.md."
+        }
       }
     }
   }

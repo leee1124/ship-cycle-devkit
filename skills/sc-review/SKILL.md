@@ -70,8 +70,10 @@ actually ran, or a crashed lens silently reads as a pass on the gate that blocks
  If no dedicated reviewer exists for a lens (many setups
 have no `performance-reviewer`/`algorithm-reviewer`), spawn a `general-purpose` (or `code-reviewer`) agent
 with that lens's anti-patterns pasted in as the focus — **never skip the lens or abort on a missing agent
-type**. Scale fan-out to the host: parallel by default, but on a resource-constrained machine run the
-lenses in smaller batches (or sequentially) rather than all at once.
+type**. Lenses are read-only, so fan out in parallel; any heavy job a lens launches (a full suite, a
+build) runs under overlay `env.heavyLock` per `${CLAUDE_PLUGIN_ROOT}/docs/heavy-work.md`, and the lens
+prompt carries that rule. No `heavyLock` on a small host: run heavy-launching lenses sequentially. A lens
+whose lock wait times out is **not run** (like a killed lens), never a pass.
 This parallel default yields to the host: once it has **killed a background job for memory**, run the
 remaining lenses **sequentially**, and **never auto-relaunch a job the host killed** — report it and let the
 user decide, since the pressure that killed it has not gone away. A killed lens counts as **not run**: G8
