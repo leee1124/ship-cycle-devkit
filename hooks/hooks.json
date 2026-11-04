@@ -1,0 +1,17 @@
+{
+  "description": "ship-cycle: on startup/clear/compact, state an active or parked cycle on this branch (silent otherwise). Opt out with SHIP_CYCLE_HOOK=off.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/session-start.cjs\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

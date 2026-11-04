@@ -1,5 +1,58 @@
 # Changelog
 
+## 0.3.17 — SessionStart hook: restate an active cycle after startup, /clear and compaction (#86)
+
+- **Why.** Long cycles cross a compaction or a `/clear`, and the new context does not know a cycle is
+  mid-flight — the state-file discipline breaks silently there. The hook puts the facts back in context so
+  the session reads the state file instead of guessing.
+- **`hooks/hooks.json`** registers one `SessionStart` command hook, matcher `startup|clear|compact`,
+  timeout 5 s, running `node "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.cjs"`. It is registered by its place
+  at the plugin root (observed in a live `claude --plugin-dir` session; superpowers and oh-my-claudecode ship
+  theirs the same way), and the validator refuses a `hooks` key in the manifest as a second path.
+- **`hooks/session-start.cjs`** takes the working directory from the stdin JSON `cwd` (bounded 64 KiB read
+  that stops at the first chunk that parses, so a host that keeps stdin open does not stall it; not from a
+  terminal, not under `--host codex`; absolute, existing, not UNC-style) else its own, reads the branch from
+  the HEAD file (a `.git` directory or a worktree's `.git` file and its `gitdir:` — no `git` process), derives
+  the slug by exactly `tr '/' '-'`, and reads `.claude/ship-cycle/<slug>.json` at the repo top. Mid-pipeline
+  or `parked` → three lines: branch, stage (or resume stage and park date), next gate, loops against the cap,
+  the state path, and "run the resume reconcile before acting". The next gate is the stage's first gate not
+  recorded (`pass`, `checklist`, `degrade`, `n/a…`; `G2`/`G3`/`G2/G3` cover the one design gate); with all
+  recorded it says "stage gates recorded - advance per the pipeline". Silent for no repo, detached HEAD, no
+  file, a terminal or unknown stage, malformed or oversized JSON, a file naming another branch,
+  `SHIP_CYCLE_HOOK=off`, and any error — it always exits 0. The stage→gate map mirrors the orchestrator's
+  pipeline table and the loop cap mirrors "Loop cap: 3 per gate", both compared by `scripts/validate.py`.
+- **Built not to stall.** `.git`, HEAD and the state file are read only as regular files under a size cap,
+  so a FIFO or device is never opened; UNC-style `gitdir:`/`cwd` values are not followed; a symlink loop or
+  permission error while looking for `.git` stops the search; the stdin read relies on the host closing or
+  completing stdin (documented).
+- **Nothing from the repo is free text to the model.** Only whitelisted values are printed — stage names,
+  `G<n>` loop keys, integer counts, an ISO date, and the branch only if it matches
+  `^[A-Za-z0-9._/-]{1,80}$`, printed as ``on branch `<branch>` `` (else neither it nor the path built from it
+  is printed); `goal`,
+  `parked.reason` and gate reasons never are. Claude Code output is `hookSpecificOutput.additionalContext`
+  (the form superpowers emits for Claude Code), one form only, ASCII-escaped.
+- **Runtime: Node**, one dependency-free CommonJS file: ~30 ms, no shell fork, same behaviour on Linux,
+  macOS and Windows without Git Bash or a `.cmd` polyglot launcher. Without `node` on PATH (a native-installer
+  Claude Code may lack it) the session shows a non-blocking hook error that `SHIP_CYCLE_HOOK=off` cannot
+  silence — `disableAllHooks` or disabling the plugin does.
+- **Codex: a stated gap.** The Codex manifest declares no hooks; `--host codex` (reads `.codex/ship-cycle/`,
+  plain text) exists for manual wiring and is unverified on a real Codex install (`docs/runtime-adapters.md`
+  §Session-start hook).
+- **Automated**: `scripts/hook_test.py` drives the hook through 43 cases on hand-built repos — no state,
+  active, subdirectory, parked, each terminal value, malformed/array/empty/unknown/non-string stage, detached
+  HEAD, no git, worktree `.git` file (relative and absolute `gitdir`), slug collision, invalid UTF-8 and
+  control characters, tag-character and instruction-text branches (never echoed), every next-gate rule, cwd
+  from stdin and five unusable stdin payloads, stdin written but never closed (POSIX, < 1 s), FIFO
+  `.git`/HEAD/state and a `.git` symlink loop (POSIX), an oversized `.git` file, a network `gitdir:`, four
+  opt-out spellings, the Codex host: exit 0 well within the time budget, silence where due, 3–4 lines of ASCII
+  JSON otherwise, never the state's free text. It fails rather than skips when `node` is missing under CI.
+  `validate_selftest.py` runs it on the real hook and on broken copies that must fail (echoes the park reason,
+  lets an error escape, ignores the opt-out, prints any branch, ignores the stdin cwd, names the last gate
+  when all are recorded, and on POSIX reads a FIFO or reads stdin until it closes), and adds 6 validator
+  mutations (stage→gate drift, loop-cap drift, matcher without `compact`, a missing script, the manifest
+  declaring hooks, the opt-out undocumented). Checked live once: a `claude --plugin-dir` session in a repo
+  with an active state file received the first line verbatim.
+
 ## 0.3.16 — Behaviour evals: pressure scenarios with deterministic post-checks (#85)
 
 - **Why.** `scripts/validate.py` checks the prose's structure, not whether an agent that reads it behaves;
