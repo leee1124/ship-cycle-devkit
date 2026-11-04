@@ -21,6 +21,10 @@ Produce a design doc, not an implementation:
   stay green until the first real integration.
 - **Entry paths** (when the trigger in *Entry-path inventory* below applies): the inventory of every way
   into the touched screens, each with a criterion. Every architect whose slice moves an entry owns its part.
+- **Claim evidence**: each load-bearing claim about existing code or dependencies (a library internal, code
+  outside the change, an external API contract, a persisted data shape) carries its evidence — `path:line`,
+  dependency source, doc URL or command output.
+  Rule and definitions: `${CLAUDE_PLUGIN_ROOT}/docs/claim-evidence.md`.
 - **Tradeoffs & alternatives**: at least one alternative considered, with why the chosen one wins.
 - **Constitution fit**: layered separation (Controller/Service/Repository/DTO); depend on interfaces;
   business logic **inside the domain** (no anemic model). See
@@ -62,6 +66,10 @@ A separate agent attacks the design (the **union** of all architect docs when th
   entry-path inventory against the code itself — grep the route/screen name and list its real call sites,
   links and redirects — and flag any entry path missing from the inventory or lacking a criterion (arrival
   state/params, back/close behaviour). The design doc is the claim under test, not the evidence.
+- **Claim evidence**: every load-bearing claim about existing code or dependencies (a library internal,
+  code outside the change, an external API contract, a persisted data shape) needs its evidence
+  (`${CLAUDE_PLUGIN_ROOT}/docs/claim-evidence.md`); open the cited line rather than trust the sentence. An
+  unevidenced one, or a citation that does not say what the claim says, is an objection.
 - **Inter-axis seam mismatches**: when architects were split, the critic's first job is to check their
   seams line up (names, signatures, who-owns-what) and that no two axes made contradictory scope
   assumptions.
