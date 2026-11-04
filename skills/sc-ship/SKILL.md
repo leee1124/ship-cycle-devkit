@@ -138,8 +138,11 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
     to delete the item that would fail it. If the base lacks the overlay file or the field, the base list
     is empty: every matching head item goes on the pre-merge manual gate as "new checklist item, not yet
     enforced" (machine items may still run); never fall back silently to the head list. If the diff
-    edits `releaseChecklist`, list that edit on the pre-merge manual gate. A gitignored local overlay
-    cannot be read from the base; its owner edits it outside the cycle.
+    edits `releaseChecklist`, list that edit on the pre-merge manual gate. The fields that decide whether
+    an item matches — `vcs.releaseBranch` and the `changeNature` definitions — come from the same base
+    overlay, and a diff edit to them goes on the manual gate too; otherwise a PR could escape an item
+    by narrowing a glob instead of deleting it. A gitignored local overlay cannot be read from the base;
+    its owner edits it outside the cycle.
   - **Machine item** (no `manual`): run `check` before push, alongside the merge-tree probe; judge by
     `evidence`. On a failure set `gates.G12 = fail` first, then append the row with the loop count; never
     waived, only fixed or removed by the overlay's owner.
