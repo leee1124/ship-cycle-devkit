@@ -498,6 +498,43 @@ def check_entry_path_inventory(root: Path, f: Findings) -> None:
         f.error(where, "critic review has no '**Entry-path inventory**' bullet")
 
 
+def check_claim_evidence(root: Path, f: Findings) -> None:
+    """The claim-evidence rule exists once, and sc-design (output + critic) and sc-review point to it.
+
+    #72: a subagent report misread a library internal and the orchestrator passed it on. The rule is prose;
+    the mechanical part is that the doc keeps its marked rule and the three consumers keep a bold-labelled
+    `**Claim evidence**` bullet naming the doc.
+    """
+    doc = root / "docs" / "claim-evidence.md"
+    if not doc.is_file():
+        f.error("docs/claim-evidence.md", "missing")
+    else:
+        m = re.search(r"<!-- claim-evidence-rule -->(.*?)<!-- /claim-evidence-rule -->", read(doc), re.S)
+        body = m.group(1) if m else ""
+        for token in ("Load-bearing", "path:line", "official doc URL", "command and its output", "objection"):
+            if token.lower() not in body.lower():
+                f.error("docs/claim-evidence.md", f"claim-evidence rule block does not state {token!r}")
+    design = root / SKILLS_DIR / "sc-design" / "SKILL.md"
+    if design.is_file():
+        sections = re.split(r"^## ", read(design), flags=re.M)
+        for label, prefix in (("design output", "Design (architect"), ("critic review", "Design review (critic")):
+            sec = next((s for s in sections if s.startswith(prefix)), "")
+            if not _claim_bullet(sec):
+                f.error(shown(design.relative_to(root)), f"{label} has no '**Claim evidence**' bullet naming claim-evidence.md")
+    review = root / SKILLS_DIR / "sc-review" / "SKILL.md"
+    if review.is_file():
+        sections = re.split(r"^## ", read(review), flags=re.M)
+        sec = next((s for s in sections if s.startswith("Output & severity discipline")), "")
+        if not _claim_bullet(sec):
+            f.error(shown(review.relative_to(root)),
+                    "output & severity discipline has no '**Claim evidence**' bullet naming claim-evidence.md")
+
+
+def _claim_bullet(section: str) -> bool:
+    m = re.search(r"^- \*\*Claim evidence\*\*(.*?)(?=^- |\Z)", section, re.M | re.S | re.I)
+    return bool(m and "claim-evidence.md" in m.group(1))
+
+
 # --- entry point -------------------------------------------------------------------------------
 
 
@@ -512,6 +549,7 @@ def main(argv: list[str]) -> int:
     check_manifests_and_versions(root, f)
     check_gate_summary(root, f)
     check_entry_path_inventory(root, f)
+    check_claim_evidence(root, f)
     check_skill_frontmatter(root, f)
     check_example_coverage(root, f)
     check_example_release_smoke(root, f)

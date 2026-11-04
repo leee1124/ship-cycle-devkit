@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.9 — Load-bearing factual claims in design and review reports carry evidence (#72)
+
+- **Rule, stated once** in `docs/claim-evidence.md`. A *load-bearing claim* is a factual claim a decision,
+  severity or acceptance criterion depends on (code behaviour, library/framework internal, API contract, data
+  shape). Evidence is a repo `path:line`, dependency source, official doc URL, or a command and its output;
+  memory and "I believe" are not. An unevidenced load-bearing claim is an objection for the critic (design) or
+  refuter (review), and a review finding resting on one is not kept as Critical/High until evidenced.
+  Non-load-bearing remarks need no citation. A subagent had misread a library internal and the orchestrator
+  passed it on unchallenged.
+- **Consumers point to it**: sc-design's `## Design` checklist and critic section, and sc-review's output &
+  severity discipline each have a `**Claim evidence**` bullet; the refuter also opens the cited evidence.
+- **Validator** guards that the doc keeps its marked rule block (load-bearing, `path:line`, doc URL, command
+  output, objection) and that those three places keep a `**Claim evidence**` bullet naming
+  `claim-evidence.md`; one self-test mutation per anchor. It does not judge the prose.
+
 ## 0.3.8 — sc-design: changes that move an entry point inventory every entry path (#71)
 
 - **Entry-path inventory** in sc-design. Trigger, defined once by content: the change adds, removes or

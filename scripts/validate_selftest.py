@@ -328,6 +328,26 @@ CASES = [
         ),
         "critic review has no '**Entry-path inventory**' bullet",
     ),
+    (
+        "claim-evidence doc loses its rule block",
+        lambda r: mutate(r / "docs" / "claim-evidence.md", "path:line", "a location"),
+        "does not state 'path:line'",
+    ),
+    (
+        "sc-design output drops the Claim evidence bullet",
+        lambda r: mutate(r / "skills" / "sc-design" / "SKILL.md", "- **Claim evidence**: each", "- Claim evidence: each"),
+        "design output has no '**Claim evidence**' bullet",
+    ),
+    (
+        "sc-design critic drops the Claim evidence bullet",
+        lambda r: mutate(r / "skills" / "sc-design" / "SKILL.md", "- **Claim evidence**: every", "- Claim evidence: every"),
+        "critic review has no '**Claim evidence**' bullet",
+    ),
+    (
+        "sc-review output discipline drops the Claim evidence bullet",
+        lambda r: mutate(r / "skills" / "sc-review" / "SKILL.md", "- **Claim evidence** —", "- Claim evidence —"),
+        "output & severity discipline has no '**Claim evidence**' bullet",
+    ),
 ]
 
 

@@ -193,6 +193,9 @@ Every lens returns, in this shape:
   severity (a problems-only reviewer inflates). "Solid" is a valid finding.
 - **Issues** — by **actual** severity (Critical/High/Medium/Low), with file:line, *why it matters*, and a
   fix. Don't mark nitpicks as Critical; don't bury a Critical as a nit.
+- **Claim evidence** — a load-bearing factual claim behind a finding (what the code or a library does, an
+  API contract) cites its evidence (`${CLAUDE_PLUGIN_ROOT}/docs/claim-evidence.md`); a Critical/High resting
+  on an unevidenced claim is not kept at that severity until it is.
 - **Data-integrity floor**: a change that can persist **wrong / duplicate / lost / orphaned** data is at
   least **High** — even if it *matches the spec* or *replicates a legacy/upstream quirk*. "The old system
   did it too" is a parity note, **not** a severity downgrade; surface it as fix-or-explicit-owner-decision,
@@ -208,7 +211,8 @@ Every lens returns, in this shape:
 
 ## Verify findings (avoid false positives)
 For each Critical/High, spawn an independent check that tries to **refute** it (does the code path
-actually reach the bug? is it already mitigated elsewhere?). Keep only findings that survive. Scale the
+actually reach the bug? is it already mitigated elsewhere?) and opens the cited evidence for the claims the
+finding rests on. Keep only findings that survive. Scale the
 count of refuters to the size tier (§ship-cycle Stage 0.2 — Change-size tier): Tier S runs no verification
 fleet — but **never to zero on a surviving Critical/High**, which always gets at least one refuter.
 
