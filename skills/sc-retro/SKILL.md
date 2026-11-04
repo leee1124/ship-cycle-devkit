@@ -36,7 +36,7 @@ retro that finds nothing is a valid result.
 **Locate the transcript by session id first.** On Claude Code, search every project dir —
 `ls ~/.claude/projects/*/<session-id>.jsonl` — because the cwd slug can differ from today's after a
 directory rename; without an id, list candidates across all project dirs. Then confirm by content
-using counts only — `grep -c '<branch>' "$F"` and the same for the goal from the log header — never
+using counts only — `grep -cF -- '<branch>' "$F"` (fixed string) and the same for the goal from the log header — never
 extracted text from a candidate; recency alone is not confirmation. List rejected candidates with the
 reason. **If the transcript cannot be found or confirmed, run on state + log only and say so at the top
 of the report**: the friction and review-effectiveness dimensions then report only what the log proves.
@@ -120,8 +120,9 @@ into a temp file — and match each kit-generic finding against that file on the
 text off the machine as a query. Only if that list is truncated (returned count == the limit) or `gh`
 is missing may a remote search run, with terms built only after redaction and only from kit vocabulary
 (gate ids, stage and lens names, kit file paths). A match gets a link instead of a draft; a comment on
-the match goes through the same redact → show → approve path as a draft. Otherwise draft: **title**, **problem**, **proposal**,
-**evidence** (citations rewritten as `transcript line <n>` / `gate log line <n>`), and the kit version.
+the match goes through the same redact → show → approve path as a draft. Otherwise draft: **title**,
+**problem**, **proposal**, **evidence** (citations rewritten as `transcript line <n>` / `gate log line <n>`),
+and the kit version.
 <!-- /retro-dedup -->
 
 <!-- retro-redaction -->
