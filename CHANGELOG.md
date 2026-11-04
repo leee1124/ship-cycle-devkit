@@ -1,5 +1,46 @@
 # Changelog
 
+## 0.3.17 — SessionStart hook: restate an active cycle after startup, /clear and compaction (#86)
+
+- **Why.** Long cycles cross a compaction or a `/clear`, and the new context does not know a cycle is
+  mid-flight — the state-file discipline breaks silently there. The hook puts the facts back in context so
+  the session reads the state file instead of guessing.
+- **`hooks/hooks.json`** registers one `SessionStart` command hook, matcher `startup|clear|compact`,
+  timeout 5 s, running `node "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.cjs"`. Claude Code discovers
+  `hooks/hooks.json` at the plugin root, so the manifest does not declare it (declaring it loads it twice;
+  the validator now refuses a `hooks` key in the Claude manifest).
+- **`hooks/session-start.cjs`** reads the branch from the HEAD file (a `.git` directory or a worktree's
+  `.git` file and its `gitdir:` — no `git` process), derives the slug by exactly `tr '/' '-'`, and reads
+  `.claude/ship-cycle/<slug>.json` at the repo top. Mid-pipeline or `parked` → three lines: branch, stage
+  (or resume stage and park date), next gate, loops against the cap, the state path, and "run the resume
+  reconcile before acting". Silent for no repo, detached HEAD, no file, a terminal or unknown stage,
+  malformed or oversized JSON, a file naming another branch, `SHIP_CYCLE_HOOK=off`, and any error — it
+  always exits 0. The next gate is the first gate of the stage not recorded `pass`/`n/a`; the stage→gate
+  map mirrors the orchestrator's pipeline table and the loop cap mirrors "Loop cap: 3 per gate", both
+  compared by `scripts/validate.py`.
+- **State is data.** Only whitelisted fields are printed, each matched against a vocabulary or a fixed shape
+  (stage names, `G<n>` loop keys, integer counts, an ISO date), control and format characters stripped,
+  length capped; `goal`, `parked.reason` and gate reasons are never echoed. Claude Code output is
+  `hookSpecificOutput.additionalContext` (the field superpowers emits for Claude Code; one form only, since
+  Claude Code does not de-duplicate), ASCII-escaped.
+- **Runtime: Node**, one dependency-free CommonJS file: ~30 ms, no shell fork, same behaviour on Linux,
+  macOS and Windows without Git Bash or a `.cmd` polyglot launcher. Without `node` on PATH (a native-installer
+  Claude Code may lack it) the session shows a non-blocking hook error; opt out with `SHIP_CYCLE_HOOK=off`
+  or `disableAllHooks`.
+- **Codex: a stated gap.** The Codex manifest declares no hooks; `--host codex` (reads `.codex/ship-cycle/`,
+  plain text) exists for manual wiring and is unverified on a real Codex install (`docs/runtime-adapters.md`
+  §Session-start hook).
+- **Automated**: `scripts/hook_test.py` drives the hook through 24 cases on hand-built repos (no state,
+  active, from a subdirectory, parked, each terminal value, malformed/array/empty/unknown/non-string stage,
+  detached HEAD, no git, worktree `.git` file with relative and absolute `gitdir`, slug collision, invalid
+  UTF-8 and control characters in the file and the branch name, the `n/a` combined gate key, four opt-out
+  spellings, the Codex host): exit 0 always, silence where due, 3–4 lines of ASCII JSON otherwise, never the
+  state's free text. It fails rather than skips when `node` is missing under CI. `validate_selftest.py` runs
+  it on the real hook and on three broken copies (echoes the park reason, lets an error escape, ignores the
+  opt-out) that must fail, and adds 6 validator mutations (stage→gate drift, loop-cap drift, matcher without
+  `compact`, a missing script, the manifest declaring hooks, the opt-out undocumented). Checked live: a
+  `claude --plugin-dir` session in a repo with an active state file received the first line verbatim.
+
 ## 0.3.16 — Behaviour evals: pressure scenarios with deterministic post-checks (#85)
 
 - **Why.** `scripts/validate.py` checks the prose's structure, not whether an agent that reads it behaves;

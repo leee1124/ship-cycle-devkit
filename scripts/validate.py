@@ -1176,6 +1176,105 @@ def check_evals(root: Path, f: Findings) -> None:
         f.error(shown(EVALS_CHECKER), f"check {unused!r} is used by no scenario")
 
 
+HOOKS_JSON = Path("hooks/hooks.json")
+HOOK_SCRIPT = Path("hooks/session-start.cjs")
+HOOK_MATCHER = {"startup", "clear", "compact"}
+HOOK_OPT_OUT = "SHIP_CYCLE_HOOK"
+HOOK_DOCS = (Path("docs/runtime-adapters.md"), Path("README.md"))
+HOOK_COMMAND_RE = re.compile(r"\$\{CLAUDE_PLUGIN_ROOT\}/(hooks/[A-Za-z0-9._-]+)")
+STAGE_GATES_BLOCK_RE = re.compile(r"// stage-gates:begin\n\s*const STAGE_GATES = (\{.*?\});\n// stage-gates:end", re.S)
+LOOP_CAP_SCRIPT_RE = re.compile(r"^const LOOP_CAP = (\d+);", re.M)
+LOOP_CAP_SKILL_RE = re.compile(r"\*\*Loop cap: (\d+) per gate\*\*")
+PIPELINE_ROW_RE = re.compile(r"^\|\s*\d+\s*\|\s*`(sc-[a-z-]+)`\s*\|[^|\n]*\|\s*([^|\n]+?)\s*\|", re.M)
+
+
+def _expand_gates(cell: str) -> list[str]:
+    """`G5/G6/G7/G7b` -> four ids; `G10–G13` -> G10..G13."""
+    out: list[str] = []
+    for part in cell.split("/"):
+        m = re.fullmatch(r"G(\d+)[–-]G(\d+)", part.strip())
+        if m:
+            out += [f"G{n}" for n in range(int(m.group(1)), int(m.group(2)) + 1)]
+        elif re.fullmatch(r"G\d+[a-z]?", part.strip()):
+            out.append(part.strip())
+    return out
+
+
+def check_session_hook(root: Path, f: Findings) -> None:
+    """#86: the SessionStart hook is wired, points at a script that exists, and agrees with the pipeline.
+
+    The hook names the next gate from a small stage->gate map; the pipeline table in the orchestrator is the
+    single source, so the map is parsed and compared rather than trusted. Claude Code discovers
+    `hooks/hooks.json` at the plugin root on its own -- declaring it again in the manifest loads it twice.
+    """
+    hooks = load_json(root, HOOKS_JSON, f)
+    if hooks is not None:
+        entries = hooks.get("hooks", {}).get("SessionStart") if isinstance(hooks.get("hooks"), dict) else None
+        if not isinstance(entries, list) or not entries:
+            f.error(shown(HOOKS_JSON), "no hooks.SessionStart entry")
+            entries = []
+        for entry in entries:
+            if not isinstance(entry, dict):
+                f.error(shown(HOOKS_JSON), "SessionStart entry is not an object")
+                continue
+            matcher = set(str(entry.get("matcher", "")).split("|"))
+            if matcher != HOOK_MATCHER:
+                f.error(shown(HOOKS_JSON), f"SessionStart matcher must be exactly startup|clear|compact, "
+                                           f"got {entry.get('matcher')!r}")
+            for hook in entry.get("hooks", []) if isinstance(entry.get("hooks"), list) else []:
+                if not isinstance(hook, dict) or hook.get("type") != "command":
+                    f.error(shown(HOOKS_JSON), "SessionStart hook is not a command hook")
+                    continue
+                refs = HOOK_COMMAND_RE.findall(str(hook.get("command", "")))
+                if not refs:
+                    f.error(shown(HOOKS_JSON), "hook command does not run a script under ${CLAUDE_PLUGIN_ROOT}/hooks/")
+                for ref in refs:
+                    if not (root / ref).is_file():
+                        f.error(shown(HOOKS_JSON), f"hook command runs {ref}, which does not exist")
+                timeout = hook.get("timeout")
+                if not isinstance(timeout, (int, float)) or not 0 < timeout <= 10:
+                    f.error(shown(HOOKS_JSON), "hook needs a timeout of at most 10 seconds")
+    claude = load_json(root, CLAUDE_MANIFEST, f)
+    if isinstance(claude, dict) and "hooks" in claude:
+        f.error(shown(CLAUDE_MANIFEST), "declares 'hooks', but hooks/hooks.json is discovered automatically "
+                                        "(declaring it again loads it twice)")
+
+    script_path = root / HOOK_SCRIPT
+    if not script_path.is_file():
+        f.error(shown(HOOK_SCRIPT), "missing")
+        return
+    script = read(script_path)
+    m = STAGE_GATES_BLOCK_RE.search(script)
+    try:
+        mapped = json.loads(m.group(1)) if m else None
+    except ValueError:
+        mapped = None
+    if not isinstance(mapped, dict):
+        f.error(shown(HOOK_SCRIPT), "no parseable // stage-gates:begin ... :end STAGE_GATES block")
+        mapped = {}
+    orchestrator = root / SKILLS_DIR / "ship-cycle" / "SKILL.md"
+    skill_text = read(orchestrator) if orchestrator.is_file() else ""
+    tabled = {stage: _expand_gates(cell) for stage, cell in PIPELINE_ROW_RE.findall(skill_text)}
+    if not tabled:
+        f.error(shown(orchestrator.relative_to(root)), "pipeline table has no stage rows")
+    for stage in sorted(set(tabled) | set(mapped)):
+        if tabled.get(stage) != mapped.get(stage):
+            f.error(shown(HOOK_SCRIPT), f"stage->gate map disagrees with the pipeline table for {stage}: "
+                                        f"hook {mapped.get(stage)!r}, table {tabled.get(stage)!r}")
+    cap_script = LOOP_CAP_SCRIPT_RE.search(script)
+    cap_skill = LOOP_CAP_SKILL_RE.search(skill_text)
+    if not cap_script or not cap_skill or cap_script.group(1) != cap_skill.group(1):
+        f.error(shown(HOOK_SCRIPT), f"LOOP_CAP {cap_script.group(1) if cap_script else None} disagrees with the "
+                                    f"orchestrator's loop cap {cap_skill.group(1) if cap_skill else None}")
+    if HOOK_OPT_OUT not in script:
+        f.error(shown(HOOK_SCRIPT), f"does not honour the {HOOK_OPT_OUT} opt-out")
+    for doc in HOOK_DOCS:
+        text = read(root / doc) if (root / doc).is_file() else ""
+        for token in ("SessionStart", HOOK_OPT_OUT):
+            if token not in text:
+                f.error(shown(doc), f"does not document the SessionStart hook ({token!r} missing)")
+
+
 def main(argv: list[str]) -> int:
     root = Path(argv[1]).resolve() if len(argv) > 1 else Path(__file__).resolve().parent.parent
     f = Findings()
@@ -1197,6 +1296,7 @@ def main(argv: list[str]) -> int:
     check_visual_check(root, f)
     check_retro(root, f)
     check_evals(root, f)
+    check_session_hook(root, f)
 
     for w in f.warnings:
         print(f"warning  {w}")

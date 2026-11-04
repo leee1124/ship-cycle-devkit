@@ -22,6 +22,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 VALIDATOR = REPO / "scripts" / "validate.py"
+HOOK_TEST = REPO / "scripts" / "hook_test.py"
 COPY_SKIP = {".git", "__pycache__", ".github"}
 
 
@@ -42,6 +43,24 @@ def run_eval_checker(root: Path) -> tuple[int, str]:
         capture_output=True, text=True, encoding="utf-8", errors="replace", env=env,
     )
     return proc.returncode, proc.stdout + proc.stderr
+
+
+def run_hook_test(hook: Path) -> tuple[int, str]:
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
+    proc = subprocess.run(
+        [sys.executable, str(HOOK_TEST), str(hook)],
+        capture_output=True, text=True, encoding="utf-8", errors="replace", env=env,
+    )
+    return proc.returncode, proc.stdout + proc.stderr
+
+
+# Broken copies of the SessionStart hook its behaviour test must reject (#86): (name, old, new, expected).
+HOOK_MUTATIONS = [
+    ("hook echoes the park reason", '"; the park reason is recorded there"',
+     '"; reason: " + state.parked.reason', "echoed state free text"),
+    ("hook lets an error escape", "} catch (_) {\n  out = null;\n}", "} finally {}", "exit 1"),
+    ("hook ignores the opt-out", "if (OFF_VALUES.has(off)) return null;", "", "expected silence"),
+]
 
 
 def fresh_copy(dest: Path) -> Path:
@@ -1379,6 +1398,37 @@ CASES = [
         lambda r: mutate(r / "evals" / "README.md", "never a required check", "an optional check", count=-1),
         "does not state 'never a required check'",
     ),
+    (
+        "hook's stage->gate map drifts from the pipeline table",
+        lambda r: mutate(r / "hooks" / "session-start.cjs", '"sc-review": ["G8"]', '"sc-review": ["G9"]'),
+        "stage->gate map disagrees with the pipeline table for sc-review",
+    ),
+    (
+        "hook's loop cap drifts from the orchestrator's",
+        lambda r: mutate(r / "hooks" / "session-start.cjs", "const LOOP_CAP = 3;", "const LOOP_CAP = 4;"),
+        "LOOP_CAP 4 disagrees",
+    ),
+    (
+        "SessionStart matcher drops compact",
+        lambda r: mutate(r / "hooks" / "hooks.json", '"startup|clear|compact"', '"startup|clear"'),
+        "matcher must be exactly startup|clear|compact",
+    ),
+    (
+        "hook command points at a script that does not exist",
+        lambda r: mutate(r / "hooks" / "hooks.json", "session-start.cjs", "session-start.js"),
+        "hooks/session-start.js, which does not exist",
+    ),
+    (
+        "Claude manifest declares the auto-discovered hooks file",
+        lambda r: mutate(r / ".claude-plugin" / "plugin.json", '"skills": "./skills/",',
+                         '"skills": "./skills/",\n  "hooks": "./hooks/hooks.json",'),
+        "declares 'hooks'",
+    ),
+    (
+        "runtime-adapters stops documenting the hook opt-out",
+        lambda r: mutate(r / "docs" / "runtime-adapters.md", "SHIP_CYCLE_HOOK", "THE_HOOK_VAR", count=-1),
+        "('SHIP_CYCLE_HOOK' missing)",
+    ),
 ]
 
 
@@ -1433,6 +1483,29 @@ def main() -> int:
             failures.append(f"[eval checker] swapped fixtures not all caught (missed {missed}):\n{out}")
         else:
             print(f"ok   eval checker selftest fails on each of {len(swapped)} swapped fixtures")
+
+    # The SessionStart hook (#86): its behaviour test passes on the real script and fails on each broken copy.
+    code, out = run_hook_test(REPO / "hooks" / "session-start.cjs")
+    skipped = out.startswith("skip")
+    if code != 0:
+        failures.append(f"scripts/hook_test.py fails on the real hook:\n{out}")
+    elif skipped:
+        print(out.strip())
+    else:
+        print("ok   SessionStart hook behaviour test passes on the real hook")
+        for name, old, new, expected in HOOK_MUTATIONS:
+            with tempfile.TemporaryDirectory(prefix="scdk self test ") as tmp:
+                hook = Path(tmp) / "hook copy" / "session-start.cjs"
+                hook.parent.mkdir()
+                shutil.copy2(REPO / "hooks" / "session-start.cjs", hook)
+                mutate(hook, old, new)
+                code, out = run_hook_test(hook)
+                if code == 0:
+                    failures.append(f"[{name}] hook test passed a broken hook")
+                elif expected not in out:
+                    failures.append(f"[{name}] expected {expected!r} in hook test output, got:\n{out}")
+                else:
+                    print(f"ok   {name}")
 
     for name, mutation, expected in CASES:
         with tempfile.TemporaryDirectory(prefix="scdk self test ") as tmp:

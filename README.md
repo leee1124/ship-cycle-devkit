@@ -34,6 +34,7 @@ Composable skills — a thin orchestrator that chains one short skill per stage 
 | Impl prompt templates | `prompts/impl-{backend,web,mobile}.md` | Stack-specific implementation prompts (adapt to your stack) |
 | Overlay config + schema | `docs/ship-cycle.config.{example,schema}.json` | The per-project config and its JSON Schema |
 | Observability commands | `commands/` | User-invokable `/status` · `/resume` · `/ship` slash commands (read-only by default) |
+| Session-start reminder | `hooks/` | Optional `SessionStart` hook: after startup/`/clear`/compaction, states an active or parked cycle on this branch in three quiet lines (silent otherwise; `SHIP_CYCLE_HOOK=off` disables) |
 
 ## Install
 
@@ -62,6 +63,8 @@ installation and commands are unchanged.
 - **Config and state still resolve to `.claude/`** everywhere in the skills. `docs/runtime-adapters.md`
   describes the intended `.codex/` convention and its precedence rule; that is design intent, not yet
   implemented.
+- **The session-start reminder hook** is not wired on Codex: the Codex manifest declares no hooks.
+  The script has a `--host codex` mode for manual wiring, unverified (`docs/runtime-adapters.md`).
 - The install command and invocation syntax above have **not been exercised against a real Codex
   install** — see the CHANGELOG's *Not delivered*.
 
@@ -95,6 +98,23 @@ working directory; they resolve the branch with `git branch --show-current`, whi
   state file first, then continue from the stage it picks (doesn't restart completed stages).
 - `/ship-cycle-devkit:ship` — jump to the ship stage when the required upstream gates (G1–G9) are green;
   refuses if any gate is unmet.
+
+### Session-start reminder
+
+Long cycles cross a compaction or a `/clear`, and the new context does not know a cycle is mid-flight. The
+plugin's `SessionStart` hook (`hooks/hooks.json`, matcher `startup|clear|compact`) reads this branch's state
+file and, only if the stage is mid-pipeline or `parked`, adds three lines of context:
+
+```text
+ship-cycle: active cycle on feat/x - stage sc-review, next gate G8, loops G8=1/3.
+State: .claude/ship-cycle/feat-x.json (gate log beside it).
+Run /ship-cycle-devkit:resume's reconcile before acting.
+```
+
+It is read-only, starts no process (the branch comes from the HEAD file), prints only whitelisted fields
+from the state file — never its free text — and exits 0 silently on anything unexpected. It needs `node` on
+PATH. Disable it with `SHIP_CYCLE_HOOK=off` in your environment or a settings `env` block. Details, the
+Node choice and the Codex gap: `docs/runtime-adapters.md` §Session-start hook.
 
 ## Project overlay (make it yours)
 
