@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.3 — A CI run on the base commit counts as baseline evidence (#66)
+
+- **`state.baseline.source`: `local`, `ci` or `ci-status-only`.** A full local baseline run can take an
+  hour on a constrained host, so operators were substituting "base is CI-green" by hand with nothing
+  recorded. `ci` ingests the base commit's CI report into `failing`, so G6/G9 still diff mechanically;
+  `ci-status-only` (green run, no report) blocks every failure unless its suite was rechecked. An absent
+  `source` reads as `local`.
+- **`state.baseline.run`** records the run (`ref`, `commit`, `job`, `report`, `rechecked`); retry-only reds
+  go to `baseline.flaky` and are not exempt. Recheck additions to `failing` carry `capturedAt`, and
+  `/status` flags them as mid-cycle.
+- The trade-off — false regressions from local-only reds, a wider exemption from CI-only reds — and the
+  one-suite base-commit recheck that settles both are in `docs/test-baseline.md`. Overlay
+  `changeNature[].ciBaseline` names the CI job and report per nature.
+
 ## 0.3.2 — sc-ship records G10–G12 (#63)
 
 - **sc-ship sets the gates it evaluates.** `gates.G10` after the docs check (or `"n/a: <reason>"` with the

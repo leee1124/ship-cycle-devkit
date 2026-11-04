@@ -11,7 +11,9 @@ the mechanics that only matter when something unusual happens to its name or its
   "loops": { "G8": 1 },
   "nature": ["backend"], "risk": ["auth"], "size": "L",
   "sizeEvidence": ["src/a.py:41", "src/b.py:88"],
-  "baseline": { "capturedOn": "<base-sha>", "failing": ["suiteA#case", "..."],
+  "baseline": { "capturedOn": "<base-sha>", "source": "local",
+                "run": null,
+                "failing": ["suiteA#case", "..."], "flaky": [],
                 "unrunnableHere": [{ "suite": "suiteB", "reason": "no database reachable",
                                      "startupError": "<the suite's own init error, before any test ran>",
                                      "probe": "<dependency ping> → connection refused",
@@ -40,6 +42,13 @@ the mechanics that only matter when something unusual happens to its name or its
                                          "candidates": 3, "stances": ["mvp-first", "risk-first",
                                          "performance-first"], "tokens": null, "cost": null } } } }
 ```
+
+`baseline.source` is `local`, `ci` or `ci-status-only`. Under a CI source `baseline.run` holds the run
+reference (`ref`, `commit`, `job`, `report`, `rechecked`); under `ci-status-only` every failure blocks unless
+its suite is in `run.rechecked`, and `failing` holds entries only for rechecked suites. A `failing` entry is a
+bare case id (captured at PREFLIGHT) or `{ "case", "capturedAt": "<stage>" }` (added by a recheck);
+`flaky` cases are never exempt — a recheck replaces a suite's `failing` entries, it does not exempt `flaky`.
+Shape and rules: `${CLAUDE_PLUGIN_ROOT}/docs/test-baseline.md`.
 
 ## The slug
 

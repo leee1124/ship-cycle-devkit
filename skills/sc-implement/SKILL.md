@@ -67,7 +67,11 @@ authz from the principal only, DTOs not entities, whitelist validation, no N+1, 
 - **G6**: no failures **new vs `state.baseline`** (the base-branch reds captured at PREFLIGHT don't
   block — don't make each implementer re-derive "mine or pre-existing?" by stash-and-compare; diff the
   run against `state.baseline.failing`), core coverage ≥80%. On a genuinely new failure, attach a
-  debugger and loop. Suites in **`state.baseline.unrunnableHere`** — ones this environment cannot start,
+  debugger and loop. `baseline.flaky` cases are not exempt. Under **`ci-status-only`** every
+  failure blocks unless its suite is in `baseline.run.rechecked`. A failure you believe is pre-existing or
+  environment-only is settled by rechecking that suite on the base commit — never the working tree — per
+  `${CLAUDE_PLUGIN_ROOT}/docs/test-baseline.md`, not by argument. Suites in
+  **`state.baseline.unrunnableHere`** — ones this environment cannot start,
   probed and recorded at PREFLIGHT — are diffed **around**: not a regression, and not coverage either
   (§ship-cycle Stage 0.5 — Capture a test baseline). A suite that starts and fails is a failure like any
   other. **There is no path that adds a suite to that set here**: a suite that ran at PREFLIGHT and won't
