@@ -315,10 +315,22 @@ CASES = [
         "env lacks heavyLock",
     ),
     (
-        "schema maxConcurrentHeavy loses its minimum",
-        lambda r: mutate(r / "docs" / "ship-cycle.config.schema.json", '"minimum": 1,\n          "description": "How many',
-                         '"minimum": 0,\n          "description": "How many'),
-        "env lacks heavyLock",
+        "schema maxConcurrentHeavy loses its minimum 1",
+        lambda r: mutate(
+            r / "docs" / "ship-cycle.config.schema.json",
+            '"minimum": 1,\n          "description": "Heavy jobs allowed',
+            '"minimum": 0,\n          "description": "Heavy jobs allowed'),
+        "env lacks heavyLock (string)",
+    ),
+    (
+        "schema heavyHeadroomMB loses its maximum",
+        lambda r: mutate(r / "docs" / "ship-cycle.config.schema.json", '"maximum": 1048576,', ""),
+        "needs minLength 1 and heavyHeadroomMB a maximum",
+    ),
+    (
+        "heavy-work doc drops the nesting guard",
+        lambda r: mutate(r / "docs" / "heavy-work.md", "SC_HEAVY_HELD", "SC_X", count=-1),
+        "does not state 'SC_HEAVY_HELD'",
     ),
     (
         "example env maxConcurrentHeavy is zero",
@@ -338,8 +350,8 @@ CASES = [
     ),
     (
         "sc-review regains smaller-batches advice",
-        lambda r: mutate(r / "skills" / "sc-review" / "SKILL.md", "Lenses are read-only and cheap",
-                         "Run in smaller batches; lenses are read-only and cheap"),
+        lambda r: mutate(r / "skills" / "sc-review" / "SKILL.md", "Lenses are read-only, so",
+                         "Run in smaller batches; lenses are read-only, so"),
         "ad-hoc 'smaller batches'",
     ),
     (

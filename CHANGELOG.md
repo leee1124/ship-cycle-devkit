@@ -11,8 +11,16 @@
   degrade to sequential. A schema-invalid `env` (SC-DEGRADE-ENV) loses the lock: run heavy work sequentially.
 - **ship-cycle, sc-implement, sc-review and sc-qa point to it**; sc-review's ad-hoc "smaller batches" advice
   is gone.
-- **Validator** guards the schema entries (types, minimum 1), the example env values, that the doc states its
-  fallbacks, that the four skills reference it and that "smaller batches" does not return; six self-test
+- **Cold-review hardening**: always slot files `<heavyLock>.1..N` (N=1 too, so sessions with different N
+  still exclude each other); one-shot jobs run `flock -n -E 99 -o` in a bounded-wait loop so daemons do not
+  inherit the lock fd; long-lived jobs (emulator, dev server) are governed by the headroom check, not the
+  lock; `SC_HEAVY_HELD` prevents nested self-deadlock; a lock-wait timeout leaves the step "not run",
+  never a pass; hardened `mkdir` fallback (pid file, stale lock reported, never stolen); headroom uses
+  available memory per OS and runs inside the lock; SC-DEGRADE-ENV names both fallbacks; "no `heavyLock`
+  on a small host: run sequentially" restored in sc-review/sc-implement; locking row in runtime-adapters.
+- **Validator** guards the schema entries (types, bounds, `heavyLock` minLength), the example env values
+  (non-object env errors, unknown keys warn), that the doc states the lock-fd, nesting and fallback rules,
+  that the four skills reference it and that "smaller batches" does not return; eight self-test
   mutations. It does not judge the prose.
 
 ## 0.3.10 — Overlay `releaseChecklist` for store-distributed apps (#73)

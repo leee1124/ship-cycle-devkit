@@ -16,6 +16,7 @@ a review responsibility until the migration lands.
 | spawning a role | the `Task` tool with an agent type | a native subagent |
 | invocation | `/ship-cycle-devkit:ship-cycle …`, plus `/status`, `/resume`, `/ship` | the `ship-cycle` skill by name; the three observability commands are **not shipped to Codex** (see §Known gaps) |
 | overlay config | `.claude/ship-cycle.config.json` | `.codex/ship-cycle.config.json` *(intent — see §Known gaps)* |
+| heavy-job lock | `flock` / `mkdir` on `env.heavyLock` (see `heavy-work.md`) | same; use a workspace or `$TMPDIR` path if `/tmp` is sandboxed |
 | cycle state | `.claude/ship-cycle/<branch-slug>.json` | `.codex/ship-cycle/<branch-slug>.json` *(intent — see §Known gaps)* |
 
 Everything in the skills that reads `${CLAUDE_PLUGIN_ROOT}/docs/…` means "this kit's own `docs/`

@@ -538,9 +538,9 @@ def check_release_checklist(root: Path, f: Findings) -> None:
 def check_heavy_work(root: Path, f: Findings) -> None:
     """#74: `env.heavyLock`/`maxConcurrentHeavy`/`heavyHeadroomMB` are documented and the stages point at the rule.
 
-    Guards the schema entries (types, minimums), that the example env is well-formed, that
-    docs/heavy-work.md exists with its fallback sections, and that the orchestrator, sc-implement, sc-review
-    and sc-qa reference it while sc-review no longer carries the ad-hoc 'smaller batches' advice.
+    Guards the schema entries (types, bounds), that the example env is well-formed (unknown keys warn),
+    that docs/heavy-work.md exists and states its lock-fd, nesting and fallback rules, and that the orchestrator,
+    sc-implement, sc-review and sc-qa reference it while sc-review no longer carries the ad-hoc 'smaller batches' advice.
     """
     schema = load_json(root, OVERLAY_SCHEMA, f)
     example = load_json(root, OVERLAY_EXAMPLE, f)
@@ -557,6 +557,17 @@ def check_heavy_work(root: Path, f: Findings) -> None:
         f.error(shown(OVERLAY_SCHEMA), "env lacks heavyLock (string), maxConcurrentHeavy and "
                                        "heavyHeadroomMB (integer, minimum 1)")
     env = example.get("env", {}) if isinstance(example, dict) else {}
+    if not isinstance(env, dict):
+        f.error(shown(OVERLAY_EXAMPLE), "env must be an object")
+        env = {}
+    try:
+        if p["heavyLock"].get("minLength") != 1 or p["heavyHeadroomMB"].get("maximum") is None:
+            f.error(shown(OVERLAY_SCHEMA), "env.heavyLock needs minLength 1 and heavyHeadroomMB a maximum")
+        for k in env:
+            if k not in p and not k.startswith("$"):
+                f.warn(shown(OVERLAY_EXAMPLE), f"env key '{k}' is not in the schema")
+    except (KeyError, TypeError, AttributeError):
+        pass
     if not isinstance(env.get("heavyLock"), str) or not env.get("heavyLock", "").strip():
         f.error(shown(OVERLAY_EXAMPLE), "env.heavyLock must be a non-empty string")
     for k in ("maxConcurrentHeavy", "heavyHeadroomMB"):
@@ -568,7 +579,8 @@ def check_heavy_work(root: Path, f: Findings) -> None:
         f.error("docs/heavy-work.md", "missing")
     else:
         text = read(doc)
-        for token in ("flock", "mkdir", "SC-DEGRADE-ENV", "sequential", "PID", "do not inherit"):
+        for token in ("flock", "mkdir", "SC-DEGRADE-ENV", "sequential", "PID", "do not inherit",
+                      "SC_HEAVY_HELD", "-o", "available"):
             if token not in text:
                 f.error("docs/heavy-work.md", f"does not state {token!r}")
     for skill in ("ship-cycle", "sc-implement", "sc-review", "sc-qa"):
