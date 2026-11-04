@@ -1874,9 +1874,9 @@ CASES = [
     ),
     (
         "wave check re-plan loses its new from",
-        lambda r: mutate(r / "docs" / "wave-check.md", "new `from` is the last recorded\n  barrier",
-                         "new `from` is chosen"),
-        "does not state 'new `from` is the last recorded barrier'",
+        lambda r: mutate(r / "docs" / "wave-check.md", "latest non-superseded barrier\n  before it",
+                         "previous barrier"),
+        "does not state 'latest non-superseded barrier before it'",
     ),
     (
         "wave check multi-stack worktree unstated",
@@ -1941,6 +1941,78 @@ CASES = [
         lambda r: mutate(r / "docs" / "runtime-adapters.md", "**Two-pass agents without live messaging.**",
                          "**Two passes.**"),
         "does not state the two-agent fallback for two-pass rules",
+    ),
+    (
+        "barrier lookup by position, not latest non-superseded entry",
+        lambda r: mutate(r / "docs" / "wave-check.md", "**the latest non-superseded\nentry for wave N−1**",
+                         "**the previous entry**"),
+        "does not state 'the latest non-superseded entry for wave N−1'",
+    ),
+    (
+        "waveBarriers shape loses superseded",
+        lambda r: mutate(r / "docs" / "state-file.md", '"tier": "L", "superseded": false }],',
+                         '"tier": "L" }],'),
+        "state shape has no waveBarriers entry with wave/tree/worktree/tier/superseded",
+    ),
+    (
+        "waveReviews entry loses superseded",
+        lambda r: mutate(r / "docs" / "state-file.md", '"routedTo": null, "superseded": false,',
+                         '"routedTo": null,'),
+        "waveReviews entry lacks 'superseded'",
+    ),
+    (
+        "wave refuter not pinned",
+        lambda r: mutate(r / "docs" / "wave-check.md", "**pinned to `review.wave`** too", "on any model"),
+        "does not state '**pinned to `review.wave`**'",
+    ),
+    (
+        "waveReviews entry loses its refuter",
+        lambda r: mutate(r / "docs" / "state-file.md",
+                         '\n                    "refuter": { "model": "sonnet", "effort": "medium" },', ""),
+        "waveReviews entry lacks 'refuter'",
+    ),
+    (
+        "Critical fix on a merely unrefuted finding",
+        lambda r: mutate(r / "docs" / "wave-check.md", "actively\n  **evidenced**", "did not\n  refute"),
+        "does not state 'actively **evidenced**'",
+    ),
+    (
+        "Critical fix skips the impl-status report",
+        lambda r: mutate(r / "docs" / "wave-check.md",
+                         "the report block of\n  `${CLAUDE_PLUGIN_ROOT}/docs/impl-status.md`", "a summary"),
+        "does not state 'docs/impl-status.md'",
+    ),
+    (
+        "Critical fix does not count loops[G5]",
+        lambda r: mutate(r / "docs" / "wave-check.md", "(`loops[G5]` +1, a fix round", "(a fix round"),
+        "does not state '`loops[G5]` +1'",
+    ),
+    (
+        "Critical fix skips the barrier rerun",
+        lambda r: mutate(r / "docs" / "wave-check.md", "the barrier build/typecheck reruns;", "then"),
+        "does not state 'the barrier build/typecheck reruns'",
+    ),
+    (
+        "reconcile matches the wave number, not the tree",
+        lambda r: mutate(r / "docs" / "wave-check.md", "matched on tree, not wave number", "matched by wave"),
+        "does not state 'matched on tree, not wave number'",
+    ),
+    (
+        "reconcile row reruns any barrier",
+        lambda r: mutate(r / "docs" / "state-file.md", "and no `waveReviews` entry has that barrier's `tree`",
+                         "and the check is missing"),
+        "reconcile's subagents-running row does not rerun a wave check",
+    ),
+    (
+        "readout hides refuted-but-carried items",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "(`refutedCarried`) shown as such",
+                         "(`refutedCarried`)"),
+        "cost readout does not show refuted-but-carried items as such",
+    ),
+    (
+        "multi-stack later barriers unstated",
+        lambda r: mutate(r / "docs" / "wave-check.md", "Later stack barriers:", "Also:"),
+        "does not state 'Later stack barriers'",
     ),
 ]
 

@@ -14,16 +14,22 @@ to sc-implement's bisect route first; the check reads a green barrier only. The 
 G5–G8 read the whole change next. Tier S and Tier M never run it; a cycle that grows to Tier L
 (§ship-cycle Stage 0.2, Stage 0.4) resolves `review.wave` then and runs it from the next barrier on.
 
-**Multi-stack work.** The contract-first barrier is read in the worktree where the contract landed — or the
-integration worktree that merges the stacks — and `from`/`tree` are tree identities taken in that worktree
+**Multi-stack work.** The contract-first barrier is read in the worktree where the contract landed; only
+when that worktree no longer exists, in the integration worktree that merges the stacks, if there is one.
+`from`/`tree` are tree identities taken in the worktree read
 (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Tree identity): `from` is its base (the contract step forks
-from it), `tree` is that worktree after the contract step.
+from it), `tree` is that worktree after the contract step. Later stack barriers: a stack that itself runs in
+waves gets a check at each of its own barriers that has a later wave, in that stack's worktree; the join of
+the parallel stacks is the last barrier and gets none.
 <!-- /wave-check-trigger -->
 
 <!-- wave-check-barriers -->
-**Every barrier is recorded, checked or not.** At each green barrier append `{wave, tree, worktree}` to
-`state.waveBarriers` — also when the route skips the check or the barrier is the last. A check's `from` is
-the previous barrier's `tree` there (the base for the first barrier). The ids come from a throwaway index
+**Every barrier is recorded, checked or not.** At each green barrier append `{wave, tree, worktree, tier,
+superseded}` to `state.waveBarriers` (`tier` = `state.size` then, `superseded: false`) — also when the route
+skips the check or the barrier is the last. A check's `from` is the `tree` of **the latest non-superseded
+entry for wave N−1** (the base for the first barrier); entries are looked up that way, never by position or
+wave number alone, because a re-plan or a fix round appends a second entry for the same wave. The ids come
+from a throwaway index
 and nothing references them, so `git gc` may prune one: if `git cat-file -e <from>` fails, diff from the
 base instead and say so in the entry.
 <!-- /wave-check-barriers -->
@@ -63,39 +69,52 @@ issue tagged **design** when the defect is in the plan rather than in this wave'
   it; the next wave's edits wait on it like any other write.
 - **Same evidence rule as review findings.** Load-bearing claims cite evidence
   (§`${CLAUDE_PLUGIN_ROOT}/docs/claim-evidence.md`), and a Critical/High or a **design** finding gets one
-  refuter (§sc-review — Verify findings) before anything acts on it. A finding refuted with evidence leaves
-  the counts and goes to `refutedItems` (`{item, where, refutation}`); neither evidenced nor refuted →
-  undetermined, kept at its claimed severity.
+  refuter (§sc-review — Verify findings) before anything acts on it, **pinned to `review.wave`** too
+  (recorded as the entry's `refuter`). It either evidences the finding (confirmed), refutes it with evidence
+  (to `refutedItems`, `{item, where, refutation}`), or neither (undetermined, kept at its claimed severity).
 - **A cheap refutation never drops a Critical/High.** The refuter runs below G8's tier, so a Critical/High
-  it refutes is still recorded in `refutedItems` **and** stays unresolved for G8. A refuted Medium/Low is
-  only listed for G8 to confirm.
+  it refutes is still recorded in `refutedItems` **and** stays unresolved for G8, counted in
+  `refutedCarried` (by severity) rather than in `findings`, and printed as such. A refuted Medium/Low leaves
+  the counts and is only listed for G8 to confirm.
 - **When it may stop the waves.** Only a **design** finding that survives verification stops them: the next
   wave is not dispatched, and it routes exactly as the `BLOCKED` (design defect) row does — to sc-design
   (which grows to `run` under the route's growth-only rule, and the user is told), incrementing `loops[G5]`
   once (§sc-implement — Route the implementer's status), under the loop cap. When sc-design returns, the
-  wave whose diff held the defect re-plans with every later wave; its new `from` is the last recorded
-  barrier before it (the base when the redesign reaches wave 0). Every other finding, of any severity, lets
-  the next wave start.
-- **A verified Critical may be fixed first.** Decided: the orchestrator may send a surviving non-design
-  Critical to the agent that owns its file set as a fix round before the next wave (a fix round as
-  sc-implement counts it); it stays unresolved — G8 verifies the fix like any other item.
+  wave whose diff held the defect re-plans with every later wave: their `waveBarriers` and `waveReviews`
+  entries get `superseded: true`, and the re-planned wave's `from` is the latest non-superseded barrier
+  before it (the base when the redesign reaches wave 0). Every other finding, of any severity, lets the next
+  wave start.
+- **A confirmed Critical may be fixed first.** Decided: only a non-design Critical the refuter actively
+  **evidenced** (confirmed) — never one merely unrefuted, undetermined, or raised by the spec pass alone,
+  which never by itself triggers an edit round. The sequence: the agent that owns its file set fixes it
+  (`loops[G5]` +1, a fix round as sc-implement counts it); it ends with the report block of
+  `${CLAUDE_PLUGIN_ROOT}/docs/impl-status.md` and is routed by §sc-implement — Route the implementer's
+  status; the barrier build/typecheck reruns; a new `waveBarriers` entry for the same wave is appended; the
+  next wave starts with its `from` = that new barrier's `tree`. The item stays unresolved — G8 verifies the
+  fix like any other.
 - **Unresolved items go to G8.** Every surviving or undetermined finding and every cannot-verify item is
   **unresolved**; it is listed in the sc-review brief as an item to verify, gets a disposition there
   (fixed-here / filed-as `#NN`) and G8 requires one — the mechanism the skipped implementer concerns use,
   not a second one. `refutedItems` are listed there too, as "previously flagged, refuted at wave N —
   confirm".
 - **Advisory.** It sets no `gates` entry and no `gateTrees`, increments no `loops` except through the routed
-  design defect, and approves nothing.
+  design defect or a confirmed-Critical fix round, and approves nothing.
 <!-- /wave-check-rule -->
 
 ## Record
 
 <!-- wave-check-record -->
 Append one `state.waveReviews` entry per check: `wave`, `from` and `tree` (the two barrier tree identities
-it read), `model` and `effort` as spawned, `cold` (the cold pass's findings, verbatim, frozen before the
-spec was sent), `findings` counted by severity (after verification), `refutedItems`, `routedTo`
-(`"sc-design"` or `null`) and `unresolved` (`{item, severity, where, design}` each). Readers: the sc-review
-brief and G8 (unresolved and refuted items), sc-ship's cost readout (one line per entry) and sc-retro (did a
-wave check catch what G8 would have, or miss what G8 later found). None decides a gate from it. A check that
-was running when the session died left no result: the reconcile reruns it — it is cheap and idempotent.
+it read), `model` and `effort` as spawned, `refuter` (the refuter's model and effort), `cold` (the cold
+pass's findings, verbatim, frozen before the spec was sent), `findings` counted by severity (after
+verification), `refutedItems`, `refutedCarried` (refuted Critical/High still carried, by severity),
+`routedTo` (`"sc-design"` or `null`), `unresolved` (`{item, severity, where, design}` each) and
+`superseded`. Readers: the sc-review brief and G8 (unresolved and refuted items of every entry, superseded
+ones included — a re-plan does not resolve an item), sc-ship's cost readout (one line per entry) and sc-retro
+(did a wave check catch what G8 would have, or miss what G8 later found). None decides a gate from it.
+
+**A check that died mid-run is rerun.** The reconcile reruns a wave check — cheap and idempotent — only when
+`route.waveCheck` is `"run"`, the barrier has a later wave, its `waveBarriers` entry was recorded at
+`tier` `L` and is not superseded, and no `waveReviews` entry has a `tree` equal to that barrier's `tree`
+(matched on tree, not wave number, so a re-planned wave is judged by its new barrier).
 <!-- /wave-check-record -->
