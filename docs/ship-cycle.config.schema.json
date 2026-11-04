@@ -67,7 +67,7 @@
           },
           "releaseSmoke": {
             "type": "object",
-            "description": "Release-artifact smoke for gate G9 (full rule: sc-qa \u2014 Release-artifact smoke). Per nature, beside build/bootCheck/coverage, because the release form, the flows and the device are stack-specific (a shrunk, signed mobile binary vs. a production-profile server image). When ANY changed path in the diff matches an appliesTo glob (repo-relative, not limited to this nature's match \u2014 a root lockfile counts), G9 requires every listed flow to be exercised on the artifact `artifact` builds, with evidence per flow; a dev/debug build does not count. Cannot run here \u2192 state.releaseSmoke = \"deferred: <reason>\" on the pre-merge manual gate, never a pass; untouched \u2192 \"n/a\".",
+            "description": "Per nature: the release-artifact smoke gate G9 requires when the diff touches appliesTo. Full rule: sc-qa \u2014 Release-artifact smoke.",
             "properties": {
               "appliesTo": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Globs whose change triggers the smoke: build config, shrinker/proguard rules, native modules, signing config, dependency manifests and lockfiles." },
               "artifact": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Command(s) that build the release-form artifact exactly as shipped: shrinking, release signing and production config on." },

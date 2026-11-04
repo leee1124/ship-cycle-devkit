@@ -149,20 +149,37 @@ dev-build E2E was green. This section is the one source of truth for the rule; o
   rules, native modules, signing config, dependency manifest and lockfile bumps.
 - **What it is.** Build with `releaseSmoke.artifact` — the release form exactly as shipped: shrinking on,
   release signing, production config — install/run it (on `releaseSmoke.device` when named) and exercise
-  **every** flow in `releaseSmoke.flows`. A dev, debug or "release but unshrunk" build **does not count**:
-  differing from what ships in any of those three respects makes it not this smoke.
-- **Evidence, per flow.** Each flow gets its own evidence (log excerpt, screenshot path, E2E run log), plus
-  the artifact's identity (path + checksum + build variant) built from the tree recorded in
-  `gateTrees.G9`. A flow with no evidence was not exercised; one failing flow makes G9 `fail`.
-- **Cannot run here** (no device/emulator, no release signing key, store-only config): record
-  `releaseSmoke[<nature>] = "deferred: <reason>"` and set G9 to `degrade` (when nothing else failed). It
-  goes on the pre-merge manual gate (§sc-ship G12) as one item per flow — the same path as a G7b `checklist`
-  or a ci-deferred G6. **A deferral never counts as a pass**, and a dev-build run is not a partial one.
+  **every** flow in `releaseSmoke.flows`. A dev, debug or "release but unshrunk" build **does not count**.
+- **Evidence.** Per flow, its own evidence (log excerpt, screenshot path, E2E run log). Once per entry:
+  - **the artifact** — path, checksum, build variant — and `tree`, the tree identity it was built from,
+    which **must equal `gateTrees.G9`** (an artifact from another tree proves nothing about this one);
+  - **the installed package is that artifact** — the installed path plus its checksum, or the version code
+    the artifact carries — so a stale or dev install already on the device cannot stand in for it;
+  - **release-form indicators** — the installed package is not debuggable, and the shrinker's mapping
+    file exists for this build.
+  A flow with no evidence was not exercised; one failing flow makes G9 `fail`.
+- **Deferral is admitted, not chosen.** Before any part is deferred, the release-form artifact **must have
+  been built** (a build that fails is a G9 `fail`, not a deferral) and a device/emulator start **attempted**
+  — record both logs. Then defer only what could not run:
+  - **No release signing key**: build the shrunk/optimised release form with substitute (e.g. debug)
+    signing and run the flows on it — that **is** valid evidence for every flow that does not depend on
+    the signature. Only the signing-specific part (signature-bound login, store verification, the signed
+    install itself) is deferred, in the entry's `deferred` list with its reason.
+  - **No device or emulator could start**: the whole entry is `result: "deferred"`, with its reason and
+    the two logs.
+  Any deferral sets G9 to `degrade` (when nothing else failed) and goes on the pre-merge manual gate
+  (§sc-ship G12), one item per deferred flow or part — the same path as a G7b `checklist` or a ci-deferred
+  G6. **A deferral never counts as a pass**, and a dev-build run is not a partial one.
 - **Not triggered** → `releaseSmoke[<nature>] = "n/a"`. A nature without `releaseSmoke` →
   `"n/a: no releaseSmoke config"`; if that nature's G7 builds a shipped artifact, say so in one line each
   cycle, so an undeclared smoke is visible rather than silently absent.
 - **The size tier does not skip it.** A Tier S change can be a one-line keep rule: when QA is otherwise
-  skipped on Tier S and `appliesTo` is touched, this stage still runs the release smoke, and only that.
+  skipped on Tier S and `appliesTo` is touched, this stage runs the release smoke and only that. Then
+  `gates.G9` is the smoke's outcome (`pass` / `degrade` / `fail`), and the rest of QA is recorded beside it as
+  `n/a: Tier S — <skip reason>`, carried to the PR body. Tier S with nothing touched: `gates.G9 = "n/a: Tier S
+  — <reason>"`.
+- **Staleness.** When the resume reconcile clears G9 (tree mismatch), it clears every `releaseSmoke` entry
+  with it: a smoke run on another tree is evidence for that tree only.
 
 The entry lives in `state.releaseSmoke`, one per nature (shape: `${CLAUDE_PLUGIN_ROOT}/docs/state-file.md`).
 
@@ -175,8 +192,8 @@ The entry lives in `state.releaseSmoke`, one per nature (shape: `${CLAUDE_PLUGIN
   if the env can't run them, don't bank it as passed). A suite in `unrunnableHere` doesn't block this gate
   and doesn't satisfy it either; **if that set is the *only* coverage for the change, G9 is a `degrade`,
   not a `pass`.**
-- **Release smoke** (§Release-artifact smoke): every nature's `state.releaseSmoke` entry is a `pass`
-  with evidence per flow, `"n/a"`/`"n/a: <reason>"`, or `"deferred: <reason>"` (→ G9 `degrade`).
+- **Release smoke** (§Release-artifact smoke): every nature's `state.releaseSmoke` entry is a `pass` whose
+  `tree` equals `gateTrees.G9`, an `n/a`, or carries a deferral (→ G9 `degrade`).
 - Set `gates.G9` in state (with `state.gateTrees.G9` = the tree identity QA ran on, §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Tree identity) as **`pass` / `degrade` / `fail`, with the reason** — the same three-way shape
   `gates.G7b` already uses (`pass`/`checklist`/`skip`). A `degrade` is **not** a failure: do **not** loop to
   `sc-implement` with a debugger that cannot conjure a database, and do **not** write `pass` because the

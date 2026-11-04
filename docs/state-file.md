@@ -25,10 +25,16 @@ the mechanics that only matter when something unusual happens to its name or its
                              "report": "apps/backend/build/reports/jacoco/test/jacocoTestReport.xml",
                              "format": "jacoco", "runStartedAt": "<iso>", "reportMtime": "<iso>" },
                 "web": "n/a: no coverage config" },
-  "releaseSmoke": { "mobile": { "result": "pass", "artifact": "<path> sha256:<digest> (release variant)",
+  "releaseSmoke": { "mobile": { "result": "pass", "tree": "<tree id, equal to gateTrees.G9>",
+                                 "artifact": "<path> sha256:<digest> (release variant)",
+                                 "installed": "<installed path> sha256:<digest> | versionCode <n>",
+                                 "releaseForm": { "debuggable": false, "mapping": "<shrinker mapping path>" },
                                  "device": "<emulator or device>",
-                                 "flows": [{ "flow": "login", "evidence": "<log or screenshot path>" }] },
-                    "backend": "n/a", "web": "deferred: no release signing key here" },
+                                 "flows": [{ "flow": "login", "evidence": "<log or screenshot path>" }],
+                                 "deferred": [{ "part": "signature-bound login", "reason": "no release key; ran on substitute signing" }] },
+                    "web": { "result": "deferred", "tree": "<tree id>", "reason": "no emulator could start",
+                             "buildLog": "<release-form build log>", "deviceAttempt": "<start attempt log>" },
+                    "backend": "n/a" },
   "models": { "brainstorm": "opus", "design": "opus", "tdd": "sonnet", "implement": "sonnet",
               "review": "opus", "qa": "sonnet", "ship": "sonnet" },
   "effort": { "design": "xhigh", "tdd": "medium", "implement": "low",
@@ -109,10 +115,10 @@ output) are outside the id by design: changing only those does not invalidate a 
 `coverage` (written at G6) and `baseline.coverage` (written at PREFLIGHT) hold one entry per nature;
 values and rules are in sc-implement G6.
 
-`releaseSmoke` (written at G9) holds one entry per nature: an object with `result` (`pass`/`fail`), the
-artifact identity and evidence per flow, `"n/a"` (diff did not touch `appliesTo`), `"n/a: <reason>"` (no
-config) or `"deferred: <reason>"` (could not run here → pre-merge manual gate). Rules are in sc-qa —
-Release-artifact smoke.
+`releaseSmoke` (written at G9) holds one entry per nature: an object — `result` `pass`/`fail`/`deferred`,
+its `tree` (must equal `gateTrees.G9`), artifact and installed-package identity, release-form indicators,
+evidence per flow, any `deferred` parts — or `"n/a"` (diff did not touch `appliesTo`) / `"n/a: <reason>"`
+(no config). Any deferral goes on the pre-merge manual gate. Rules are in sc-qa — Release-artifact smoke.
 
 ## The slug
 
@@ -202,7 +208,7 @@ compares worktree evidence with it and with `gates`:
 
 | evidence | mismatch it reports | effect |
 |---|---|---|
-| a tree-dependent `pass` (G5–G9) whose `gateTrees[G]` is missing, or differs from the current tree identity outside the docs globs (§Tree identity) | the gate judged a different tree | clear the gate; continue at its owner |
+| a tree-dependent gate (G5–G9) with any value other than `n/a: <reason>` — `pass`, `degrade`, `checklist` or `fail` — whose `gateTrees[G]` is missing, or differs from the current tree identity outside the docs globs (§Tree identity) | the gate judged a different tree | clear the gate (clearing G9 also clears every `releaseSmoke` entry); continue at its owner |
 | uncommitted or untracked files (`git status --porcelain`) | changes while the recorded stage is before `sc-tdd` | report only — tree-dependent gates are judged by the row above |
 | commits since the base (`git log <base>..HEAD`) | code committed while the recorded stage is before `sc-tdd`; a G4/G5 `pass` with no change at all | report; clear a pass that lost its evidence |
 | test files in the diff vs the base | **tests exist but G4 not recorded** | continue at `sc-tdd`, which confirms Red (against the base if code is already there) before recording G4 |

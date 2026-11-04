@@ -303,13 +303,13 @@ def check_manifests_and_versions(root: Path, f: Findings) -> None:
             f.error("skill parity", f"manifests expose different skill paths: {c_skills!r} vs {x_skills!r}")
 
 
-def check_example_coverage(root: Path, f: Findings) -> None:
-    """The example overlay's `changeNature[].coverage` satisfies the schema's coverage block.
+def example_blocks(root: Path, f: Findings, key: str):
+    """Yield (where, block, spec) for each example-overlay `changeNature[].<key>`, after the generic checks.
 
-    The example is what users copy. A `format` outside the enum, a missing key or a stray one ships a config
-    that G6 can only read as undetermined -- so the copied example would block every cycle it runs in.
-    Every rule is read from the schema itself (enum, required, additionalProperties, threshold range), not
-    from a second hard-coded list that could drift from it.
+    The example is what users copy, so a block in it must satisfy the schema block of the same name. The
+    shared rules -- required keys, a closed block's unknown keys, array-of-strings with minItems, plain
+    strings -- are read from the schema, never from a second hard-coded list. Block-specific rules (an enum,
+    a numeric range) stay with the caller, which receives the schema block as `spec`.
     """
     schema = load_json(root, OVERLAY_SCHEMA, f)
     example = load_json(root, OVERLAY_EXAMPLE, f)
@@ -319,42 +319,62 @@ def check_example_coverage(root: Path, f: Findings) -> None:
         f.error(shown(OVERLAY_EXAMPLE), "root must be an object")
         return
     try:
-        spec = schema["properties"]["changeNature"]["items"]["properties"]["coverage"]
+        spec = schema["properties"]["changeNature"]["items"]["properties"][key]
         props = spec["properties"]
-        formats = set(props["format"]["enum"])
         required = spec["required"]
-        closed = spec.get("additionalProperties") is False
-        th = props["threshold"]
-        th_default, th_min, th_max = th["default"], th["minimum"], th["maximum"]
     except (KeyError, TypeError):
-        f.error(shown(OVERLAY_SCHEMA), "changeNature.items.properties.coverage is missing its format enum, "
-                                       "required list or threshold default/minimum/maximum")
+        f.error(shown(OVERLAY_SCHEMA), f"changeNature.items.properties.{key} is missing its properties "
+                                       "or required list")
         return
+    closed = spec.get("additionalProperties") is False
     natures = example.get("changeNature", [])
     if not isinstance(natures, list):
         f.error(shown(OVERLAY_EXAMPLE), "changeNature must be an array")
         return
     for i, nature in enumerate(natures):
-        cov = nature.get("coverage") if isinstance(nature, dict) else None
-        if cov is None:
+        block = nature.get(key) if isinstance(nature, dict) else None
+        if block is None:
             continue
-        where = f"{shown(OVERLAY_EXAMPLE)} changeNature[{i}].coverage"
-        if not isinstance(cov, dict):
+        where = f"{shown(OVERLAY_EXAMPLE)} changeNature[{i}].{key}"
+        if not isinstance(block, dict):
             f.error(where, "must be an object")
             continue
-        for key in required:
-            if key not in cov:
-                f.error(where, f"missing required field '{key}'")
+        for name in required:
+            if name not in block:
+                f.error(where, f"missing required field '{name}'")
         if closed:
-            for key in sorted(set(cov) - set(props)):
-                f.error(where, f"unknown field '{key}' (schema sets additionalProperties: false)")
-        for key, sub in props.items():
-            if key in cov and sub.get("type") == "array":
-                val = cov[key]
+            for name in sorted(set(block) - set(props)):
+                f.error(where, f"unknown field '{name}' (schema sets additionalProperties: false)")
+        for name, sub in props.items():
+            if name not in block:
+                continue
+            val = block[name]
+            if sub.get("type") == "array":
                 if (not isinstance(val, list) or not all(isinstance(x, str) for x in val)
                         or len(val) < sub.get("minItems", 0)):
-                    f.error(where, f"'{key}' must be an array of strings with at least "
+                    f.error(where, f"'{name}' must be an array of strings with at least "
                                    f"{sub.get('minItems', 0)} item(s)")
+            elif sub.get("type") == "string" and not isinstance(val, str):
+                f.error(where, f"'{name}' must be a string")
+        yield where, block, spec
+
+
+def check_example_coverage(root: Path, f: Findings) -> None:
+    """The example overlay's `changeNature[].coverage` satisfies the schema's coverage block.
+
+    A `format` outside the enum, a missing key or a stray one ships a config that G6 can only read as
+    undetermined -- so the copied example would block every cycle it runs in.
+    """
+    for where, cov, spec in example_blocks(root, f, "coverage"):
+        try:
+            props = spec["properties"]
+            formats = set(props["format"]["enum"])
+            th = props["threshold"]
+            th_default, th_min, th_max = th["default"], th["minimum"], th["maximum"]
+        except (KeyError, TypeError):
+            f.error(shown(OVERLAY_SCHEMA), "changeNature.items.properties.coverage is missing its format enum "
+                                           "or threshold default/minimum/maximum")
+            return
         if "format" in cov and cov["format"] not in formats:
             f.error(where, f"format '{cov['format']}' is not in the schema enum {sorted(formats)}")
         threshold = cov.get("threshold", th_default)
@@ -366,50 +386,11 @@ def check_example_coverage(root: Path, f: Findings) -> None:
 def check_example_release_smoke(root: Path, f: Findings) -> None:
     """The example overlay's `changeNature[].releaseSmoke` satisfies the schema's releaseSmoke block.
 
-    Same reason as the coverage check: a copied example missing `flows` or `artifact` leaves G9 nothing to
-    exercise, so the smoke it was meant to require reads as satisfied. Rules come from the schema itself.
+    A copied example missing `flows` or `artifact` leaves G9 nothing to exercise, so the smoke it was meant
+    to require reads as satisfied. Only the shared rules apply.
     """
-    schema = load_json(root, OVERLAY_SCHEMA, f)
-    example = load_json(root, OVERLAY_EXAMPLE, f)
-    if not isinstance(schema, dict) or not isinstance(example, dict):
-        return
-    try:
-        spec = schema["properties"]["changeNature"]["items"]["properties"]["releaseSmoke"]
-        props = spec["properties"]
-        required = spec["required"]
-        closed = spec.get("additionalProperties") is False
-    except (KeyError, TypeError):
-        f.error(shown(OVERLAY_SCHEMA), "changeNature.items.properties.releaseSmoke is missing its properties "
-                                       "or required list")
-        return
-    natures = example.get("changeNature", [])
-    if not isinstance(natures, list):
-        return  # reported by check_example_coverage
-    for i, nature in enumerate(natures):
-        block = nature.get("releaseSmoke") if isinstance(nature, dict) else None
-        if block is None:
-            continue
-        where = f"{shown(OVERLAY_EXAMPLE)} changeNature[{i}].releaseSmoke"
-        if not isinstance(block, dict):
-            f.error(where, "must be an object")
-            continue
-        for key in required:
-            if key not in block:
-                f.error(where, f"missing required field '{key}'")
-        if closed:
-            for key in sorted(set(block) - set(props)):
-                f.error(where, f"unknown field '{key}' (schema sets additionalProperties: false)")
-        for key, sub in props.items():
-            if key not in block:
-                continue
-            val = block[key]
-            if sub.get("type") == "array":
-                if (not isinstance(val, list) or not all(isinstance(x, str) for x in val)
-                        or len(val) < sub.get("minItems", 0)):
-                    f.error(where, f"'{key}' must be an array of strings with at least "
-                                   f"{sub.get('minItems', 0)} item(s)")
-            elif sub.get("type") == "string" and not isinstance(val, str):
-                f.error(where, f"'{key}' must be a string")
+    for _ in example_blocks(root, f, "releaseSmoke"):
+        pass
 
 
 def check_skill_frontmatter(root: Path, f: Findings) -> None:

@@ -40,13 +40,13 @@
       "reviews": ["security", "quality", "performance", "designer"]
     },
     {
-      "$comment": "releaseSmoke: a change to these paths can break only the shrunk, signed release build (e.g. a keep rule stripping a reflectively-read generic signature), so G9 runs the listed flows on that build. No device or signing key here -> state.releaseSmoke records deferred on the pre-merge manual gate.",
+      "$comment": "releaseSmoke: a change to these paths can break only the shrunk, signed release build (e.g. a keep rule stripping a reflectively-read generic signature), so G9 runs the listed flows on that build. See sc-qa Release-artifact smoke for evidence and the narrow conditions under which part of it may be deferred.",
       "match": "apps/mobile/**",
       "nature": "mobile",
       "tests": ["npx tsc --noEmit -p apps/mobile", "npm run test -w apps/mobile"],
       "reviews": ["quality", "algorithm", "performance", "designer"],
       "releaseSmoke": {
-        "appliesTo": ["apps/mobile/android/**/*.gradle", "apps/mobile/android/**/proguard-rules.pro", "apps/mobile/modules/**", "apps/mobile/app.json", "apps/mobile/package.json", "package-lock.json"],
+        "appliesTo": ["apps/mobile/android/**/*.gradle", "apps/mobile/android/**/proguard-rules.pro", "apps/mobile/modules/**", "apps/mobile/app.json", "apps/*/app.config.*", "apps/*/plugins/**", "apps/mobile/eas.json", "apps/mobile/package.json", "package-lock.json"],
         "artifact": ["cd apps/mobile/android && ./gradlew assembleRelease"],
         "flows": ["sign-in (email)", "sign-in (third-party SDK)", "start and finish a workout"],
         "device": "Android emulator, API 35"
