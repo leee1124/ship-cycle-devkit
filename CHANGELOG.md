@@ -7,17 +7,20 @@
   internal, code outside the diff, external API contract, persisted data shape; in designs, existing code
   only). Evidence: repo `path:line`, dependency source, version-matched official doc URL, or a command and
   its output; memory is not. In a design an unevidenced claim is a critic objection, as is any claim used to
-  dismiss or downgrade a finding. A review finding is never lowered for a missing citation (never lowers the
-  data-integrity or security floor; foreign-agent findings likewise): the refuter evidences or refutes it,
-  else it is undetermined and still blocks G8. A subagent had misread a library internal and the
-  orchestrator passed it on unchallenged.
+  dismiss, downgrade or triage out a finding, or to call a risk area clean. A review finding is never
+  lowered for a missing citation (never lowers the data-integrity or security floor; foreign-agent findings
+  likewise): the refuter evidences or refutes it, and a refutation must cite its own evidence; else it is
+  undetermined, blocks G8 at its claimed severity and exits as fix-or-owner-decision. Below High the
+  citation is the author's duty only. A triage "no" on Q1/Q2 for a Critical/High needs a `path:line`. A
+  subagent had misread a library internal and the orchestrator passed it on unchallenged.
 - **Consumers point to it**: sc-design's `## Design` checklist and critic section, and sc-review's output &
-  severity discipline each have a `**Claim evidence**` bullet; the refuter also opens the cited evidence, and the cold lens may read code and docs to evidence claims
-  but not the spec.
+  severity discipline each have a `**Claim evidence**` bullet; the refuter also opens the cited evidence,
+  and the cold lens may read code and docs to evidence claims but not the spec.
 - **Validator** guards that the doc keeps its marked rule block (load-bearing, `path:line`, doc URL, command
-  output, objection, "never by itself") and that those three places keep a `**Claim evidence**` bullet naming
-  `claim-evidence.md`; sc-review's bullet must say "never by itself" and its Verify findings must name
-  "cited evidence"; one self-test mutation per anchor. It does not judge the prose.
+  output, objection, "never by itself") and that those three places keep a `**Claim evidence**` bullet
+  naming `claim-evidence.md`; sc-review's bullet must itself say "never by itself" (checked inside the
+  bullet, not the section) and its Verify findings must name "cited evidence" and "must cite its evidence";
+  one self-test mutation per anchor. It does not judge the prose.
 
 ## 0.3.8 — sc-design: changes that move an entry point inventory every entry path (#71)
 

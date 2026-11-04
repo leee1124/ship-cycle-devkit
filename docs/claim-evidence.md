@@ -17,11 +17,14 @@ official doc URL matching the installed version (version-pinned or dated); a com
 believe", "usually" and recall are not evidence.
 
 **Unevidenced** load-bearing claim: in a design, the critic raises it as an objection; so is any claim used
-to dismiss or downgrade a review finding. A review finding is never lowered for lack of a citation: a missing
-citation is never by itself grounds to lower severity, and never lowers the data-integrity or security floor.
-The refuter either attaches the evidence (finding kept) or refutes it with evidence (dropped); if neither,
-the finding is undetermined, not clean, and still blocks G8 at its claimed severity. Findings from
-external/foreign-agent reviewers are held the same way.
+to dismiss, downgrade or move a finding out of scope (triage), or to call a risk area clean. A review finding
+is never lowered for lack of a citation: a missing citation is never by itself grounds to lower severity, and
+never lowers the data-integrity or security floor. The refuter either attaches the evidence (finding kept) or
+refutes it with evidence (dropped); a refutation is itself a load-bearing claim and must cite its evidence.
+If neither, the finding is undetermined, not clean, and still blocks G8 at its claimed severity; it exits as
+fix-or-explicit-owner-decision recorded in the review artifact, like the data-integrity floor. Findings from
+external/foreign-agent reviewers are held the same way. Below High no refuter runs, so there the citation is
+the author's duty only (the data-integrity and security floors still apply).
 <!-- /claim-evidence-rule -->
 
 The author attaches the evidence when writing the claim; the reviewer opens the cited line instead of

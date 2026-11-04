@@ -517,30 +517,37 @@ def check_claim_evidence(root: Path, f: Findings) -> None:
                 f.error("docs/claim-evidence.md", f"claim-evidence rule block does not state {token!r}")
     design = root / SKILLS_DIR / "sc-design" / "SKILL.md"
     if design.is_file():
+        where = shown(design.relative_to(root))
         sections = re.split(r"^## ", read(design), flags=re.M)
-        for label, prefix in (("design output", "Design (architect"), ("critic review", "Design review (critic")):
+        for label, prefix in (("design output", "Design (architect"),
+                              ("critic review", "Design review (critic")):
             sec = next((s for s in sections if s.startswith(prefix)), "")
-            if not _claim_bullet(sec):
-                f.error(shown(design.relative_to(root)),
-                        f"{label} has no '**Claim evidence**' bullet naming claim-evidence.md")
+            if _claim_bullet(sec) is None:
+                f.error(where, f"{label} has no '**Claim evidence**' bullet naming claim-evidence.md")
     review = root / SKILLS_DIR / "sc-review" / "SKILL.md"
     if review.is_file():
+        where = shown(review.relative_to(root))
         sections = re.split(r"^## ", read(review), flags=re.M)
         sec = next((s for s in sections if s.startswith("Output & severity discipline")), "")
-        if not _claim_bullet(sec):
-            f.error(shown(review.relative_to(root)),
-                    "output & severity discipline has no '**Claim evidence**' bullet naming claim-evidence.md")
-        elif "never by itself" not in sec.lower():
-            f.error(shown(review.relative_to(root)),
-                    "Claim evidence bullet does not say a missing citation is 'never by itself' a downgrade")
+        bullet = _claim_bullet(sec)
+        if bullet is None:
+            f.error(where, "output & severity discipline has no '**Claim evidence**' bullet naming "
+                           "claim-evidence.md")
+        elif "never by itself" not in bullet.lower():
+            f.error(where, "Claim evidence bullet does not say a missing citation is 'never by itself' "
+                           "a downgrade")
         verify = next((s for s in sections if s.startswith("Verify findings")), "")
-        if "cited evidence" not in verify:
-            f.error(shown(review.relative_to(root)), "Verify findings does not have the refuter open the cited evidence")
+        for token, why in (("cited evidence", "have the refuter open the cited evidence"),
+                           ("must cite its evidence", "say a refutation must cite its evidence")):
+            if token not in verify:
+                f.error(where, f"Verify findings does not {why}")
 
 
-def _claim_bullet(section: str) -> bool:
+def _claim_bullet(section: str) -> str | None:
+    """Body of the section's `**Claim evidence**` bullet if it names claim-evidence.md, else None."""
     m = re.search(r"^- \*\*Claim evidence\*\*(.*?)(?=^- |\Z)", section, re.M | re.S)
-    return bool(m and "claim-evidence.md" in m.group(1))
+    return m.group(1) if m and "claim-evidence.md" in m.group(1) else None
+
 
 
 # --- entry point -------------------------------------------------------------------------------

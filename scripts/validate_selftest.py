@@ -367,6 +367,13 @@ CASES = [
         "refuter open the cited evidence",
     ),
     (
+        "sc-review refutation no longer has to cite evidence",
+        lambda r: mutate(
+            r / "skills" / "sc-review" / "SKILL.md", "must cite its evidence", "may be asserted"
+        ),
+        "say a refutation must cite its evidence",
+    ),
+    (
         "sc-review output discipline drops the Claim evidence bullet",
         lambda r: mutate(
             r / "skills" / "sc-review" / "SKILL.md", "- **Claim evidence** —", "- Claim evidence —"
