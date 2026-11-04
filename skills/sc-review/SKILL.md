@@ -76,11 +76,12 @@ is an outcome, never dialed away by Tier S or a route (`${CLAUDE_PLUGIN_ROOT}/do
   entries, the cold lens's findings are frozen verbatim into the review artifact first; only then does it
   receive the list and report, per entry, whether it had raised it and whether the pinned test covers it
   (recorded as the entry's `cold`; findings it adds then are `postList: true`).
-  Rule: `${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md`. **What it cannot settle** from what it may read — a
-  requirement that lives in unchanged code, an intent only the spec states — it returns as
+  Rule: `${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md`. **What it cannot settle** from what it may read — an
+  intent only the spec states, a behaviour spanning tasks, a fact only a running system shows — it returns as
   `unverifiable-from-diff[]` items (`{item, where, needs, whyNotChecked}`), not as findings: the bucket is
   how it says "I'd need X", not a licence to read the spec
-  (`${CLAUDE_PLUGIN_ROOT}/docs/unverifiable-from-diff.md`).
+  (`${CLAUDE_PLUGIN_ROOT}/docs/unverifiable-from-diff.md`). Its items are frozen with its findings, before
+  the review-focus list is sent; items it adds after are `postList: true`.
 
 ## Running the lenses (agent mapping + fallback)
 Lens names are **roles, not fixed agent types**. Map each to whatever your environment provides, and
@@ -234,7 +235,8 @@ Every lens returns, in this shape:
   sc-design's reuse-before-create gate.
 - **Unverifiable from diff** (blind readers only — the cold lens and the delta pass) — the third bucket,
   `{item, where, needs, whyNotChecked}` each: no severity, never a finding until a disposition confirms it
-  (§Triage). A doubt that reading the repo would settle is read and raised or dropped, not parked here.
+  (§Triage). `whyNotChecked` is `spec-only`, `spans-tasks` or `needs-running-system` — never "unchanged
+  code": a doubt that reading the repo would settle is read and raised or dropped, not parked here.
 - **Verdict** — a clear merge call: **Yes / No / With-Fixes**, plus 1–2 sentences of reasoning.
 - No verdict without having actually read the code.
 
@@ -287,7 +289,12 @@ settled with evidence after the lenses ran: by this triage at `high` effort, or 
 spec-anchored lens on the same model and effort as that lens at G8 (the review-focus Verify rule).
 The outcome is recorded in the item's `disposition` and the review artifact: `confirmed → finding #<n>` (a
 finding with a severity — refuter, floors and triage as usual), `cleared: <cited reason>`, or, when neither
-can be evidenced, `owner-decision: <the owner's words>`. Never silently dropped, never auto-promoted; no
+can be evidenced, `owner-decision: <the owner's words>` — only with `state.route.ownerPresent === true` and
+the owner's answer verbatim as a human user turn, after stating whether the item falls under the
+data-integrity or security floor (if so, "treated as High until shown otherwise"); no owner fails closed (a
+floor item blocks G8, any other goes on the pre-merge manual gate as `manual-gate`). An item whose `needs`
+the reader could have read from the repo is a lens miss: `confirmed`, `parked: true`. Passes ride on
+`loops[G8]`. Never silently dropped, never auto-promoted; no
 disposition goes back into the cold lens's context.
 
 **Review-focus items are verified after the compare.** Every `state.reviewFocus` entry whose `cold` reads
@@ -354,7 +361,8 @@ of a cycle's review spend goes once the first pass has landed. Scope it to what 
   `state.telemetry.implStatus` that skipped the fix round (§Triage); one without a disposition fails G8.
   The same holds for every unresolved wave-check item in `state.waveReviews` (§Triage).
 - **Every `state.unverifiable` item has a `disposition`** — confirmed (and then a finding like any other),
-  cleared with a cited reason, or an owner decision (§Triage); one without fails G8.
+  cleared with a cited reason, an owner decision from an owner present, or (non-floor, no owner)
+  `manual-gate` (§Triage); one without fails G8, and a floor item with no owner answer keeps G8 blocked.
 - **Every missed or uncovered `state.reviewFocus` entry has a `verify` outcome** (§Triage) — and a
   fixed-here one its `pinFixedBy` with failing-first evidence; when the cold lens ran on a non-empty list,
   every entry has its `cold` record, taken after the frozen blind pass.

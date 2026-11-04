@@ -87,7 +87,8 @@ run them sequentially (§`${CLAUDE_PLUGIN_ROOT}/docs/heavy-work.md`).
    not hold; `superseded` entries as evidence of the earlier design's misses; a later defect in an input the
    list left off — or an empty list where one belonged. Entries with `cold: null` were not compared and are
    skipped. Read `state.unverifiable` as "what blind lenses couldn't see": items `confirmed` (a real gap the
-   diff hid — which `needs` would a spec-anchored lens have caught?), items `cleared`, and any later defect
+   diff hid — which `needs` would a spec-anchored lens have caught?), items `parked` (a lens miss: the
+   repo held the answer), items `cleared`, and any later defect
    that sat where a cleared item pointed.
 3. **Stage / route fit** — read `state.route` or the log's `route` rows and `n/a: route` rows: a skipped
    stage whose absence a later loop or defect traces to; a stage that ran, passed first try, caught

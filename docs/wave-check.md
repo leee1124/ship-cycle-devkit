@@ -51,12 +51,14 @@ default, §core 6):
 1. **Cold pass.** Hand it only the wave diff — `git diff <from> <tree>` between the two barrier tree
    identities, so untracked files are in it. No criteria, no design, no author report: the cold lens rules
    of sc-review, assume nothing. Its findings are **frozen verbatim** into the entry's `cold` list before
-   the spec is sent.
+   the spec is sent, and its unverifiable-from-diff items are frozen with them.
 2. **Spec alignment.** Then send the acceptance criteria (§sc-brainstorm, in state), the design and the
    frozen cold findings: does this wave build what they say, and does it contradict an interface, boundary
-   or contract a later wave will build on? What it **cannot verify from the diff** (a requirement that lives
-   in unchanged code or spans waves) it lists as unverifiable-from-diff items, not passes — the one bucket
-   and shape of §`${CLAUDE_PLUGIN_ROOT}/docs/unverifiable-from-diff.md`, which the cold pass may fill too.
+   or contract a later wave will build on? What it **cannot verify from the diff** (a requirement that spans
+   waves, an intent only the spec states, a fact only a running system shows) it lists as
+   unverifiable-from-diff items, not passes — the one bucket and shape of
+   §`${CLAUDE_PLUGIN_ROOT}/docs/unverifiable-from-diff.md`, which the cold pass may fill too. It may add
+   items, never settle the cold pass's: settling is that doc's disposition step.
    It may add findings and raise a cold finding's severity;
    it never retracts or lowers one — only a refuter can.
 

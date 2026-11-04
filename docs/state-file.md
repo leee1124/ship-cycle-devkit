@@ -88,10 +88,12 @@ the mechanics that only matter when something unusual happens to its name or its
   "unverifiable": [{ "id": "UV1", "source": "cold", "tree": "<tree id the reader read>",
                      "item": "<the doubt, one sentence>", "where": "src/a.py:41",
                      "needs": "<unchanged code, spec line or runtime fact that settles it>",
-                     "whyNotChecked": "<blind to the spec | spans waves | needs a running system>",
+                     "whyNotChecked": "spec-only | spans-tasks | needs-running-system",
+                     "postList": false, "sameAs": null,
                      "disposition": { "by": "triage (orchestrator)", "model": "opus", "effort": "high",
                                       "outcome": "cleared: <cited reason>",
-                                      "evidence": "<path:line, spec line, or command → output>" } }],
+                                      "evidence": "<path:line, spec line, or command → output>",
+                                      "parked": false } }],
   "bakeOff": { "stances": ["mvp-first", "risk-first", "performance-first"],
                "criteria": [{ "name": "reversibility", "weight": "high" }],
                "judgeLenses": ["algorithm", "cold"],
@@ -210,8 +212,11 @@ Rules:
 `unverifiable` (appended by sc-review from the cold lens and the delta pass, and by sc-implement from a wave
 check) holds the doubts a blind reader could not settle from what it may read — not findings, no severity.
 sc-review writes each item's `disposition` (`confirmed → finding #<n>`, `cleared: <cited reason>` or
-`owner-decision: <the owner's words>`) before G8, which requires one on every item; sc-ship re-asserts it at
-G11 and sc-retro reads them. Rules: `${CLAUDE_PLUGIN_ROOT}/docs/unverifiable-from-diff.md`.
+`owner-decision: <the owner's words>` with `by: "owner"`, or `manual-gate: <why no owner>`) before G8, which
+requires one on every item; sc-ship re-asserts it at G11 and sc-retro reads them. Rules:
+`${CLAUDE_PLUGIN_ROOT}/docs/unverifiable-from-diff.md`. **Older state:** a wave check's "cannot verify" entry
+recorded before 0.3.22 sits in `waveReviews[].unresolved` and keeps that path — it is not migrated into
+`unverifiable` and not counted twice; it is dispositioned as an unresolved wave item, as it was.
 
 `route.ownerPresent` (UI natures) says whether the owner will watch the live visual loop. Only `true`
 permits an `owner-confirmed` visual check; absent or `false` fails closed. It has its own rule, not the
