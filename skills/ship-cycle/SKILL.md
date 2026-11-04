@@ -199,7 +199,7 @@ never with a live-tree freeze, and never with a live job or freeze that `holds` 
 **One exception to per-cycle isolation: `gitFreeze` describes a repo-wide hazard.** `git worktree add /
 remove / prune` and an `index.lock` recovery reach outside the cycle that runs them, and `prune` is
 repo-scoped. Before any of those, scan **every** `.claude/ship-cycle/*.json` in this working directory for
-an active `gitFreeze` or a `running` `reviewJobs` entry — parked cycles included (a parked freeze has one
+an active `gitFreeze` or a `running`/`launching` `reviewJobs` entry — parked cycles included (a parked freeze has one
 release valve, §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Parking) — and treat another cycle's freeze as binding
 (§sc-review — Git-write freeze).
 

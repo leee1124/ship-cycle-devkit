@@ -145,7 +145,7 @@ filters, health endpoint).
   if the env can't run them, don't bank it as passed). A suite in `unrunnableHere` doesn't block this gate
   and doesn't satisfy it either; **if that set is the *only* coverage for the change, G9 is a `degrade`,
   not a `pass`.**
-- Set `gates.G9` in state (with `state.gateShas.G9` = the `HEAD` QA ran on) as **`pass` / `degrade` / `fail`, with the reason** — the same three-way shape
+- Set `gates.G9` in state (with `state.gateTrees.G9` = the tree identity QA ran on, §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Tree identity) as **`pass` / `degrade` / `fail`, with the reason** — the same three-way shape
   `gates.G7b` already uses (`pass`/`checklist`/`skip`). A `degrade` is **not** a failure: do **not** loop to
   `sc-implement` with a debugger that cannot conjure a database, and do **not** write `pass` because the
   gate had no other value to take. Carry its reason to the pre-merge manual gate, where G12 honors it

@@ -11,7 +11,9 @@
 - **Resume reconcile** on `/resume` and PREFLIGHT resume, appended to `state.reconcile`. Inference only
   lowers: it may move the stage earlier or clear a `pass`, never record one; a clear does not count against
   `loops`. Evidence table: `docs/state-file.md` — Resume reconcile.
-- **`state.gateShas`**: G5–G9 record the `HEAD` they judged, so a pass on an older tree is cleared.
+- **`state.gateTrees`**: G5–G9 record the worktree's tree identity (temp-index `git add -A` + `write-tree`),
+  not `HEAD` — code is uncommitted until sc-ship. A different tree clears the pass; sc-ship's commits and
+  docs-only additions don't. A pre-0.3.5 file without trees clears G5–G9 on resume.
 - A new goal on a parked branch asks "resume or replace?". `/status` lists every cycle's stage and parked
   details; `/ship` refuses a parked cycle.
 - **Validator: stage vocabulary.** One list in `docs/state-file.md`; `stage`/`resumeStage`/`recordedStage`/

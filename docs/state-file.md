@@ -8,7 +8,7 @@ the mechanics that only matter when something unusual happens to its name or its
 ```json
 { "goal": "...", "branch": "...", "worktreePath": "...", "stage": "sc-design",
   "gates": { "G1": "pass", "G2": "pass", "G4": "n/a: copy change, verified by execution" },
-  "gateShas": { "G5": "<head sha the build/tests ran on>" },
+  "gateTrees": { "G5": "<tree id of the worktree the build/tests ran on>" },
   "loops": { "G8": 1 },
   "nature": ["backend"], "risk": ["auth"], "size": "L",
   "sizeEvidence": ["src/a.py:41", "src/b.py:88"],
@@ -62,10 +62,36 @@ bare case id (captured at PREFLIGHT) or `{ "case", "capturedAt": "<stage>" }` (a
 `flaky` cases are never exempt — a recheck replaces a suite's `failing` entries, it does not exempt `flaky`.
 Shape and rules: `${CLAUDE_PLUGIN_ROOT}/docs/test-baseline.md`.
 
-`gateShas[G]` is the `HEAD` sha a tree-dependent gate (G5, G6, G7, G7b, G8, G9) was judged on, written with
-its `pass` (or `checklist`/`degrade`) by the stage that sets it. A pass without a sha cannot be shown to cover
-the tree that ships, so the reconcile treats it as evidence gone. `gitFreeze.releasedBy` names who released
-the freeze: `"self"`, or the branch of another cycle that released it (§Parking).
+`gateTrees[G]` is the **tree identity** of the worktree a tree-dependent gate (G5, G6, G7, G7b, G8, G9) was
+judged on, written with its `pass` (or `checklist`/`degrade`) by the stage that sets it. It is a tree, not
+`HEAD`, because the code stays uncommitted until sc-ship: a `HEAD` sha would not change when the judged code
+did. A pass without a tree cannot be shown to cover the tree that ships, so the reconcile treats it as
+evidence gone. `gitFreeze.releasedBy` names who released the freeze: `"self"`, or the branch of another
+cycle that released it (§Parking).
+
+### Tree identity
+
+Stage everything — tracked, modified and untracked, minus ignored files and this run's state — into a
+throwaway index and write it as a tree. The real index is never touched:
+
+```bash
+idx="$(mktemp -d)/index"
+GIT_INDEX_FILE="$idx" git read-tree HEAD &&
+GIT_INDEX_FILE="$idx" git add -A -- . ':(exclude).claude/ship-cycle' &&
+GIT_INDEX_FILE="$idx" git write-tree      # → the tree id
+rm -rf "$(dirname "$idx")"
+```
+
+The writer and the reconcile run exactly this, so equal ids mean an equal worktree. Committing does not
+change the id — a clean worktree's tree is `HEAD^{tree}` — so sc-ship's commits keep every recorded tree
+valid. The one allowed difference is the docs sc-ship adds at G10: a recorded tree still holds when
+
+```bash
+git diff --quiet <recorded tree> <current tree> -- . <one ':(exclude)<glob>' per docs glob>
+```
+
+exits 0, with the docs globs from overlay `changeNature`'s docs rule (no overlay: `*.md` and `docs/`).
+Any other difference clears the gate.
 
 `parked` is `null` unless `stage` is `parked` (§Parking). `reconcile` is append-only, one entry per resume
 (§Resume reconcile).
@@ -144,7 +170,9 @@ request:
 A held freeze stays binding while parked, for this cycle and for every other cycle's freeze scan — with one
 release valve, because nobody may be around to release it: **another cycle may release a parked cycle's
 freeze** once every held job is terminal or older than overlay `maxWaitMinutes`. It sets `releasedAt` and
-`releasedBy: <its own branch>` in the parked file and touches nothing else there.
+`releasedBy: <its own branch>` in the parked file and touches nothing else there. Re-read that file
+immediately before writing, and abort if its `stage` or `gitFreeze` changed since the check — the owner may
+have resumed, and a release racing a resume frees a branch its owner is about to freeze again.
 
 Parking is not a gate outcome: it records nothing in `gates`, and it **does not reset `loops`** — a pause is
 not a fresh attempt, so the cap survives it.
@@ -159,8 +187,8 @@ compares worktree evidence with it and with `gates`:
 
 | evidence | mismatch it reports | effect |
 |---|---|---|
-| a tree-dependent `pass` (G5–G9) whose `gateShas[G]` is missing or unreachable, or where `git rev-list <sha>..HEAD` is non-empty | the gate judged a different tree | clear the gate; continue at its owner |
-| uncommitted or untracked files (`git status --porcelain`) | changes before `sc-tdd`; changes on top of a tree-dependent pass | report; clear that pass, continue at its owner |
+| a tree-dependent `pass` (G5–G9) whose `gateTrees[G]` is missing, or differs from the current tree identity outside the docs globs (§Tree identity) | the gate judged a different tree | clear the gate; continue at its owner |
+| uncommitted or untracked files (`git status --porcelain`) | changes while the recorded stage is before `sc-tdd` | report only — tree-dependent gates are judged by the row above |
 | commits since the base (`git log <base>..HEAD`) | code committed while the recorded stage is before `sc-tdd`; a G4/G5 `pass` with no change at all | report; clear a pass that lost its evidence |
 | test files in the diff vs the base | **tests exist but G4 not recorded** | continue at `sc-tdd`, which confirms Red (against the base if code is already there) before recording G4 |
 | a recorded `pass` whose other evidence is gone — a missing artifact path, coverage report or test file | the gate and what vanished | clear the gate; continue at its owner |
@@ -180,6 +208,9 @@ Output, printed and appended to `reconcile`: `recordedStage`, `continueFrom`, ea
 evidence (path, sha, missing file), and the gates it `cleared` — or `no mismatches`.
 
 ## Migration (PREFLIGHT-only, one-time)
+
+A pre-0.3.5 file has no `gateTrees`, so on resume the reconcile clears its G5–G9 passes (evidence gone) and
+those stages re-run. That is the price of not trusting a pass nobody can tie to a tree.
 
 If the per-branch file is absent and a legacy bare `.claude/.ship-cycle-state.json` exists whose `branch`
 **equals** the current branch, move it into the per-branch path: rewrite, then delete the bare file. If its
