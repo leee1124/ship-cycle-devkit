@@ -72,41 +72,45 @@ is mid-flight. The hook restates the facts so the session reads the state file i
 
 **What it does.** On `SessionStart` with source `startup`, `clear` or `compact`, `hooks/session-start.cjs`
 takes the session's working directory from the `cwd` field of the hook's stdin JSON (a bounded read of at
-most 64 KiB, skipped when stdin is a terminal; the value must be an absolute, existing, non-network
-directory) and falls back to its own working directory. From there it finds the repo top, reads the branch
+most 64 KiB, skipped when stdin is a terminal and under `--host codex`; the value must be an absolute,
+existing directory and not UNC-style) and falls back to its own working directory. The read **relies on
+the host closing stdin or completing the JSON value**: it stops at the first chunk that parses, so a host
+that writes the JSON and keeps the pipe open does not stall it, but a host that writes nothing and never
+closes stdin would hold it until the hook's 5 s timeout. From there it finds the repo top, reads the branch
 from the HEAD file (a `.git` directory, or a worktree's `.git` file and its `gitdir:`; no `git` process),
 derives the slug exactly as (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — The slug) does, and reads
 `.claude/ship-cycle/<slug>.json` under the repo top. When the stage is mid-pipeline or `parked`, it prints
 three lines:
 
 ```text
-ship-cycle: active cycle on feat/x - stage sc-review, next gate G8, loops G8=1/3.
+ship-cycle: active cycle on branch `feat/x` - stage sc-review, next gate G8, loops G8=1/3.
 State: .claude/ship-cycle/feat-x.json (gate log beside it).
 Run /ship-cycle-devkit:resume's reconcile before acting.
 ```
 
-A parked file says `parked cycle on <branch> since <date> - resume stage <s>, next gate <G>` and that the
-park reason is in the file. The next gate is the first gate of the stage (from the pipeline table in
+A parked file says ``parked cycle on branch `<branch>` since <date> - resume stage <s>, next gate <G>`` and
+that the park reason is in the file. The next gate is the first gate of the stage (from the pipeline table in
 `${CLAUDE_PLUGIN_ROOT}/skills/ship-cycle/SKILL.md`, which the script mirrors and `scripts/validate.py`
-compares) not yet recorded — `pass`, `checklist`, `degrade` and any `n/a…` count as recorded, and `G2`,
-`G3` or `G2/G3` covers the one design gate. When every gate of the stage is recorded it says `stage gates
-recorded - advance per the pipeline` instead. Loops show each recorded count against the loop cap.
+compares) not yet recorded — `pass`, `checklist`, `degrade` and any `n/a…` count as recorded, and `G2`, `G3`
+or `G2/G3` covers the one design gate. When every gate of the stage is recorded it says
+`stage gates recorded - advance per the pipeline` instead. Loops show each recorded count against the loop cap.
 
 **Silent** for: no repo, detached HEAD, no state file, a terminal or unknown stage, malformed or oversized
 JSON, a file whose `branch` names another branch (§state-file.md — Collision guard), and any error at all —
-it always exits 0 and writes nothing but the context. **It never stalls a session start**: `.git`, a
+it always exits 0 and writes nothing but the context. **It is built not to stall a session start**: `.git`, a
 worktree's `.git` file, HEAD and the state file are read only when they are regular files under a size
-cap (4 KiB; 1 MiB for the state), so a FIFO or device is never opened; a `gitdir:` or stdin `cwd` naming a
-network path (`\\…` or `//…`) is not followed; and an error other than "not found" while looking for
-`.git` (a symlink loop, a permission error) stops the search instead of walking further up.
+cap (4 KiB; 1 MiB for the state), so a FIFO or device is never opened; UNC-style `gitdir:` and stdin `cwd`
+values (`\\…` or `//…`) are not followed; stdin is read as above; and an error other than "not found"
+while looking for `.git` (a symlink loop, a permission error) stops the search instead of walking
+further up. A mounted network drive under an ordinary path is still read like any directory.
 
-**Nothing from the repo reaches the model as free text.** The state file and the branch name can be
-written by anyone with repo access, so the hook prints only whitelisted values: stage names and `G<n>`
-keys from fixed vocabularies, integer counts, an ISO date, and the branch only when it matches
-`^[A-Za-z0-9._/-]{1,80}$`. A branch outside that set is not printed, and neither is the state path built
-from it — the lines say `(state file for the current branch)` and `the state file beside the gate log in
-.claude/ship-cycle/`. `goal`, `parked.reason` and gate `n/a` reasons are never echoed. A branch name inside
-the whitelist is still the user's own text — it can spell words, never sentences with spaces or
+**Nothing from the repo reaches the model as free text.** The state file and the branch name can be written by
+anyone with repo access, so the hook prints only whitelisted values: stage names and `G<n>` keys from fixed
+vocabularies, integer counts, an ISO date, and the branch only when it matches `^[A-Za-z0-9._/-]{1,80}$` — and
+then as quoted data, ``on branch `<branch>` ``. A branch outside that set is not printed, and neither is the
+state path built from it — the lines say `(state file for the current branch)` and `the state file beside the
+gate log in .claude/ship-cycle/`. `goal`, `parked.reason` and gate `n/a` reasons are never echoed. A branch
+name inside the whitelist is still the user's own text — it can spell words, never sentences with spaces or
 punctuation beyond `._/-`.
 
 **Output form.** Claude Code gets `{"hookSpecificOutput": {"hookEventName": "SessionStart",

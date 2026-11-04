@@ -7,22 +7,26 @@
 //
 // Contract, in order of importance:
 //   * Never fail or stall the session: every error path ends in exit 0 with nothing on stdout, and nothing
-//     is read that is not a small regular file (no FIFO, device or network path can block a read).
+//     is read that is not a small regular file (never a FIFO or device), UNC-style gitdir / cwd values
+//     are not followed, and stdin is read only until it holds one complete JSON value.
 //   * Read-only, no network, no child process: the branch comes from the HEAD file, not `git`.
 //   * Nothing from the repo is free text to the model. The state file and the branch name can be written by
 //     anyone with repo access, so every printed value is whitelisted: stage names and gate ids from fixed
 //     vocabularies, integer counts, an ISO date, and the branch only if it matches BRANCH_RE (else it and
 //     the path built from it are omitted). goal, parked.reason and gate reasons are never echoed.
 //
-// Working directory: the `cwd` of the hook's stdin JSON when present and usable, else process.cwd().
+// Working directory: the `cwd` of the hook's stdin JSON when present and usable, else process.cwd(). The
+// read relies on the host closing stdin or completing the JSON value; it stops at the first complete one.
 // Usage:  node session-start.cjs [--host claude|codex]
-//   claude (default): JSON {hookSpecificOutput:{hookEventName,additionalContext}}, state dir .claude/ship-cycle
+//   claude (default): JSON {hookSpecificOutput:{hookEventName,additionalContext}},
+//                     state dir .claude/ship-cycle
 //   codex:            plain text, state dir .codex/ship-cycle
 // Opt-out: SHIP_CYCLE_HOOK=off (also 0 / false / no / disabled).
 "use strict";
 
 const fs = require("fs");
 const path = require("path");
+const tty = require("tty");
 
 // Mirrors the pipeline table in skills/ship-cycle/SKILL.md (stage skill -> its gates). scripts/validate.py
 // parses both and fails on any difference, so edit them together.
@@ -37,15 +41,16 @@ const STAGE_GATES = {
   "sc-ship": ["G10", "G11", "G12", "G13"]
 };
 // stage-gates:end
-// G2/G3 is one gate in the orchestrator's gate table: a value recorded under either id (or the pair) covers both.
+// G2/G3 is one gate in the orchestrator's gate table: a value under either id (or the pair) covers both.
 const ONE_GATE = { G2: ["G2/G3", "G3"], G3: ["G2/G3", "G2"] };
 // Mirrors "Loop cap: 3 per gate" in skills/ship-cycle/SKILL.md (checked by scripts/validate.py).
 const LOOP_CAP = 3;
 const PARKED = "parked";
-const RECORDED = new Set(["pass", "checklist", "degrade"]); // plus any "n/a…"
+const RECORDED = new Set(["pass", "checklist", "degrade"]); // plus any "n/a..."
 const MAX_SMALL_FILE = 4 * 1024;
 const MAX_STATE_BYTES = 1024 * 1024;
 const MAX_STDIN = 64 * 1024;
+const STDIN_WAIT_MS = 300;
 const MAX_UP = 64;
 const BRANCH_RE = /^[A-Za-z0-9._/-]{1,80}$/;
 const GATE_RE = /^G\d{1,2}[a-z]?$/;
@@ -73,25 +78,38 @@ function readSmallFile(p, max) {
 }
 
 function stdinCwd() {
-  if (process.stdin.isTTY) return null;
+  // tty.isatty, not process.stdin: touching process.stdin makes libuv switch fd 0 to non-blocking, and a
+  // read that races the host's write would then see EAGAIN and drop the cwd.
+  if (tty.isatty(0)) return null;
   const chunks = [];
   let total = 0;
+  let input;
   const buf = Buffer.alloc(8192);
+  const pause = new Int32Array(new SharedArrayBuffer(4));
+  const deadline = Date.now() + STDIN_WAIT_MS;
   for (;;) {
     let n = 0;
     try {
       n = fs.readSync(0, buf, 0, buf.length, null);
     } catch (e) {
-      if (e && e.code === "EAGAIN") return null; // non-blocking stdin with nothing to read: don't spin
-      break; // EOF on Windows pipes, EBADF when there is no stdin
+      // A non-blocking stdin with nothing yet: wait briefly for the host's write, never spin or hang.
+      if (e && e.code === "EAGAIN" && Date.now() < deadline) {
+        Atomics.wait(pause, 0, 0, 5);
+        continue;
+      }
+      break; // EOF on Windows pipes, EBADF when there is no stdin, or the EAGAIN deadline passed
     }
     if (n <= 0) break;
     total += n;
     if (total > MAX_STDIN) return null;
     chunks.push(Buffer.from(buf.subarray(0, n)));
+    // Stop at the first complete JSON value: a host that writes it and keeps stdin open must not stall us.
+    try {
+      input = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+      break;
+    } catch (_) { /* incomplete so far: read on */ }
   }
-  if (!total) return null;
-  const input = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  if (!total || input === undefined) return null;
   const cwd = input && typeof input === "object" ? input.cwd : null;
   if (typeof cwd !== "string" || !cwd || cwd.length > 4096 || cwd.includes("\0")) return null;
   if (!path.isAbsolute(cwd) || isNetworkPath(cwd)) return null;
@@ -176,7 +194,7 @@ function render(host, branch, state) {
   const loops = loopsText(state.loops);
   const dir = `${host === "codex" ? ".codex" : ".claude"}/ship-cycle/`;
   const named = BRANCH_RE.test(branch);
-  const on = named ? `on ${branch}` : "(state file for the current branch)";
+  const on = named ? `on branch \`${branch}\`` : "(state file for the current branch)";
   let head;
   if (parked) {
     const at = state.parked && typeof state.parked.at === "string" ? ISO_DATE_RE.exec(state.parked.at) : null;
@@ -185,7 +203,9 @@ function render(host, branch, state) {
   } else {
     head = `ship-cycle: active cycle ${on} - stage ${skill}, ${gateText}`;
   }
-  const where = named ? `${dir}${branch.split("/").join("-")}.json` : `the state file beside the gate log in ${dir}`;
+  const where = named
+    ? `${dir}${branch.split("/").join("-")}.json`
+    : `the state file beside the gate log in ${dir}`;
   const lines = [`${head}${loops ? `, loops ${loops}` : ""}.`];
   lines.push(`State: ${where}${named ? " (gate log beside it)" : ""}`
     + `${parked ? "; the park reason is recorded there" : ""}.`);
@@ -202,16 +222,20 @@ function main(argv) {
   const host = i >= 0 && argv[i + 1] === "codex" ? "codex" : "claude";
 
   let start = null;
-  try { start = stdinCwd(); } catch (_) { start = null; }
+  // Codex's stdin contract is unverified (docs/runtime-adapters.md), so it is not read there.
+  if (host === "claude") {
+    try { start = stdinCwd(); } catch (_) { start = null; }
+  }
   const found = findGitEntry(start || process.cwd());
   if (!found) return null;
   const gitDir = gitDirOf(found);
   if (!gitDir) return null;
   const branch = currentBranch(gitDir);
   if (!branch) return null;
-  const slug = branch.split("/").join("-"); // exactly `tr '/' '-'` (docs/state-file.md — The slug)
+  const slug = branch.split("/").join("-"); // exactly `tr '/' '-'` (docs/state-file.md - The slug)
 
-  const statePath = path.join(found.top, host === "codex" ? ".codex" : ".claude", "ship-cycle", `${slug}.json`);
+  const hostDir = host === "codex" ? ".codex" : ".claude";
+  const statePath = path.join(found.top, hostDir, "ship-cycle", `${slug}.json`);
   const raw = readSmallFile(statePath, MAX_STATE_BYTES);
   if (raw === null) return null;
   const state = JSON.parse(raw);
@@ -223,8 +247,9 @@ function main(argv) {
   if (!text) return null;
   if (host === "codex") return `${text}\n`;
   // ASCII-only JSON (non-ASCII as \uXXXX) so no console code page can garble it on the way in.
-  const json = JSON.stringify({ hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: text } })
-    .replace(/[\u0080-￿]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`);
+  const payload = { hookSpecificOutput: { hookEventName: "SessionStart", additionalContext: text } };
+  const json = JSON.stringify(payload)
+    .replace(/[\u0080-\uffff]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`);
   return `${json}\n`;
 }
 

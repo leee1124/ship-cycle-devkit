@@ -73,6 +73,10 @@ if os.name != "nt":
     HOOK_MUTATIONS.append(("hook reads a FIFO",
                            "if (!st || st === STOP || !st.isFile() || st.size > max) return null;",
                            "if (!st || st === STOP) return null;", "[FIFO as HEAD is never read (POSIX)]"))
+    HOOK_MUTATIONS.append(("hook reads stdin until it closes",
+                           'input = JSON.parse(Buffer.concat(chunks).toString("utf8"));\n      break;',
+                           'input = JSON.parse(Buffer.concat(chunks).toString("utf8"));',
+                           "[stdin complete but never closed does not stall]"))
 
 
 def fresh_copy(dest: Path) -> Path:

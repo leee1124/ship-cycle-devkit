@@ -106,7 +106,7 @@ plugin's `SessionStart` hook (`hooks/hooks.json`, matcher `startup|clear|compact
 file and, only if the stage is mid-pipeline or `parked`, adds three lines of context:
 
 ```text
-ship-cycle: active cycle on feat/x - stage sc-review, next gate G8, loops G8=1/3.
+ship-cycle: active cycle on branch `feat/x` - stage sc-review, next gate G8, loops G8=1/3.
 State: .claude/ship-cycle/feat-x.json (gate log beside it).
 Run /ship-cycle-devkit:resume's reconcile before acting.
 ```

@@ -90,12 +90,6 @@ def cases():
         write_state(r, "feat-x", ACTIVE)
         return r, [], None
 
-    def expect_active(text):
-        assert text.splitlines()[0] == ("ship-cycle: active cycle on feat/x - stage sc-review, next gate G8, "
-                                        "loops G8=1/3."), text
-        assert "State: .claude/ship-cycle/feat-x.json" in text, text
-        assert "reconcile" in text, text
-
     yield "no state file", lambda t: (make_repo(t / "repo"), [], None), None
     yield "active cycle", active, expect_active
 
@@ -115,7 +109,8 @@ def cases():
         return r, [], None
 
     def expect_parked(text):
-        assert text.splitlines()[0] == ("ship-cycle: parked cycle on feat/x since 2026-11-04 - resume stage "
+        assert text.splitlines()[0] == ("ship-cycle: parked cycle on branch `feat/x` since 2026-11-04 - "
+                                        "resume stage "
                                         "sc-implement, next gate G6, loops G6=2/3."), text
         assert "park reason is recorded there" in text, text
 
@@ -272,7 +267,8 @@ def cases():
         return r, ["--host", "codex"], None
 
     def expect_codex(raw):
-        assert raw.startswith("ship-cycle: active cycle on feat/x - stage sc-review, next gate G8"), raw
+        assert raw.startswith("ship-cycle: active cycle on branch `feat/x` - stage sc-review, "
+                              "next gate G8"), raw
         assert "State: .codex/ship-cycle/feat-x.json" in raw, raw
 
     yield "codex host reads .codex/ and prints plain text", codex, ("plain", expect_codex)
@@ -280,7 +276,8 @@ def cases():
 
 def expect_advance(stage: str):
     def check(text: str) -> None:
-        _assert(text.splitlines()[0] == (f"ship-cycle: active cycle on feat/x - stage {stage}, stage gates "
+        _assert(text.splitlines()[0] == (f"ship-cycle: active cycle on branch `feat/x` - stage {stage}, "
+                                         "stage gates "
                                          "recorded - advance per the pipeline."), text)
     return check
 
@@ -293,6 +290,13 @@ def _expect_unnamed(branch: str):
         _assert(not any(0xE0000 <= ord(c) <= 0xE007F for c in text), text)
         _assert(branch not in text, text)
     return check
+
+
+def expect_active(text: str) -> None:
+    assert text.splitlines()[0] == ("ship-cycle: active cycle on branch `feat/x` - stage sc-review, "
+                                    "next gate G8, loops G8=1/3."), text
+    assert "State: .claude/ship-cycle/feat-x.json" in text, text
+    assert "reconcile" in text, text
 
 
 def _assert(cond: bool, text: str) -> None:
@@ -353,6 +357,39 @@ def main(argv: list[str]) -> int:
                 failures.append(f"[{name}] {type(e).__name__}: {e}")
                 continue
         print(f"ok   hook: {name}")
+    # Medium-A: a host that writes the JSON and keeps stdin open must not stall the hook (POSIX: Windows
+    # pipe semantics differ and the hook's contract there is the host closing stdin).
+    if os.name != "nt":
+        count += 1
+        name = "stdin complete but never closed does not stall"
+        with tempfile.TemporaryDirectory(prefix="scdk hook test ") as tmp:
+            try:
+                repo = make_repo(Path(tmp) / "repo")
+                write_state(repo, "feat-x", ACTIVE)
+                elsewhere = _with_dir(Path(tmp) / "elsewhere")
+                import time
+                env = {k: v for k, v in os.environ.items() if k != "SHIP_CYCLE_HOOK"}
+                start = time.monotonic()
+                proc = subprocess.Popen(["node", str(hook)], cwd=str(elsewhere), env=env,
+                                        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                try:
+                    proc.stdin.write(json.dumps({"cwd": str(repo)}).encode())
+                    proc.stdin.flush()  # left open on purpose, like `(printf ...; sleep 10) | node hook`
+                    code = proc.wait(timeout=1.0)
+                    out_b = proc.stdout.read()
+                finally:
+                    if proc.poll() is None:
+                        proc.kill()
+                        proc.wait()
+                    proc.stdin.close()
+                elapsed = time.monotonic() - start
+                if code != 0 or elapsed >= 1.0:
+                    raise AssertionError(f"exit {code} after {elapsed:.2f}s")
+                expect_active(context_of(out_b.decode("utf-8", "replace")))
+                print(f"ok   hook: {name} ({elapsed * 1000:.0f} ms)")
+            except Exception as e:  # noqa: BLE001 - TimeoutExpired included: that is the stall
+                failures.append(f"[{name}] {type(e).__name__}: {e}")
+
     if failures:
         print("\n".join(f"FAIL hook {f}" for f in failures))
         return 1
