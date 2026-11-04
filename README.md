@@ -181,8 +181,9 @@ pass reaches for, and cutting them is how you ship a misdiagnosed request confid
 **Route at G1.** The tier is a guess from the diff; the route plan is the decision. sc-brainstorm ends with
 a compact table of which stages run, which are skipped and why, and which lenses and QA form apply; the
 user confirms it with the acceptance criteria, and every stage reads it from state. It can skip a ceremony
-stage the tier would run (design, test-first, QA) with a named reason, never review or an outcome, and
-only grows afterwards. When the job is one stage's, it recommends that skill standalone instead.
+stage the tier would run (design, QA, and test-first only for layout/copy/config) with a named reason,
+never review or an outcome, and only grows afterwards — a size or risk rise re-opens every skip. When the
+job is one stage's, it recommends that skill standalone instead.
 
 **"Simplify" means delete what the model already knows — not reduce line count.** Two very different kinds
 of rule accumulate in files like these, and a blunt prune deletes the wrong one:

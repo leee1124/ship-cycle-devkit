@@ -128,10 +128,10 @@ mobile nature:
 ## When to run / skip
 - **Run** for real features and any change that crosses a seam.
 - **Skip only when `state.size` is `S`, or when the confirmed route says so**
-  (`state.route.stages['sc-qa']` = `skip: <reason>` → `gates.G9 = "n/a: route — <reason>"` with
-  `gateTrees.G9`) — log the skip reason — except the release smoke, which a touched `appliesTo` still
-  requires (§Release-artifact smoke). When it runs, run the route's QA form (`state.route.qa`; absent, the
-  full set). A stage does not re-judge triviality for itself: PREFLIGHT owns the tier, the user confirmed
+  (`state.route.stages['sc-qa']` = `skip: <reason>`, and `state.size`/`state.risk` have not risen above
+  `state.route.basis` — a rise re-shows the skip first, §ship-cycle Route plan) — log the skip reason —
+  except the release smoke, which a touched `appliesTo` still requires (§Release-artifact smoke). When it
+  runs, run the route's QA form (`state.route.qa`; absent, the full set). A stage does not re-judge triviality for itself: PREFLIGHT owns the tier, the user confirmed
   the route at G1, and both only grow (§ship-cycle Stage 0.2, Route plan), so a run that recorded `M`/`L`
   with no route skip cannot skip QA by deciding on its own that it looks isolated.
 
@@ -179,11 +179,12 @@ dev-build E2E was green. This section is the one source of truth for the rule; o
 - **Not triggered** → `releaseSmoke[<nature>] = "n/a"`. A nature without `releaseSmoke` →
   `"n/a: no releaseSmoke config"`; if that nature's G7 builds a shipped artifact, say so in one line each
   cycle, so an undeclared smoke is visible rather than silently absent.
-- **The size tier does not skip it.** A Tier S change can be a one-line keep rule: when QA is otherwise
-  skipped on Tier S and `appliesTo` is touched, this stage runs the release smoke and only that. Then
-  `gates.G9` is the smoke's outcome (`pass` / `degrade` / `fail`), and the rest of QA is recorded beside it as
-  `n/a: Tier S — <skip reason>`, carried to the PR body. Tier S with nothing touched: `gates.G9 = "n/a: Tier S
-  — <reason>"`. That `n/a` depends on the diff, so record `gateTrees.G9` with it too — a later commit that
+- **Neither the size tier nor the route skips it.** A Tier S change can be a one-line keep rule. When QA
+  is otherwise skipped (Tier S or a route skip) and `appliesTo` is touched, this stage runs the release
+  smoke and only that: `gates.G9` is the smoke's outcome (`pass` / `degrade` / `fail`), and the rest of QA
+  is recorded beside it as `n/a: Tier S — <reason>` or `n/a: route — <reason>`, carried to the PR body.
+  Skipped with nothing touched: `gates.G9 = "n/a: Tier S — <reason>"` or `"n/a: route — <reason>"`. That
+  `n/a` depends on the diff, so record `gateTrees.G9` with it too — a later commit that
   touches `appliesTo` must clear it on resume.
 - **Staleness.** When the resume reconcile clears G9 (tree mismatch), it clears every `releaseSmoke` entry
   with it: a smoke run on another tree is evidence for that tree only.

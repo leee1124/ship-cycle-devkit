@@ -4,34 +4,51 @@
 
 - **sc-brainstorm ends G1 with a route plan** beside the acceptance criteria: a compact table of every
   post-brainstorm stage (`run` / `skip` + reason), the review lenses and the QA form. The user confirms it
-  with the criteria in one answer; it is recorded as `state.route` (with `confirmedAt`) and a `route` row in
-  the gate log. The rule lives once, in ship-cycle §Route plan.
-- **Stages read it instead of re-deriving.** sc-design and sc-tdd record a planned skip as
-  `gates.<G> = "n/a: route — <reason>"` (sc-tdd's reason names the execution-based verification); sc-qa
-  skips on a route skip (release smoke still runs when `appliesTo` is touched) and runs `state.route.qa`;
-  sc-review takes `state.route.lenses`. A skip is an ordinary `n/a`, so G12's counting is unchanged.
-- **Growth only**, like size and risk: after confirmation a stage or lens can be added (re-show only the
-  added rows), never removed; the reconcile never turns `run` into `skip`. A state file without `route`
-  (pre-0.3.13) decides from the tier as before; nothing is reconstructed. `/status` prints the route and
-  flags an `n/a` gate whose stage the route planned to run.
+  with the criteria in one answer; it is recorded as `state.route` with `confirmedAt` and `basis` (the
+  `size` and `risk` it was judged on) and a gate-log row with its own gate token `route`
+  (`confirmed` / `grew` / `reconfirmed`, evidence = the changed `state.route` keys). The rule lives once,
+  in ship-cycle §Route plan.
+- **Stages read it instead of re-deriving.** Each skippable stage's "Route first" check honours a skip only
+  while `size`/`risk` have not risen above `route.basis`, then records `gates.<G> = "n/a: route —
+  <reason>"`, so G12's counting is unchanged. A stage routed `run` runs: it does not `n/a` itself (a config
+  `n/a: no <x> config` still applies); with no route, stages judge for themselves as before.
+- **sc-tdd may be skipped only for layout, copy or config** (§core 3, the same condition G4 accepts), and
+  its Route first grows the entry back to `run` when the change has a contract after all.
+- **Growth only**, like size and risk: a stage or lens can be added, never removed. Growth comes from
+  nature/scope growth, any loop-back to sc-design (loop cap, G8 design flaw — the user is told), or sc-tdd
+  finding a contract. A rise in size or risk after `confirmedAt` invalidates every skip: those rows are
+  re-shown and turn `run` unless re-confirmed against the new basis. Growing a stage whose `n/a: route` gate
+  was already recorded clears it to `—` (a `cleared` row, no loop count), moves `stage` back, and lets later
+  gates clear by the tree-identity rules; G12 refuses an `n/a: route` gate whose entry is now `run`.
+- **Effective lenses** = `route.lenses` ∪ Tier S floor (security + nature-matched + cold when non-trivial)
+  ∪ risk-matched lenses ∪ the lenses of every nature in the current `state.nature`. sc-qa generalizes the
+  Tier S release-smoke rule to "QA skipped (Tier S or route)".
 - **Standalone recommendation**: when the criteria reduce to one stage's job (a review, a design critique, a
-  parity audit), sc-brainstorm recommends `sc-review` / `sc-design` / `sc-audit` alone; if taken, the cycle
-  ends `cancelled`.
+  parity audit), sc-brainstorm recommends `sc-review` / `sc-design` / `sc-audit` alone. If taken, the cycle
+  ends `cancelled` with the G13 subset: archive the log, remove an unused worktree (dep-store links first),
+  delete the branch if it has no commits, delete the state file; a standalone skill ignores a terminal file.
+- **Visibility**: `/status` prints the route with its basis and flags an `n/a` on a whole-stage gate
+  (G2/G3, G4, G9) whose route entry is `run` (config `n/a` exempt) and a basis rise with a skip standing;
+  the PR's Gate summary gets a Route line; resume treats a missing route as pre-0.3.13 behaviour and never
+  reconstructs one (the reconcile never turns `run` into `skip`).
 - **Decision — the route may lower a tier-implied stage, but only ceremony.** PREFLIGHT still sets the tier
   (brainstorm needs a model and effort before requirements exist), but it is a guess from diff size; the
   agreed criteria are better information, and the kit already let any stage `n/a` itself mid-run at any
-  tier. Moving that call to G1, with a named reason the user confirmed, is strictly more visible than the
-  ad-hoc skip it replaces. So `sc-design`, `sc-tdd` and `sc-qa` may be skipped below the tier;
-  `sc-implement`, `sc-review` and `sc-ship` always run, lenses never fall below the Tier S floor (security +
-  a nature-matched lens, + cold when non-trivial), and no route drops a §core outcome or fail-closed floor
-  (branch guard, pre-PR review, real-output pass/fail, conflict check, root cause, triage, G7b, release
-  smoke).
-- **Validator** guards that the documented `route` shape names exactly the post-brainstorm stages with
-  `run` / `skip: <reason>` values and keeps implement/review/ship at `run`; that sc-brainstorm's G1 section
-  records the route plan as `state.route` and the orchestrator's G1 row requires it; that ship-cycle has a
-  `## Route plan` section naming `state.route` and stating growth-only, standalone, §core, the `n/a` form
-  and the lens floor; that sc-design, sc-tdd, sc-review and sc-qa read `state.route`; and that `/status`
-  shows it. Eight self-test mutations. It does not judge the prose.
+  tier. Moving that call to G1, with a named reason the user confirmed and a basis it is re-checked against,
+  is strictly more visible than the ad-hoc skip it replaces. So `sc-design` and `sc-qa` may be skipped
+  below the tier and `sc-tdd` only for layout/copy/config; `sc-implement`, `sc-review` and `sc-ship` always
+  run, lenses never fall below the floor, and no route drops a §core outcome or fail-closed floor (branch
+  guard, pre-PR review, real-output pass/fail, conflict check, root cause, triage, G7b, release smoke).
+- **Validator** guards: the documented `route` shape (`basis` included) names exactly the post-brainstorm
+  stages with `run` / `skip: <reason>` and keeps implement/review/ship at `run`, and the pipeline table
+  must yield stages (an empty one would pass vacuously); sc-brainstorm's G1 section records `state.route`
+  and the orchestrator's G1 row requires the route plan; the `## Route plan` section states growth-only,
+  standalone + terminal-file clause, §core, the `n/a` form, the lens floor and effective lenses, the
+  layout/copy/config restriction, `basis`, `cleared`, the loop cap and the `now run` refusal; sc-design,
+  sc-tdd, sc-review and sc-qa read `state.route` and the skippable three check `state.route.basis`;
+  sc-tdd's Route first restricts and grows back; sc-review states the effective-lens union; sc-ship's G12
+  refuses a re-grown `n/a: route`; `/status` limits its flag to whole-stage gates with config `n/a` exempt.
+  Seventeen self-test mutations. It does not judge the prose.
 
 ## 0.3.12 — Gate-coverage check requires an assignment, not a mention (#75)
 

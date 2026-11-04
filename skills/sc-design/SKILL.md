@@ -7,9 +7,11 @@ description: Stage 2 of ship-cycle. Design + adversarial design review. An archi
 
 Two roles, run as separate agents for real adversarial separation.
 
-**Route first.** When `state.route.stages['sc-design']` is `skip: <reason>`, record
-`gates.G2/G3 = "n/a: route — <reason>"` with its log row and hand over to the next stage the route runs —
-the skip was decided and confirmed at G1 (§ship-cycle — Route plan), so this stage does not re-judge it.
+**Route first.** When `state.route.stages['sc-design']` is `skip: <reason>` and `state.size`/`state.risk`
+have not risen above `state.route.basis`, record `gates.G2/G3 = "n/a: route — <reason>"` with its log row
+and hand over to the next stage the route runs — the skip was confirmed at G1, so this stage does not
+re-judge it. A rise re-shows the skip first; a loop-back here grows this stage to `run` (§ship-cycle —
+Route plan).
 
 ## Design (architect — READ-ONLY, no code)
 Produce a design doc, not an implementation:

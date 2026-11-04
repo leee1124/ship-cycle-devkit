@@ -701,7 +701,10 @@ def _claim_bullet(section: str) -> str | None:
 
 ROUTE_ALWAYS_RUN = ("sc-implement", "sc-review", "sc-ship")
 ROUTE_READERS = ("sc-design", "sc-tdd", "sc-review", "sc-qa")
-ROUTE_RULE_TOKENS = ("never removed", "standalone", "§core", "n/a: route — <reason>", "Tier S floor")
+ROUTE_RULE_TOKENS = ("never removed", "standalone", "§core", "n/a: route — <reason>", "Tier S floor",
+                     "layout, copy or config", "Effective lenses", "`cleared`", "`basis`", "loop cap",
+                     "now `run`", "ignores a terminal state file")
+REVIEW_LENS_TOKENS = ("effective lenses", "Tier S floor", "risk-matched", "`state.nature`")
 
 
 def check_route_plan(root: Path, f: Findings) -> None:
@@ -716,6 +719,9 @@ def check_route_plan(root: Path, f: Findings) -> None:
     orchestrator = root / SKILLS_DIR / "ship-cycle" / "SKILL.md"
     pipeline = re.findall(r"^\|\s*\d+\s*\|\s*`(sc-[a-z-]+)`", read(orchestrator), re.M) \
         if orchestrator.is_file() else []
+    if orchestrator.is_file() and not pipeline:
+        # An empty stage list would make the shape check below vacuously pass.
+        f.error(shown(orchestrator.relative_to(root)), "pipeline table yields no stage skills")
     doc = root / STATE_SHAPE_DOC
     if doc.is_file():
         blocks = re.findall(r"```json\n(.*?)\n```", read(doc), re.S)
@@ -726,7 +732,7 @@ def check_route_plan(root: Path, f: Findings) -> None:
         if not isinstance(route, dict):
             f.error(shown(STATE_SHAPE_DOC), "state shape has no 'route' object")
         else:
-            for key in ("confirmedAt", "stages", "lenses", "qa"):
+            for key in ("confirmedAt", "basis", "stages", "lenses", "qa"):
                 if key not in route:
                     f.error(shown(STATE_SHAPE_DOC), f"route lacks '{key}'")
             stages = route.get("stages") if isinstance(route.get("stages"), dict) else {}
@@ -765,9 +771,34 @@ def check_route_plan(root: Path, f: Findings) -> None:
         path = root / SKILLS_DIR / skill / "SKILL.md"
         if path.is_file() and "state.route" not in read(path):
             f.error(shown(path.relative_to(root)), "does not read state.route")
+    review = root / SKILLS_DIR / "sc-review" / "SKILL.md"
+    if review.is_file():
+        text = read(review)
+        for token in REVIEW_LENS_TOKENS:
+            if token not in text:
+                f.error(shown(review.relative_to(root)), f"lens selection does not state {token!r}")
+    tdd = root / SKILLS_DIR / "sc-tdd" / "SKILL.md"
+    if tdd.is_file():
+        sec = re.search(r"^\*\*Route first\.\*\*(.*?)(?=^## )", read(tdd), re.M | re.S)
+        body = sec.group(1) if sec else ""
+        if "layout, copy or config" not in body or "grow the entry to `run`" not in body:
+            f.error(shown(tdd.relative_to(root)), "Route first does not restrict a tdd skip to layout, copy "
+                                                  "or config and grow it back on a contract")
+    for skill in ("sc-design", "sc-tdd", "sc-qa"):
+        path = root / SKILLS_DIR / skill / "SKILL.md"
+        if path.is_file() and "state.route.basis" not in read(path):
+            f.error(shown(path.relative_to(root)), "does not check state.route.basis before a route skip")
+    ship = root / SHIP_SKILL
+    if ship.is_file() and "whose `state.route` entry is now `run`" not in read(ship):
+        f.error(shown(SHIP_SKILL), "G12 does not refuse an `n/a: route` gate whose route entry is now `run`")
     status = root / "commands" / "status.md"
-    if status.is_file() and "`route`" not in read(status):
-        f.error("commands/status.md", "does not show the route plan (`route`)")
+    if status.is_file():
+        text = read(status)
+        if "`route`" not in text:
+            f.error("commands/status.md", "does not show the route plan (`route`)")
+        elif "(G2/G3, G4, G9)" not in text or "n/a: no <x> config" not in text:
+            f.error("commands/status.md", "unplanned-n/a flag is not limited to whole-stage gates "
+                                          "with config n/a exempt")
 
 
 # --- entry point -------------------------------------------------------------------------------

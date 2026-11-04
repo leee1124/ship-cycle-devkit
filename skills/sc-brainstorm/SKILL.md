@@ -34,7 +34,8 @@ expensive outcome. This stage ends when the user accepts a design direction — 
    | sc-ship | run | — |
    ```
 
-   When the criteria reduce to one stage's job, say so instead and recommend that skill standalone.
+   `sc-tdd` may be skipped only for a layout, copy or config change. When the criteria reduce to one
+   stage's job, say so instead and recommend that skill standalone.
 
 ## Don't
 - Don't jump to implementation or file edits here.
@@ -45,8 +46,9 @@ expensive outcome. This stage ends when the user accepts a design direction — 
 - Acceptance criteria are stated **verifiably**, and the user has agreed the direction **and the route
   plan** — one confirmation for both, not two.
 - Record the agreed problem + acceptance criteria in this cycle's state file
-  (`.claude/ship-cycle/<branch-slug>.json`), the route plan as `state.route` with its `confirmedAt`, and a
-  `route` row in the gate log; set `gates.G1 = pass`. Advance to the first stage the route runs.
+  (`.claude/ship-cycle/<branch-slug>.json`), the route plan as `state.route` with its `confirmedAt` and
+  `basis` (the current `size` and `risk`), and a `route` / `confirmed` row in the gate log; set
+  `gates.G1 = pass`. Advance to the first stage the route runs.
 
 ## Root-cause analysis (defect goals) — the stage that pays for the cycle
 When the goal is a **defect fix**, the "agreed problem" this stage produces is the **root cause**, never the

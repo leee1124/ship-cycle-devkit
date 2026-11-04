@@ -542,13 +542,64 @@ CASES = [
     ),
     (
         "route plan: a stage value that is neither run nor skip",
-        lambda r: mutate(r / "docs" / "state-file.md", '"sc-design": "run"', '"sc-design": "maybe"'),
-        "route.stages['sc-design'] is not 'run' or 'skip: <reason>'",
+        lambda r: mutate(r / "docs" / "state-file.md", '"sc-tdd": "run"', '"sc-tdd": "maybe"'),
+        "route.stages['sc-tdd'] is not 'run' or 'skip: <reason>'",
     ),
     (
         "route plan: /status does not show it",
         lambda r: mutate(r / "commands" / "status.md", "`route`", "the plan", count=-1),
         "does not show the route plan",
+    ),
+    (
+        "route plan: the rule no longer limits a tdd skip to layout/copy/config",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "layout, copy or config", "small"),
+        "Route plan section does not state 'layout, copy or config'",
+    ),
+    (
+        "route plan: the rule drops the standalone terminal-state clause",
+        lambda r: mutate(
+            r / "skills" / "ship-cycle" / "SKILL.md", "ignores a terminal state file", "reads the state file"
+        ),
+        "Route plan section does not state 'ignores a terminal state file'",
+    ),
+    (
+        "route plan: sc-tdd honours a skip even when the change has a contract",
+        lambda r: mutate(r / "skills" / "sc-tdd" / "SKILL.md", "grow the entry to `run`", "note it"),
+        "Route first does not restrict a tdd skip",
+    ),
+    (
+        "route plan: sc-review lens set loses the risk-matched term",
+        lambda r: mutate(r / "skills" / "sc-review" / "SKILL.md", "risk-matched", "matching"),
+        "lens selection does not state 'risk-matched'",
+    ),
+    (
+        "route plan: sc-design skips without checking the basis",
+        lambda r: mutate(r / "skills" / "sc-design" / "SKILL.md", "state.route.basis", "the plan"),
+        "skills/sc-design/SKILL.md: does not check state.route.basis",
+    ),
+    (
+        "route plan: G12 accepts a route n/a whose stage grew back",
+        lambda r: mutate(
+            r / "skills" / "sc-ship" / "SKILL.md", "whose `state.route` entry is now `run`", "that is stale"
+        ),
+        "G12 does not refuse an `n/a: route` gate",
+    ),
+    (
+        "route plan: /status flags every n/a, config ones included",
+        lambda r: mutate(r / "commands" / "status.md", "(G2/G3, G4, G9)", "(any)"),
+        "unplanned-n/a flag is not limited to whole-stage gates",
+    ),
+    (
+        "route plan: the documented shape has no basis",
+        lambda r: mutate(
+            r / "docs" / "state-file.md", '"basis": { "size": "L", "risk": ["auth"] },', ""
+        ),
+        "route lacks 'basis'",
+    ),
+    (
+        "route plan: the pipeline table yields no stages",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "| `sc-", "| sc-", count=-1),
+        "pipeline table yields no stage skills",
     ),
 ]
 
