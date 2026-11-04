@@ -1204,8 +1204,9 @@ def check_session_hook(root: Path, f: Findings) -> None:
     """#86: the SessionStart hook is wired, points at a script that exists, and agrees with the pipeline.
 
     The hook names the next gate from a small stage->gate map; the pipeline table in the orchestrator is the
-    single source, so the map is parsed and compared rather than trusted. Claude Code discovers
-    `hooks/hooks.json` at the plugin root on its own -- declaring it again in the manifest loads it twice.
+    single source, so the map is parsed and compared rather than trusted. `hooks/hooks.json` is registered by
+    its place at the plugin root (observed live, and how superpowers and oh-my-claudecode ship it); a manifest
+    `hooks` key would be a second registration path, so it is refused.
     """
     hooks = load_json(root, HOOKS_JSON, f)
     if hooks is not None:
@@ -1236,8 +1237,8 @@ def check_session_hook(root: Path, f: Findings) -> None:
                     f.error(shown(HOOKS_JSON), "hook needs a timeout of at most 10 seconds")
     claude = load_json(root, CLAUDE_MANIFEST, f)
     if isinstance(claude, dict) and "hooks" in claude:
-        f.error(shown(CLAUDE_MANIFEST), "declares 'hooks', but hooks/hooks.json is discovered automatically "
-                                        "(declaring it again loads it twice)")
+        f.error(shown(CLAUDE_MANIFEST), "declares 'hooks'; hooks/hooks.json at the plugin root is the kit's "
+                                        "one registration path")
 
     script_path = root / HOOK_SCRIPT
     if not script_path.is_file():

@@ -60,7 +60,19 @@ HOOK_MUTATIONS = [
      '"; reason: " + state.parked.reason', "echoed state free text"),
     ("hook lets an error escape", "} catch (_) {\n  out = null;\n}", "} finally {}", "exit 1"),
     ("hook ignores the opt-out", "if (OFF_VALUES.has(off)) return null;", "", "expected silence"),
+    ("hook prints any branch name", "const named = BRANCH_RE.test(branch);", "const named = true;",
+     "[tag-character branch is never echoed]"),
+    ("hook ignores the stdin cwd", "try { start = stdinCwd(); }", "try { start = null; }",
+     "[cwd taken from stdin JSON]"),
+    ("hook names the last gate when all are recorded",
+     'const gateText = gate ? `next gate ${gate}` : "stage gates recorded - advance per the pipeline";',
+     'const gateText = `next gate ${gate || "G13"}`;', "[combined n/a gate key: every stage gate recorded]"),
 ]
+# POSIX only: the FIFO cases that catch it are skipped on Windows.
+if os.name != "nt":
+    HOOK_MUTATIONS.append(("hook reads a FIFO",
+                           "if (!st || st === STOP || !st.isFile() || st.size > max) return null;",
+                           "if (!st || st === STOP) return null;", "[FIFO as HEAD is never read (POSIX)]"))
 
 
 def fresh_copy(dest: Path) -> Path:

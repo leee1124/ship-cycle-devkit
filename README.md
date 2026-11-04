@@ -111,10 +111,12 @@ State: .claude/ship-cycle/feat-x.json (gate log beside it).
 Run /ship-cycle-devkit:resume's reconcile before acting.
 ```
 
-It is read-only, starts no process (the branch comes from the HEAD file), prints only whitelisted fields
-from the state file — never its free text — and exits 0 silently on anything unexpected. It needs `node` on
-PATH. Disable it with `SHIP_CYCLE_HOOK=off` in your environment or a settings `env` block. Details, the
-Node choice and the Codex gap: `docs/runtime-adapters.md` §Session-start hook.
+It is read-only, starts no process (the branch comes from the HEAD file), reads only small regular files,
+prints only whitelisted values — never the state's free text, and the branch only if it is plain
+`[A-Za-z0-9._/-]` — and exits 0 silently on anything unexpected. It needs `node` on PATH. Disable it with
+`SHIP_CYCLE_HOOK=off` in your environment or a settings `env` block; if `node` is missing, that switch
+cannot silence the spawn error — use `"disableAllHooks": true` or disable the plugin. Details, the Node
+choice and the Codex gap: `docs/runtime-adapters.md` §Session-start hook.
 
 ## Project overlay (make it yours)
 

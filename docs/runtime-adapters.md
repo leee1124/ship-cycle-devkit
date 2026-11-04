@@ -66,15 +66,18 @@ committed.
 
 ## Session-start hook
 
-A long cycle crosses a compaction or a `/clear`, and the state-file discipline (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md`)
-breaks silently there: the new context does not know a cycle is mid-flight. The hook restates the facts so
-the session reads the state file instead of guessing.
+A long cycle crosses a compaction or a `/clear`, and the state-file discipline
+(§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md`) breaks silently there: the new context does not know a cycle
+is mid-flight. The hook restates the facts so the session reads the state file instead of guessing.
 
 **What it does.** On `SessionStart` with source `startup`, `clear` or `compact`, `hooks/session-start.cjs`
-reads the branch from the HEAD file (a `.git` directory, or a worktree's `.git` file and its `gitdir:`;
-no `git` process), derives the slug exactly as
-(§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — The slug) does, and reads `.claude/ship-cycle/<slug>.json`
-under the repo top. When the stage is mid-pipeline or `parked`, it prints three lines:
+takes the session's working directory from the `cwd` field of the hook's stdin JSON (a bounded read of at
+most 64 KiB, skipped when stdin is a terminal; the value must be an absolute, existing, non-network
+directory) and falls back to its own working directory. From there it finds the repo top, reads the branch
+from the HEAD file (a `.git` directory, or a worktree's `.git` file and its `gitdir:`; no `git` process),
+derives the slug exactly as (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — The slug) does, and reads
+`.claude/ship-cycle/<slug>.json` under the repo top. When the stage is mid-pipeline or `parked`, it prints
+three lines:
 
 ```text
 ship-cycle: active cycle on feat/x - stage sc-review, next gate G8, loops G8=1/3.
@@ -82,42 +85,59 @@ State: .claude/ship-cycle/feat-x.json (gate log beside it).
 Run /ship-cycle-devkit:resume's reconcile before acting.
 ```
 
-A parked file says `parked cycle on <branch> since <date> - resume stage <s>, next gate <G>` and that the park
-reason is in the file. **Silent** for: no repo, detached HEAD, no state file, a terminal stage, an unknown
-stage, malformed or oversized JSON, a file whose `branch` names another branch (§state-file.md — Collision guard), and any
-error at all — it always exits 0 and never writes anything but the context. The next gate is the first
-gate of the stage (from the pipeline table in `${CLAUDE_PLUGIN_ROOT}/skills/ship-cycle/SKILL.md`, which the script mirrors and
-`scripts/validate.py` compares) not recorded `pass` or `n/a`; loops show each recorded count against the
-loop cap.
+A parked file says `parked cycle on <branch> since <date> - resume stage <s>, next gate <G>` and that the
+park reason is in the file. The next gate is the first gate of the stage (from the pipeline table in
+`${CLAUDE_PLUGIN_ROOT}/skills/ship-cycle/SKILL.md`, which the script mirrors and `scripts/validate.py`
+compares) not yet recorded — `pass`, `checklist`, `degrade` and any `n/a…` count as recorded, and `G2`,
+`G3` or `G2/G3` covers the one design gate. When every gate of the stage is recorded it says `stage gates
+recorded - advance per the pipeline` instead. Loops show each recorded count against the loop cap.
 
-**The state file is data, not instructions.** Anyone with repo access can write it, so the hook prints only
-whitelisted fields, each checked against a fixed vocabulary or shape (stage names, `G<n>` keys, integer
-counts, an ISO date) with control and format characters stripped and a length cap. Free text — `goal`,
-`parked.reason`, gate `n/a` reasons — is never echoed.
+**Silent** for: no repo, detached HEAD, no state file, a terminal or unknown stage, malformed or oversized
+JSON, a file whose `branch` names another branch (§state-file.md — Collision guard), and any error at all —
+it always exits 0 and writes nothing but the context. **It never stalls a session start**: `.git`, a
+worktree's `.git` file, HEAD and the state file are read only when they are regular files under a size
+cap (4 KiB; 1 MiB for the state), so a FIFO or device is never opened; a `gitdir:` or stdin `cwd` naming a
+network path (`\\…` or `//…`) is not followed; and an error other than "not found" while looking for
+`.git` (a symlink loop, a permission error) stops the search instead of walking further up.
+
+**Nothing from the repo reaches the model as free text.** The state file and the branch name can be
+written by anyone with repo access, so the hook prints only whitelisted values: stage names and `G<n>`
+keys from fixed vocabularies, integer counts, an ISO date, and the branch only when it matches
+`^[A-Za-z0-9._/-]{1,80}$`. A branch outside that set is not printed, and neither is the state path built
+from it — the lines say `(state file for the current branch)` and `the state file beside the gate log in
+.claude/ship-cycle/`. `goal`, `parked.reason` and gate `n/a` reasons are never echoed. A branch name inside
+the whitelist is still the user's own text — it can spell words, never sentences with spaces or
+punctuation beyond `._/-`.
 
 **Output form.** Claude Code gets `{"hookSpecificOutput": {"hookEventName": "SessionStart",
-"additionalContext": "…"}}`, ASCII-escaped. That is the field superpowers emits for Claude Code, which
-reads it as context rather than as transcript text; it emits only one form because Claude Code reads both
-`additional_context` and `hookSpecificOutput` without de-duplicating.
+"additionalContext": "…"}}`, ASCII-escaped — the form superpowers' `hooks/session-start` emits for Claude
+Code, and the one a live `claude --plugin-dir` session was observed to receive as context. Only that one
+form is emitted; superpowers' own comment is the reason it emits a single field per host.
 
-**Runtime: Node.** The script is one dependency-free CommonJS file run as `node "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.cjs"`.
-Node starts in ~30 ms with no shell fork, behaves the same on Linux, macOS and Windows, and is present
-wherever Claude Code was installed through npm. A POSIX-sh version would need Git Bash on Windows and a
-`.cmd` polyglot launcher (what superpowers ships) plus JSON escaping by hand. The cost of the choice: a
-Claude Code install without `node` on PATH (the native installer does not need one) gets a non-blocking
-"hook error" line at session start — opt out as below.
+**Runtime: Node.** The script is one dependency-free CommonJS file run as
+`node "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.cjs"`. Node starts in ~30 ms with no shell fork, behaves
+the same on Linux, macOS and Windows, and is present wherever Claude Code was installed through npm. A
+POSIX-sh version would need Git Bash on Windows and a `.cmd` polyglot launcher (what superpowers ships)
+plus JSON escaping by hand. The cost of the choice: a Claude Code install without `node` on PATH (the
+native installer does not need one) gets a non-blocking "hook error" line at session start.
 
 **Opt-out.** Set `SHIP_CYCLE_HOOK=off` (also `0`, `false`, `no`, `disabled`) in the environment or in the
-`env` block of `.claude/settings.json` / `~/.claude/settings.json`; the script then exits silently.
-`"disableAllHooks": true` in settings turns off every hook, this one included; disabling the plugin
-removes it with the rest of the kit.
+`env` block of `.claude/settings.json` / `~/.claude/settings.json`; the script then exits silently. That
+switch is read by the script, so it **cannot** silence the spawn error when `node` itself is missing —
+there, `"disableAllHooks": true` in settings (every hook, this one included) or disabling the plugin is
+the way out.
+
+**Registration.** `hooks/hooks.json` sits at the plugin root and the manifest does not name it: a live
+`claude --plugin-dir` session ran it that way, and superpowers and oh-my-claudecode ship their hooks the
+same way. The validator keeps that single registration path (it refuses a `hooks` key in the manifest).
 
 **Codex — known gap.** The Codex manifest declares no hooks, so nothing runs there by default. The script
 has a Codex mode (`--host codex`: reads `.codex/ship-cycle/`, prints plain text), and a user who wires a
-`SessionStart` command hook in their Codex hooks config to `node <plugin dir>/hooks/session-start.cjs --host codex`
-gets the same lines. That wiring, Codex's matcher values and whether its plain stdout becomes model context
-are **not verified** against a real Codex install; until they are, a Codex session after compaction relies
-on the orchestrator's own resume path (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Resume and selection).
+`SessionStart` command hook in their Codex hooks config to
+`node <plugin dir>/hooks/session-start.cjs --host codex` gets the same lines. That wiring, Codex's matcher
+values and whether its plain stdout becomes model context are **not verified** against a real Codex
+install; until they are, a Codex session after compaction relies on the orchestrator's own resume path
+(§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Resume and selection).
 
 ## Known gaps (0.3.0)
 
