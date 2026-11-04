@@ -188,6 +188,15 @@ CASES = [
         "in the orchestrator's gate table but no stage skill sets it",
     ),
     (
+        "gate only mentioned in prose, never assigned (#75)",
+        lambda r: mutate(
+            r / "skills" / "sc-ship" / "SKILL.md",
+            "`gates.G10 = pass`",
+            "`gates.G10` is unset",
+        ),
+        "in the orchestrator's gate table but no stage skill sets it",
+    ),
+    (
         "gate set by a skill but absent from the gate table",
         lambda r: mutate(
             r / "skills" / "sc-qa" / "SKILL.md",

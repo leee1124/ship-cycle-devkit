@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.12 — Gate-coverage check requires an assignment, not a mention (#75)
+
+- **`GATE_SET_RE` now matches `gates.G<n>` only when followed by `=` or `:`** (compound
+  `gates.G5/G6/G7/G7b = <result>` included), so prose such as "`gates.G10` is unset" no longer counts as a
+  stage recording the gate. New self-test: a skill that only mentions a gate in prose must fail.
+- **Skill text fixed** where a gate was only mentioned: sc-implement now records
+  `gates.G5/G6/G7/G7b = <result>` (G5, G7 and G7b had no real assignment — G7b only matched `gates.G7b: checklist` prose; G9 now
+  records its own result instead of relying on the Tier-S placeholder); sc-review records `gates.G8 = pass`.
+
 ## 0.3.11 — Serialize heavy stages on resource-constrained hosts (#74)
 
 - **New optional overlay `env` keys** `heavyLock` (lock-file path shared by every heavy command, across
