@@ -44,7 +44,7 @@ a domain constants source, specific repository methods}
 
 ## Done criteria (build verification is separate from review)
 - Full `./gradlew test` green (incl. new). Compiles.
-- Report changed/new files & roles, added test names, and a `./gradlew test` summary.
+- Report with the block below; the `./gradlew test` run goes on its Commands run line.
 - **Do NOT commit/PR** (review happens first). Read the real target code before writing and match its
   conventions.
 
@@ -52,6 +52,7 @@ a domain constants source, specific repository methods}
 Status vocabulary and meanings: ${CLAUDE_PLUGIN_ROOT}/docs/impl-status.md. Never end a turn waiting on a
 command or a tool; report BLOCKED with what you were waiting for. This report is model output, not approval.
 - Status: DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
+- Changed: <files changed/added and their role; tests added>
 - Concerns: <none | one actionable sentence each, path:line where there is one>
 - Commands run: <command → exit code, one per line>
 - Not verified: <none | what this report does not prove, e.g. "full suite not rerun after the last edit">

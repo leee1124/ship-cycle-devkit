@@ -80,11 +80,12 @@ the mechanics that only matter when something unusual happens to its name or its
                              "design": { "tier": "high", "model": "opus", "effort": "xhigh",
                                          "candidates": 3, "stances": ["mvp-first", "risk-first",
                                          "performance-first"], "tokens": null, "cost": null } },
-                 "implStatus": [{ "round": 1, "stack": "backend", "agent": "fresh", "status": "BLOCKED",
-                                  "reason": "missing context", "concerns": ["<actionable sentence>"],
+                 "implStatus": [{ "round": 1, "brief": "backend: rate limit", "gate": "G5",
+                                  "agent": "fresh", "status": "BLOCKED", "reason": "missing context",
+                                  "concerns": ["<actionable sentence>"],
                                   "notVerified": ["full suite not rerun after the last edit"],
                                   "route": "re-dispatch with context", "change": "added the error contract",
-                                  "tier": "mid", "model": "sonnet" }] } }
+                                  "tier": null, "model": null }] } }
 ```
 
 `baseline.source` is `local`, `ci` or `ci-status-only`. Under a CI source `baseline.run` holds the run

@@ -1492,20 +1492,24 @@ CASES = [
     ),
     (
         "sc-implement routing table loses the design-defect row",
-        lambda r: mutate(r / "skills" / "sc-implement" / "SKILL.md",
-                         "| `BLOCKED` (design defect) | → sc-design; counts toward the loop cap |\n", ""),
+        lambda r: mutate(
+            r / "skills" / "sc-implement" / "SKILL.md",
+            "| `BLOCKED` (design defect) | → sc-design; counts toward the loop cap; at the cap the user "
+                         "decides |\n",
+            "",
+        ),
         "routing table has no row for `BLOCKED` (design defect)",
     ),
     (
         "design defect stops counting toward the loop cap",
         lambda r: mutate(r / "skills" / "sc-implement" / "SKILL.md",
-                         "→ sc-design; counts toward the loop cap |", "→ sc-design |"),
+                         "→ sc-design; counts toward the loop cap;", "→ sc-design;"),
         "does not route via 'loop cap'",
     ),
     (
         "reasoning limit names a model instead of the tierMap",
         lambda r: mutate(r / "skills" / "sc-implement" / "SKILL.md",
-                         "re-dispatch one tier up via `tierMap`", "re-dispatch one tier up on opus"),
+                         "fresh agent one tier up via `tierMap`", "fresh agent one tier up on opus"),
         "does not route via '`tierMap`'",
     ),
     (
@@ -1527,8 +1531,129 @@ CASES = [
     ),
     (
         "sc-ship stops printing implStatus",
-        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "`telemetry.implStatus`", "`telemetry.impl`"),
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "telemetry.implStatus", "telemetry.impl",
+                         count=-1),
         "skills/sc-ship/SKILL.md: does not read `telemetry.implStatus`",
+    ),
+    (
+        "a stack prompt's report block drifts from the doc's",
+        lambda r: mutate(
+            r / "prompts" / "impl-web.md",
+            "- Changed: <files changed/added and their role; tests added>",
+            "- Changed: <files>",
+        ),
+        "prompts/impl-web.md: report block differs from the one in docs/impl-status.md",
+    ),
+    (
+        "a stack prompt drops the changed line",
+        lambda r: mutate(r / "prompts" / "impl-mobile.md", "- Changed:", "- Files:"),
+        "report block has no '- Changed:' line",
+    ),
+    (
+        "impl-status stops applying Not verified to every status",
+        lambda r: mutate(r / "docs" / "impl-status.md", "applies to every status, `DONE` included",
+                         "applies to blocked reports"),
+        "does not state 'applies to every status'",
+    ),
+    (
+        "impl-status stops naming build-fixer as a carrier",
+        lambda r: mutate(r / "docs" / "impl-status.md", "a stack implementer, a\nbuild-fixer, a debugger",
+                         "a stack implementer, a\nfixer, a debugger"),
+        "does not say a build-fixer agent carries the report block",
+    ),
+    (
+        "DONE_WITH_CONCERNS skips the fix round without a recorded correctness reason",
+        lambda r: mutate(
+            r / "skills" / "sc-implement" / "SKILL.md",
+            "skip only with a recorded reason it is not correctness/scope",
+            "skip it when it looks minor",
+        ),
+        "does not route via 'correctness/scope'",
+    ),
+    (
+        "a resume carries a tier change",
+        lambda r: mutate(
+            r / "skills" / "sc-implement" / "SKILL.md",
+            "- **A tier-up re-dispatch is always a fresh agent**",
+            "- A resume passes the routed model too.\n- **A tier-up re-dispatch is always a fresh agent**",
+        ),
+        "states 'resume passes the routed model'",
+    ),
+    (
+        "a tier-up may resume the old agent",
+        lambda r: mutate(
+            r / "skills" / "sc-implement" / "SKILL.md",
+            "**A tier-up re-dispatch is always a fresh agent**",
+            "**A tier-up may resume**",
+        ),
+        "does not state 'A tier-up re-dispatch is always a fresh agent'",
+    ),
+    (
+        "re-dispatches stop counting toward the cap",
+        lambda r: mutate(
+            r / "skills" / "sc-implement" / "SKILL.md",
+            "**Every re-dispatch counts.**",
+            "**Re-dispatches.**",
+        ),
+        "does not state 'Every re-dispatch counts'",
+    ),
+    (
+        "sc-implement drops the terminal stop route",
+        lambda r: mutate(
+            r / "skills" / "sc-implement" / "SKILL.md",
+            "**Stop, never loop.**",
+            "**When stuck.**",
+        ),
+        "does not state 'Stop, never loop'",
+    ),
+    (
+        "tier-up steps from the PREFLIGHT base",
+        lambda r: mutate(
+            r / "skills" / "sc-implement" / "SKILL.md",
+            "the\n  latest non-null `tier` in its",
+            "the\n  PREFLIGHT tier, not its",
+        ),
+        "does not state 'latest non-null `tier`'",
+    ),
+    (
+        "no-report route loops instead of stopping",
+        lambda r: mutate(
+            r / "skills" / "sc-implement" / "SKILL.md",
+            "unknown → missing context once, then stop",
+            "unknown → resume again",
+        ),
+        "does not route via 'missing context once'",
+    ),
+    (
+        "design defect at the cap gets another sc-design round",
+        lambda r: mutate(
+            r / "skills" / "sc-implement" / "SKILL.md",
+            "; at the cap the user decides |",
+            "; at the cap re-design |",
+        ),
+        "does not route via 'user decides'",
+    ),
+    (
+        "sc-review drops implementer concerns from triage",
+        lambda r: mutate(
+            r / "skills" / "sc-review" / "SKILL.md",
+            "**Implementer concerns are items to verify.**",
+            "**Concerns.**",
+        ),
+        "'## Triage' does not state 'Implementer concerns are items to verify'",
+    ),
+    (
+        "G8 stops reading implementer concerns",
+        lambda r: mutate(r / "skills" / "sc-review" / "SKILL.md",
+                         "- **Every implementer concern handed to review has a disposition**",
+                         "- **Concerns may be noted**"),
+        "'## Gate G8' does not state 'implementer concern'",
+    ),
+    (
+        "sc-ship G11 ignores open notVerified items",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "**Open implementer `notVerified` items.**",
+                         "**Implementer notes.**"),
+        "'## Verify (G11)' does not state 'Open implementer `notVerified` items'",
     ),
 ]
 

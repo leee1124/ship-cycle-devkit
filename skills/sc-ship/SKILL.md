@@ -56,6 +56,12 @@ login_spec)` / `- ✅ owner check on delete — **review-only** (dev user can't 
 This makes verification strength auditable and stops a review-only fallback from silently masquerading as a
 live pass. `review-only` is a legitimate outcome, not a failure — but it must be **named as such**.
 
+**Open implementer `notVerified` items.** Before mapping, list every `state.telemetry.implStatus`
+`notVerified` item no later command in the cycle covered. Each one that a PR claim or the evidence map
+depends on is run now (a full suite, build or E2E under overlay `env.heavyLock`,
+§`${CLAUDE_PLUGIN_ROOT}/docs/heavy-work.md`) or the claim is downgraded and the item goes on the pre-merge
+manual gate; none may back a `live` or `test` label unrun. The cost readout prints the list.
+
 When every criterion is mapped, set `gates.G11 = pass` in state, so `/status` and resume can tell "claims
 mapped" from "just entered sc-ship". While an unproven criterion loops back, leave G11 unset; record a bare
 `fail` only if the cycle stops at G11, and name the criterion in the loop-back report, not in the value.
@@ -235,7 +241,8 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   (§`${CLAUDE_PLUGIN_ROOT}/docs/model-routing.md` — Cost readout). Print, and write to an artifact dir **outside the worktree**, one row per stage: **resolved
   tier, model, effort** and whatever usage the host actually exposed (tokens/cost/wall-clock), plus the run
   total and which risk-gated upgrades fired (`telemetry.upgrades`), plus one line per
-  `telemetry.implStatus` entry (round, stack, status, reason, route) so stalls and re-dispatches are seen.
+  `telemetry.implStatus` entry (round, brief, status, reason, route) so stalls and re-dispatches are seen,
+  and the open `notVerified` items from G11.
   **Record `unavailable` for anything the host does not expose — never estimate a number.** Ordering is
   the whole point, and the branch/state deletes below are not the only hazard: the cycle's state file
   lives in the cycle's working directory, **which is the worktree itself when PREFLIGHT created one**

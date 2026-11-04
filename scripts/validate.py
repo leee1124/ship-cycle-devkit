@@ -1279,34 +1279,43 @@ def check_session_hook(root: Path, f: Findings) -> None:
 IMPL_STATUS_DOC = Path("docs/impl-status.md")
 IMPL_PROMPTS = ("impl-backend.md", "impl-web.md", "impl-mobile.md")
 IMPL_STATUSES = ("DONE", "DONE_WITH_CONCERNS", "BLOCKED", "NEEDS_CONTEXT")
-IMPL_VOCAB_TOKENS = ("**Concerns**", "**Commands run**", "exit code", "**Not verified**", "No silent end",
-                     "never approves anything", "missing context", "reasoning limit", "too large",
-                     "design defect")
-IMPL_REPORT_LINES = ("- Concerns:", "- Commands run:", "- Not verified:")
+IMPL_VOCAB_TOKENS = ("**Changed**", "**Concerns**", "**Commands run**", "exit code", "**Not verified**",
+                     "applies to every status", "No silent end", "never approves anything", "missing context",
+                     "reasoning limit", "too large", "design defect", "**no report**")
+IMPL_CARRIERS = ("build-fixer", "debugger", "wave")
+IMPL_REPORT_LINES = ("- Changed:", "- Concerns:", "- Commands run:", "- Not verified:")
 # Route column of the routing table: each status/reason row must carry these tokens.
 IMPL_ROUTES = {
-    "`DONE`": ("G5", "Not verified"),
-    "`DONE_WITH_CONCERNS`": ("fix round", "triage"),
-    "`NEEDS_CONTEXT`": ("re-dispatch",),
+    "`DONE`": ("G5", "own commands", "Not verified"),
+    "`DONE_WITH_CONCERNS`": ("fix round by default", "recorded reason", "correctness/scope"),
+    "`NEEDS_CONTEXT`": ("re-dispatch", "unobtainable → stop"),
     "`BLOCKED` (missing context)": ("`NEEDS_CONTEXT`",),
-    "`BLOCKED` (reasoning limit)": ("tier up", "`tierMap`", "split"),
+    "`BLOCKED` (reasoning limit)": ("fresh agent", "tier up", "`tierMap`", "split", "unsplittable → stop"),
     "`BLOCKED` (too large)": ("split",),
-    "`BLOCKED` (design defect)": ("sc-design", "loop cap"),
-    "no report": ("resume the same implementer", "`BLOCKED` (no report)"),
+    "`BLOCKED` (design defect)": ("sc-design", "loop cap", "user decides"),
+    "`BLOCKED` (no report)": ("resume once", "fresh", "missing context once", "then stop"),
 }
-IMPL_ROUTE_BULLETS = ("Never re-dispatch unchanged", "Resume early, then hand off", "`modelRouting.tierMap`",
-                      "A report approves nothing", "`state.telemetry.implStatus`",
-                      "fresh one with a written handoff")
-
+IMPL_ROUTE_BULLETS = ("Never re-dispatch unchanged", "Every re-dispatch counts", "G5…G11", "Stop, never loop",
+                      "park the cycle", "latest non-null `tier`", "`modelRouting.tierMap`",
+                      "A tier-up re-dispatch is always a fresh agent", "same tier only",
+                      "fresh one with a written handoff", "sc-review brief", "`env.heavyLock`",
+                      "**Not verified** applies to every status", "A report approves nothing",
+                      "`state.telemetry.implStatus`")
+# A resumed agent keeps its own model, so a resume cannot carry a tier change (#87 review H1).
+IMPL_ROUTE_FORBIDDEN = ("resume passes the routed model",)
+IMPL_REVIEW_TOKENS = {"Triage": ("Implementer concerns are items to verify", "spec-blind"),
+                      "Gate G8": ("implementer concern",)}
+IMPL_SHIP_TOKENS = ("Open implementer `notVerified` items", "`env.heavyLock`", "pre-merge manual gate")
 
 def check_impl_status(root: Path, f: Findings) -> None:
     """#87: every implementer ends with one status from one vocabulary, and sc-implement routes each.
 
-    Guards the vocabulary block in docs/impl-status.md (the four statuses, concerns, commands with exit codes,
-    the not-verified line, no silent end, a report approves nothing), that each stack prompt carries the
-    report block with exactly those statuses, that sc-implement's routing table has a row per status/reason
-    with its route, the never-unchanged / resume-then-handoff / tierMap rules, and that
-    `telemetry.implStatus` is documented in the state shape and read by sc-ship and sc-retro.
+    Guards the vocabulary block in docs/impl-status.md (four statuses, the orchestrator-only `no report`
+    reason, changed/concerns/commands/not-verified lines, no silent end, a report approves nothing, who
+    carries it); that each stack prompt's report block equals the doc's word for word; that sc-implement's
+    routing table has a row per status/reason with its route and the cap, stop, tier-up-is-fresh and
+    current-tier rules; that sc-review triages skipped concerns and G8 reads them; that sc-ship G11
+    cross-checks open not-verified items; and that `telemetry.implStatus` is in the state shape and read.
     """
     doc = root / IMPL_STATUS_DOC
     where = shown(IMPL_STATUS_DOC)
@@ -1325,6 +1334,13 @@ def check_impl_status(root: Path, f: Findings) -> None:
     for token in IMPL_VOCAB_TOKENS:
         if token not in flat:
             f.error(where, f"impl-status-vocabulary block does not state {token!r}")
+    for token in IMPL_CARRIERS:
+        if token not in _flat(read(doc)):
+            f.error(where, f"does not say a {token} agent carries the report block")
+    bm = re.search(r"<!-- impl-report-block -->\n```\n(.*?)```\n<!-- /impl-report-block -->", read(doc), re.S)
+    doc_block = bm.group(1) if bm else None
+    if doc_block is None:
+        f.error(where, "no <!-- impl-report-block --> fenced block")
     for name in IMPL_PROMPTS:
         path = root / "prompts" / name
         pwhere = f"prompts/{name}"
@@ -1345,6 +1361,9 @@ def check_impl_status(root: Path, f: Findings) -> None:
                 f.error(pwhere, f"report block has no {line!r} line")
         if "docs/impl-status.md" not in block:
             f.error(pwhere, "report block does not point to docs/impl-status.md")
+        end = block.find("```")
+        if doc_block is not None and block[:end] != doc_block:
+            f.error(pwhere, "report block differs from the one in docs/impl-status.md")
     impl = root / SKILLS_DIR / "sc-implement" / "SKILL.md"
     iwhere = "skills/sc-implement/SKILL.md"
     itext = read(impl) if impl.is_file() else ""
@@ -1368,6 +1387,23 @@ def check_impl_status(root: Path, f: Findings) -> None:
     for token in IMPL_ROUTE_BULLETS:
         if token not in section:
             f.error(iwhere, f"'## Route the implementer's status' does not state {token!r}")
+    for token in IMPL_ROUTE_FORBIDDEN:
+        if token in section:
+            f.error(iwhere, f"'## Route the implementer's status' states {token!r}")
+    if not all(c in _flat(itext) for c in IMPL_CARRIERS):
+        f.error(iwhere, "does not say build-fixer, debugger and wave agents carry the report block")
+    review = root / SKILLS_DIR / "sc-review" / "SKILL.md"
+    rtext = read(review) if review.is_file() else ""
+    for heading, tokens in IMPL_REVIEW_TOKENS.items():
+        sec = _flat(_section(rtext, heading))
+        for token in tokens:
+            if token not in sec:
+                f.error("skills/sc-review/SKILL.md", f"'## {heading}' does not state {token!r}")
+    ship = root / SKILLS_DIR / "sc-ship" / "SKILL.md"
+    sec = _flat(_section(read(ship), "Verify (G11)")) if ship.is_file() else ""
+    for token in IMPL_SHIP_TOKENS:
+        if token not in sec:
+            f.error("skills/sc-ship/SKILL.md", f"'## Verify (G11)' does not state {token!r}")
     shape = read(root / STATE_SHAPE_DOC) if (root / STATE_SHAPE_DOC).is_file() else ""
     if '"implStatus"' not in shape:
         f.error(shown(STATE_SHAPE_DOC), "telemetry shape has no implStatus entry")

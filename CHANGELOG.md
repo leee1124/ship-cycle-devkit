@@ -6,22 +6,38 @@
   answered with a blind retry; some runs ended with "waiting for the test run" and no report, and the
   orchestrator only found out because nothing happened next.
 - **`docs/impl-status.md`** defines the vocabulary once — `DONE`, `DONE_WITH_CONCERNS`, `BLOCKED` (reason:
-  missing context, reasoning limit, too large, design defect), `NEEDS_CONTEXT` — plus a concerns list,
-  the commands run with their exit codes, and a **Not verified** line the orchestrator never claims. A turn
-  that ends without the block is not a report ("no silent end"), and a report is model output that never
-  approves anything.
-- **`prompts/impl-{backend,web,mobile}.md`** end their templates with the same report block.
-- **`sc-implement` — Route the implementer's status**: a routing table (missing context → re-dispatch
-  with it; reasoning limit → one tier up resolved through `modelRouting.tierMap`, else split; too large →
-  split; design defect → sc-design, counted on the loop cap of the gate that sent the round; no report →
-  resume once, then `BLOCKED`). Never re-dispatch unchanged; fix rounds 1–2 resume the same implementer,
-  then a fresh agent with a written handoff (earlier on reported context strain).
-- **Telemetry.** One `state.telemetry.implStatus` entry per report (round, stack, fresh/resumed, status,
-  reason, concerns, not-verified, route, change, tier, model); sc-ship's cost readout prints it and
-  sc-retro reads it for stalls and re-dispatches. Neither decides a gate from it.
-- **Validator.** `check_impl_status` guards the vocabulary block, each prompt's report block (exactly the
-  four statuses, concerns, commands, not-verified), the routing rows and rules, the state shape and both
-  consumers; 16 self-test mutations.
+  missing context, reasoning limit, too large, design defect; `no report` is written only by the
+  orchestrator), `NEEDS_CONTEXT` — plus Changed, a concerns list, the commands run with their exit codes,
+  and a **Not verified** line that applies to every status and is never claimed. A turn that ends without
+  the block is not a report ("no silent end"), and a report is model output that never approves anything.
+  Every code-changing agent carries it: stack implementers, build-fixers, debuggers, wave agents.
+- **`prompts/impl-{backend,web,mobile}.md`** end their templates with the doc's report block word for word
+  (the old "report changed files" line is folded into it).
+- **`sc-implement` — Route the implementer's status**: a routing table.
+  - `DONE` → G5, which runs its own commands.
+  - `DONE_WITH_CONCERNS` → a fix round by default, skipped only with a recorded reason the concern is not
+    correctness/scope.
+  - Missing context → re-dispatch with the fact.
+  - Reasoning limit → a fresh agent one tier up from the brief's current tier (the latest tier recorded
+    for it), resolved through `modelRouting.tierMap`, else a split.
+  - Too large → split.
+  - Design defect → sc-design.
+  - No report → resume once, then treat it as missing context once, then stop.
+  - Every re-dispatch is changed and counts on `loops[<gate that sent the round>]`.
+  - An unobtainable fact, an unsplittable top-tier brief, an undeterminable block or the cap → stop, park,
+    ask the user. At the cap on a design defect the user decides.
+  - Same-tier rounds 1–2 resume the same implementer, and a tier-up is always a fresh agent with a
+    written handoff.
+- **Review and ship read it.** Concerns that skipped the fix round are listed in the sc-review brief as
+  items to verify, each gets a disposition, and G8 requires them. sc-ship G11 runs or downgrades every
+  open `notVerified` item a claim depends on (heavy runs under `env.heavyLock`) and the cost readout
+  prints them.
+- **Telemetry.** One `state.telemetry.implStatus` entry per report (round, brief, gate, fresh/resumed,
+  status, reason, concerns, not-verified, route, change, and tier/model only when they changed); sc-ship's
+  readout prints it and sc-retro reads it. Neither decides a gate from it.
+- **Validator.** `check_impl_status` guards the vocabulary, the prompt block's equality with the doc's,
+  the routing rows and rules (including the forbidden "a resume passes the routed model"), the sc-review
+  and sc-ship hooks, the state shape and the consumers; 31 self-test mutations.
 
 ## 0.3.17 — SessionStart hook: restate an active cycle after startup, /clear and compaction (#86)
 

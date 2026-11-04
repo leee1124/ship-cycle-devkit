@@ -60,46 +60,59 @@ implementer on before) and skip it on Tier S, where the brief is a one-liner and
 costs more than it carries. Adapt to your stack.
 Follow the engineering constitution (`${CLAUDE_PLUGIN_ROOT}/docs/engineering-constitution.md`):
 authz from the principal only, DTOs not entities, whitelist validation, no N+1, no swallowed exceptions.
-Every brief — template or one-liner — ends with the report block from
-`${CLAUDE_PLUGIN_ROOT}/docs/impl-status.md`, the one place the status vocabulary is defined.
+Every brief — template or one-liner, and every build-fixer, debugger or wave agent that changes code —
+ends with the report block from `${CLAUDE_PLUGIN_ROOT}/docs/impl-status.md`, the one place the status
+vocabulary is defined.
 
 ## Route the implementer's status
-Read the report's **Status**, **Concerns**, **Commands run** and **Not verified** lines before anything
-else (vocabulary: `${CLAUDE_PLUGIN_ROOT}/docs/impl-status.md`). Then route:
+Read the report's **Status**, **Changed**, **Concerns**, **Commands run** and **Not verified** lines before
+anything else (vocabulary: `${CLAUDE_PLUGIN_ROOT}/docs/impl-status.md`). **Not verified** applies to every
+status: each item is run later in this stage or at sc-qa, or stays open and is never claimed. Then route:
 
 <!-- impl-status-routing -->
 | Status (reason) | Route |
 |---|---|
-| `DONE` | → G5; run its commands; anything on **Not verified** is run here or not claimed |
-| `DONE_WITH_CONCERNS` | correctness/scope concern → fix round before G5; observation → sc-review triage |
-| `NEEDS_CONTEXT` | find the fact (repo, contract, user) → re-dispatch with it added to the brief |
+| `DONE` | → G5, which runs its own commands; **Not verified** items run there or stay unclaimed |
+| `DONE_WITH_CONCERNS` | fix round by default; skip only with a recorded reason it is not correctness/scope |
+| `NEEDS_CONTEXT` | find the fact (repo, contract, user) → re-dispatch with it; unobtainable → stop |
 | `BLOCKED` (missing context) | as `NEEDS_CONTEXT` |
-| `BLOCKED` (reasoning limit) | re-dispatch one tier up via `tierMap`; no higher tier → split |
-| `BLOCKED` (too large) | split into smaller dispatches, each with its own report |
-| `BLOCKED` (design defect) | → sc-design; counts toward the loop cap |
-| no report | resume the same implementer once for the block; still none → `BLOCKED` (no report) |
+| `BLOCKED` (reasoning limit) | fresh agent one tier up via `tierMap`; top tier → split; unsplittable → stop |
+| `BLOCKED` (too large) | split into smaller dispatches, each with its own report; unsplittable → sc-design |
+| `BLOCKED` (design defect) | → sc-design; counts toward the loop cap; at the cap the user decides |
+| `BLOCKED` (no report) | resume once (else fresh + handoff); unknown → missing context once, then stop |
 <!-- /impl-status-routing -->
 
 - **Never re-dispatch unchanged.** Every re-dispatch changes at least one of: the brief's context, the
   model tier, the scope (a split), or the plan (a ruling from sc-design). Name the change in the telemetry
-  entry; a retry you cannot name a change for is not a route. A `BLOCKED` (no report) is assessed like
-  any other `BLOCKED`: find which kind it was before dispatching again.
-- **Stronger model = resolve, don't name.** Take the tier `state.models['implement']` was resolved from,
-  move one step up the tier pyramid (§`${CLAUDE_PLUGIN_ROOT}/docs/model-routing.md`), resolve that tier
-  through overlay `modelRouting.tierMap`, and pass the model and `state.effort['implement']` explicitly
-  (§core 6). Already at the top tier, or no `tierMap` to resolve through → split instead.
-- **Design defect counts toward the loop cap.** The loop-back to sc-design increments `loops[G]` for the
-  gate whose loop-back dispatched this round — G5 on a first dispatch, G6/G8/G9 when a later gate sent the
-  work back — so a design that keeps breaking implementers hits "Loop cap: 3 per gate" (§ship-cycle).
-- **Resume early, then hand off.** Fix rounds 1 and 2 resume the same implementer (its context is intact).
-  From round 3 — or earlier when it reports context strain as a concern, or the host cannot message a live
-  agent — dispatch a fresh one with a written handoff: the brief, the last report, the open findings and
-  what was already tried. A resume passes the routed model and effort too.
+  entry; a retry you cannot name a change for is not a route.
+- **Every re-dispatch counts.** Each re-dispatch of the same brief increments `loops[G]` for the gate
+  whose loop-back dispatched this round (G5…G11; G5 on a first dispatch), so a brief that keeps coming
+  back hits "Loop cap: 3 per gate" (§ship-cycle). A split's children count under the parent brief.
+- **Stop, never loop.** When the fact is unobtainable, the brief is unsplittable at the top tier, the
+  kind of block cannot be determined, or the cap is reached: stop, park the cycle
+  (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Parking) and ask the user, or route to sc-design when the
+  plan itself is in question. At the cap on a design defect the user decides; no extra sc-design round.
+- **Stronger model = resolve, don't name.** Step one tier up from the brief's **current** tier — the
+  latest non-null `tier` in its `telemetry.implStatus` entries, else the tier `state.models['implement']`
+  was resolved from — resolve that tier through overlay `modelRouting.tierMap`, and pass the model and
+  `state.effort['implement']` explicitly (§core 6). Already at the top tier, or no `tierMap` to resolve
+  through → split instead.
+- **A tier-up re-dispatch is always a fresh agent** with the written handoff (the brief, the last report,
+  the open findings and what was already tried); a resumed agent keeps its own model.
+- **Resume early, then hand off (same tier only).** Same-tier fix rounds 1 and 2 resume the same
+  implementer (its context is intact). From round 3 — or earlier when it reports context strain as a
+  concern, or the host cannot message a live agent — dispatch a fresh one with a written handoff.
+- **Concerns that skip the fix round reach review.** A `DONE_WITH_CONCERNS` concern recorded as not
+  correctness/scope is listed in the sc-review brief as an item to verify; each gets a disposition there
+  (§sc-review — Triage) and G8 reads them.
+- **Heavy items run under the lock.** A **Not verified** item that is a full suite, a build or an E2E run
+  goes under overlay `env.heavyLock` (§`${CLAUDE_PLUGIN_ROOT}/docs/heavy-work.md`).
 - **A report approves nothing.** It is model output, not user approval
   (§`${CLAUDE_PLUGIN_ROOT}/docs/impl-status.md`); `DONE` sets no gate.
 - **Telemetry**: append one entry per report to `state.telemetry.implStatus` (shape in the status doc) —
-  round, stack, `fresh`/`resumed`, status, reason, concerns, not-verified items, the route taken and what
-  the next dispatch changed. sc-ship's cost readout prints it; it decides no gate.
+  round, brief, gate, `fresh`/`resumed`, status, reason, concerns, not-verified items, the route taken,
+  what the next dispatch changed, and the new tier/model when it changed. sc-ship's cost readout prints it;
+  it decides no gate.
 
 ## Live visual loop (UI natures)
 For a nature whose overlay declares `visualCheck` (or that `designer` reviews), the looks are settled here,
