@@ -1281,6 +1281,51 @@ CASES = [
         ),
         "'## State (real' does not offer `sc-retro` as never a gate",
     ),
+    (
+        'sc-retro infers a Codex user-turn filter',
+        lambda r: mutate(
+            r / "skills" / "sc-retro" / "SKILL.md",
+            '`unavailable on Codex`',
+            'inferred from records',
+        ),
+        "retro-user-turns block does not state '`unavailable on Codex`'",
+    ),
+    (
+        'sc-retro leaves truncation undefined',
+        lambda r: mutate(
+            r / "skills" / "sc-retro" / "SKILL.md",
+            '(returned count == the limit) ',
+            '',
+        ),
+        "retro-dedup block does not state 'returned count == the limit'",
+    ),
+    (
+        'sc-retro allows a multi-line title file',
+        lambda r: mutate(
+            r / "skills" / "sc-retro" / "SKILL.md",
+            'single line (no CR/LF, ≤256 chars)',
+            'plain text file',
+        ),
+        "retro-filing block does not state 'single line (no CR/LF, ≤256 chars)'",
+    ),
+    (
+        'sc-retro fallback may land in another checkout',
+        lambda r: mutate(
+            r / "skills" / "sc-retro" / "SKILL.md",
+            "outside every checkout's `git rev-parse --show-toplevel`",
+            'anywhere',
+        ),
+        'retro-report-location block does not state "outside every checkout\'s `git rev-parse --show-toplevel`"',
+    ),
+    (
+        'sc-retro confirms candidates by extracting text',
+        lambda r: mutate(
+            r / "skills" / "sc-retro" / "SKILL.md",
+            'using counts only',
+            'by reading the text',
+        ),
+        "'## Inputs' does not state 'using counts only'",
+    ),
 ]
 
 
