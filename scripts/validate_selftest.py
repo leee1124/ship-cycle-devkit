@@ -12,6 +12,7 @@ Usage:  python3 scripts/validate_selftest.py
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -25,9 +26,11 @@ COPY_SKIP = {".git", "__pycache__", ".github"}
 
 
 def run_validator(root: Path) -> tuple[int, str]:
+    # UTF-8 both ways: messages carry non-ASCII (→, —) and a Windows console defaults to cp1252.
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
     proc = subprocess.run(
         [sys.executable, str(VALIDATOR), str(root)],
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", env=env,
     )
     return proc.returncode, proc.stdout + proc.stderr
 
@@ -1043,4 +1046,6 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    if hasattr(sys.stdout, "reconfigure"):  # Windows consoles default to cp1252
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main())
