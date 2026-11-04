@@ -61,7 +61,8 @@ the mechanics that only matter when something unusual happens to its name or its
                    "endedAt": null, "snapshot": "<path outside the worktree>",
                    "resultPath": "<path outside the worktree>" }],
   "waveBarriers": [{ "wave": 0, "tree": "<tree id at the green barrier>",
-                     "worktree": "<path the barrier was taken in>", "tier": "L", "superseded": false }],
+                     "worktree": "<path the barrier was taken in>", "tier": "L", "superseded": false,
+                     "fixRound": false }],
   "waveReviews": [{ "wave": 1, "from": "<tree id of the previous barrier, or the base>",
                     "tree": "<tree id of this barrier>", "model": "sonnet", "effort": "medium",
                     "refuter": { "model": "sonnet", "effort": "medium" },
@@ -159,7 +160,7 @@ otherwise; it follows the growth-only rule.
 `waveBarriers` (written by sc-implement at every green Tier L wave barrier, checked or not) is append-only:
 the wave, its tree identity (§Tree identity), the worktree it was taken in, the `tier` at that moment and
 `superseded` (set `true` by a re-plan after sc-design). A wave check reads its `from` from the latest
-non-superseded entry for the previous wave; a re-plan and a confirmed-Critical fix append a second entry for
+non-superseded entry for the previous wave in the same `worktree`; a re-plan and a confirmed-Critical fix append a second entry for
 the same wave.
 
 `waveReviews` (written by sc-implement at each Tier L wave barrier) is append-only, one entry per wave check:

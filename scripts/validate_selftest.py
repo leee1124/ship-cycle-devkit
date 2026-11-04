@@ -1944,14 +1944,14 @@ CASES = [
     ),
     (
         "barrier lookup by position, not latest non-superseded entry",
-        lambda r: mutate(r / "docs" / "wave-check.md", "**the latest non-superseded\nentry for wave N−1**",
+        lambda r: mutate(r / "docs" / "wave-check.md", "**the latest non-superseded\nentry for wave N−1 with the same `worktree`**",
                          "**the previous entry**"),
         "does not state 'the latest non-superseded entry for wave N−1'",
     ),
     (
         "waveBarriers shape loses superseded",
-        lambda r: mutate(r / "docs" / "state-file.md", '"tier": "L", "superseded": false }],',
-                         '"tier": "L" }],'),
+        lambda r: mutate(r / "docs" / "state-file.md", '"tier": "L", "superseded": false,',
+                         '"tier": "L",'),
         "state shape has no waveBarriers entry with wave/tree/worktree/tier/superseded",
     ),
     (

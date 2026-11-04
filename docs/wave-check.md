@@ -25,9 +25,11 @@ the parallel stacks is the last barrier and gets none.
 
 <!-- wave-check-barriers -->
 **Every barrier is recorded, checked or not.** At each green barrier append `{wave, tree, worktree, tier,
-superseded}` to `state.waveBarriers` (`tier` = `state.size` then, `superseded: false`) — also when the route
+superseded, fixRound}` to `state.waveBarriers` (`tier` = `state.size` then, `superseded: false`,
+`fixRound: false`) — also when the route
 skips the check or the barrier is the last. A check's `from` is the `tree` of **the latest non-superseded
-entry for wave N−1** (the base for the first barrier); entries are looked up that way, never by position or
+entry for wave N−1 with the same `worktree`** (the base for the first barrier) — parallel stacks
+share one object store, so another stack's entry would diff the wrong trees; entries are looked up that way, never by position or
 wave number alone, because a re-plan or a fix round appends a second entry for the same wave. The ids come
 from a throwaway index
 and nothing references them, so `git gc` may prune one: if `git cat-file -e <from>` fails, diff from the
@@ -82,14 +84,14 @@ issue tagged **design** when the defect is in the plan rather than in this wave'
   once (§sc-implement — Route the implementer's status), under the loop cap. When sc-design returns, the
   wave whose diff held the defect re-plans with every later wave: their `waveBarriers` and `waveReviews`
   entries get `superseded: true`, and the re-planned wave's `from` is the latest non-superseded barrier
-  before it (the base when the redesign reaches wave 0). Every other finding, of any severity, lets the next
+  before it in the same `worktree` (the base when the redesign reaches wave 0). Every other finding, of any severity, lets the next
   wave start.
 - **A confirmed Critical may be fixed first.** Decided: only a non-design Critical the refuter actively
   **evidenced** (confirmed) — never one merely unrefuted, undetermined, or raised by the spec pass alone,
   which never by itself triggers an edit round. The sequence: the agent that owns its file set fixes it
   (`loops[G5]` +1, a fix round as sc-implement counts it); it ends with the report block of
   `${CLAUDE_PLUGIN_ROOT}/docs/impl-status.md` and is routed by §sc-implement — Route the implementer's
-  status; the barrier build/typecheck reruns; a new `waveBarriers` entry for the same wave is appended; the
+  status; the barrier build/typecheck reruns; a new `waveBarriers` entry for the same wave is appended with `fixRound: true`; the
   next wave starts with its `from` = that new barrier's `tree`. The item stays unresolved — G8 verifies the
   fix like any other.
 - **Unresolved items go to G8.** Every surviving or undetermined finding and every cannot-verify item is
@@ -114,7 +116,8 @@ ones included — a re-plan does not resolve an item), sc-ship's cost readout (o
 (did a wave check catch what G8 would have, or miss what G8 later found). None decides a gate from it.
 
 **A check that died mid-run is rerun.** The reconcile reruns a wave check — cheap and idempotent — only when
-`route.waveCheck` is `"run"`, the barrier has a later wave, its `waveBarriers` entry was recorded at
-`tier` `L` and is not superseded, and no `waveReviews` entry has a `tree` equal to that barrier's `tree`
+`route.waveCheck` is `"run"`, the barrier has a later wave in its `worktree`, its `waveBarriers` entry was
+recorded at `tier` `L`, is not superseded and is not `fixRound` (that barrier needs no check of
+its own — G8 verifies the fix), and no `waveReviews` entry has a `tree` equal to that barrier's `tree`
 (matched on tree, not wave number, so a re-planned wave is judged by its new barrier).
 <!-- /wave-check-record -->

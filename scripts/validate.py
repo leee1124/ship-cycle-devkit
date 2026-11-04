@@ -1445,6 +1445,7 @@ WAVE_BLOCK_TOKENS = {
                            "only when that worktree no longer exists", "Later stack barriers"),
     "wave-check-barriers": ("`state.waveBarriers`", "checked or not", "the route skips the check",
                             "the latest non-superseded entry for wave N−1",
+                            "with the same `worktree`",
                             "never by position or wave number",
                             "`git cat-file -e <from>`", "diff from the base instead"),
     "wave-check-route": ("ceremony", "`state.route.waveCheck`", "\"skip: <reason the user saw>\"",
