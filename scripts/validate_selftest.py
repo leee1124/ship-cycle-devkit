@@ -310,14 +310,19 @@ CASES = [
         "does not name the gate log",
     ),
     (
-        "sc-design design section drops the entry-path inventory",
-        lambda r: mutate(r / "skills" / "sc-design" / "SKILL.md", "includes an **entry-path inventory**", "includes a list"),
-        "design section does not require the entry-path inventory",
+        "sc-design loses the Entry-path inventory subsection",
+        lambda r: mutate(r / "skills" / "sc-design" / "SKILL.md", "### Entry-path inventory", "### Entry points"),
+        "no '### Entry-path inventory' subsection",
+    ),
+    (
+        "sc-design Design checklist drops the Entry paths bullet",
+        lambda r: mutate(r / "skills" / "sc-design" / "SKILL.md", "- **Entry paths**", "- Entry paths"),
+        "no '**Entry paths**' bullet",
     ),
     (
         "sc-design critic stops checking the entry-path inventory",
-        lambda r: mutate(r / "skills" / "sc-design" / "SKILL.md", "check the design's entry-path inventory", "check the design's list"),
-        "critic review does not check the entry-path inventory",
+        lambda r: mutate(r / "skills" / "sc-design" / "SKILL.md", "- **Entry-path inventory** (when", "- Entry-path inventory (when"),
+        "critic review has no '**Entry-path inventory**' bullet",
     ),
 ]
 

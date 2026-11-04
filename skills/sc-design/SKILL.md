@@ -19,6 +19,8 @@ Produce a design doc, not an implementation:
   This is the per-feature guard; for a **first cross-surface integration or a large/ahead-of-backend
   surface**, run the macro sweep (`sc-audit`) first — a whole surface can drift on assumed contracts and
   stay green until the first real integration.
+- **Entry paths** (when the trigger in *Entry-path inventory* below applies): the inventory of every way
+  into the touched screens, each with a criterion. Every architect whose slice moves an entry owns its part.
 - **Tradeoffs & alternatives**: at least one alternative considered, with why the chosen one wins.
 - **Constitution fit**: layered separation (Controller/Service/Repository/DTO); depend on interfaces;
   business logic **inside the domain** (no anemic model). See
@@ -56,10 +58,10 @@ the judge panel, synthesis, and how synthesis goes wrong — in `${CLAUDE_PLUGIN
 A separate agent attacks the design (the **union** of all architect docs when the axis was split, or the
 **synthesized** doc when a bake-off ran — synthesis is new work and has not been reviewed as a whole):
 - Hidden assumptions, unhandled failure modes, contract mismatches, security/authz gaps, scaling/N+1.
-- **Entry-path inventory** (UI/navigation natures): check the design's entry-path inventory against the code itself —
-  grep the route/screen name and list its real call sites, links and redirects — and flag any entry path
-  missing from the inventory or lacking an acceptance criterion (arrival state/params, Back behaviour). The
-  design doc is the claim under test, not the evidence.
+- **Entry-path inventory** (when the trigger under *Entry-path inventory* applies): check the design's
+  entry-path inventory against the code itself — grep the route/screen name and list its real call sites,
+  links and redirects — and flag any entry path missing from the inventory or lacking a criterion (arrival
+  state/params, back/close behaviour). The design doc is the claim under test, not the evidence.
 - **Inter-axis seam mismatches**: when architects were split, the critic's first job is to check their
   seams line up (names, signatures, who-owns-what) and that no two axes made contradictory scope
   assumptions.
@@ -82,10 +84,14 @@ code. Keep the critic pass (accessibility/contract), but don't force a separate 
 doc for a widget.
 
 ### Entry-path inventory — every way into a screen
+**Trigger (defined once, by content):** the change adds, removes or moves an entry point, or changes a
+screen's arrival state, params, or back/close (or the platform's dismiss) behaviour. Anything else — copy,
+styling inside one screen — skips this.
+
 A design that restructures a screen, tab or window tends to assume one way in, and the way it forgot is
 often the primary one (a real run reworked a tab and the critic later found the bottom-tab button itself
 was missing). Entry paths are factual premises: they decide the default state, how params are handled and
-what Back does, so each acceptance criterion hangs off one. For UI/navigation natures the design therefore
+what back/close does, so each acceptance criterion hangs off one. When the trigger applies, the design
 includes an **entry-path inventory**, built from the code (grep the route/screen name), not from memory:
 - **Direct controls**: nav buttons, tabs, menu items, window/launcher entries.
 - **Deep links and external opens**: URLs, app links, notification taps, shortcuts, file/protocol handlers.
@@ -94,9 +100,13 @@ includes an **entry-path inventory**, built from the code (grep the route/screen
   of the last route on relaunch.
 
 Give each path one acceptance criterion: the state and params it arrives with (including none), and what
-Back/close does from there. A path the design deliberately removes or leaves unchanged is listed too, with
-that stated, so a silent omission can't hide among them. Skip for changes that add no route and move no
-entry (copy, styling inside one screen).
+back/close (or the platform's dismiss) does from there. Call sites that share the same arrival state/params
+and back/close behaviour may share one criterion, with the sites listed. A path the design deliberately
+removes or leaves unchanged is listed too, with that stated, so a silent omission can't hide among them.
+
+The criteria are appended to the cycle's acceptance-criteria record (the `criteria.md` G1 points to), marked
+design-derived, so `sc-tdd` (G4) and `sc-ship` (G11/G12) pick them up. They are shown to the user with the
+design at G2/G3; there is no separate approval round.
 
 ### Design-consistency gate — reuse before create
 Consistency isn't a review afterthought; it is decided **here**, when the UI change is designed. A crude,

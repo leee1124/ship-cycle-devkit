@@ -70,7 +70,6 @@ GATE_LOG_ESCAPING_RE = re.compile(
 GATE_LOG_ESCAPING_TOKENS = ("`|` → `\\|`", "newline", "200 characters", "applied exactly once")
 G12_ROW_RE = re.compile(r"^\|\s*G12\s*\|(.*)$", re.M)
 
-ENTRY_PATH_PHRASE = "entry-path inventory"
 CLAUDE_REQUIRED = ("name", "version", "description", "skills")
 CODEX_REQUIRED = ("name", "version", "description", "author", "interface")
 CODEX_INTERFACE_REQUIRED = (
@@ -476,26 +475,30 @@ def check_skill_frontmatter(root: Path, f: Findings) -> None:
                 f.warn(shown(rel), f"description is {words} words; it loads in every session")
 
 
-# --- entry point -------------------------------------------------------------------------------
-
-
 def check_entry_path_inventory(root: Path, f: Findings) -> None:
-    """sc-design asks UI designs for an entry-path inventory and its critic pass checks it against the code.
+    """sc-design asks for an entry-path inventory and its critic pass checks it against the code.
 
     #71: a restructured tab shipped a design that assumed one entry path; the critic found the primary one
-    missing late. The rule is prose, so the mechanical part is that both halves still name it.
+    missing late. The rule is prose, so the mechanical part is that the three anchors still exist: the
+    `### Entry-path inventory` subsection, the `## Design` checklist bullet, and the critic's bullet.
     """
     skill = root / SKILLS_DIR / "sc-design" / "SKILL.md"
     if not skill.is_file():
         return
+    where = shown(skill.relative_to(root))
     text = read(skill)
-    before, sep, rest = text.partition("## Design review (critic)")
-    critic, _, after = rest.partition("\n## ")
-    head = before + after
-    if ENTRY_PATH_PHRASE not in head:
-        f.error(shown(skill.relative_to(root)), f"design section does not require the {ENTRY_PATH_PHRASE}")
-    if not sep or ENTRY_PATH_PHRASE not in critic:
-        f.error(shown(skill.relative_to(root)), f"critic review does not check the {ENTRY_PATH_PHRASE}")
+    if not re.search(r"^### Entry-path inventory", text, re.M | re.I):
+        f.error(where, "no '### Entry-path inventory' subsection")
+    sections = re.split(r"^## ", text, flags=re.M)
+    design = next((s for s in sections if s.startswith("Design (architect")), "")
+    critic = next((s for s in sections if s.startswith("Design review (critic")), "")
+    if not re.search(r"^- \*\*Entry paths\*\*", design, re.M | re.I):
+        f.error(where, "'## Design' checklist has no '**Entry paths**' bullet pointing to the inventory")
+    if not re.search(r"^- \*\*Entry-path inventory\*\*", critic, re.M | re.I):
+        f.error(where, "critic review has no '**Entry-path inventory**' bullet")
+
+
+# --- entry point -------------------------------------------------------------------------------
 
 
 def main(argv: list[str]) -> int:
