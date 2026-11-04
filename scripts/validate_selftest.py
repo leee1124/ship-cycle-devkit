@@ -149,6 +149,16 @@ def swap_wave_passes(root: Path) -> None:
     path.write_text(text[:cold] + text[spec:end] + text[cold:spec] + text[end:], encoding="utf-8")
 
 
+def swap_focus_steps(root: Path) -> None:
+    """Move the Compare step above the Freeze step in docs/review-focus.md."""
+    path = root / "docs" / "review-focus.md"
+    text = path.read_text(encoding="utf-8")
+    freeze = text.index("1. **Freeze.**")
+    compare = text.index("2. **Compare.**")
+    end = text.index("3. **Record**")
+    path.write_text(text[:freeze] + text[compare:end] + text[freeze:compare] + text[end:], encoding="utf-8")
+
+
 # (name, mutate_fn, substring that must appear in the output)
 CASES = [
     (
@@ -2341,6 +2351,172 @@ CASES = [
         "N not applied per tree",
         lambda r: mutate(r / "docs" / "red-gate.md", "applied per tree", "overall"),
         "does not state 'applied per tree'",
+    ),
+    # The review focus (#90).
+    (
+        "review-focus doc missing",
+        lambda r: (r / "docs" / "review-focus.md").unlink(),
+        "docs/review-focus.md: missing",
+    ),
+    (
+        "review focus not capped at five",
+        lambda r: mutate(r / "docs" / "review-focus.md", "**at most five**", "**up to ten**"),
+        "does not state '**at most five**'",
+    ),
+    (
+        "review focus not ranked",
+        lambda r: mutate(r / "docs" / "review-focus.md", "ranked\nby likelihood × harm", "in any order"),
+        "does not state 'ranked by likelihood × harm'",
+    ),
+    (
+        "review focus accepts a generic class",
+        lambda r: mutate(r / "docs" / "review-focus.md", "**Per feature, never a class.**", "**Classes.**"),
+        "does not state '**Per feature, never a class.**'",
+    ),
+    (
+        "review focus duplicates the a11y floor",
+        lambda r: mutate(r / "docs" / "review-focus.md", "Nor does it restate\nan accessibility-floor check (§`${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md` — Accessibility floor)", "It may restate a check"),
+        "does not state 'Accessibility floor'",
+    ),
+    (
+        "empty review focus reads as skipped",
+        lambda r: mutate(r / "docs" / "review-focus.md", "**An empty list means checked, not skipped.**", "**Empty.**"),
+        "does not state '**An empty list means checked, not skipped.**'",
+    ),
+    (
+        "review focus gets an approval round",
+        lambda r: mutate(r / "docs" / "review-focus.md", "there is no separate approval round", "the user approves it"),
+        "does not state 'no separate approval round'",
+    ),
+    (
+        "review focus pin loses the n/a form",
+        lambda r: mutate(r / "docs" / "review-focus.md", "`pinnedBy: \"n/a: <reason>\"`", "`pinnedBy: null`"),
+        "does not state '`pinnedBy: \"n/a: <reason>\"`'",
+    ),
+    (
+        "review focus pin need not fail first",
+        lambda r: mutate(r / "docs" / "review-focus.md", "An entry whose test passes before the change is not\npinned", "Any test pins it"),
+        "does not state 'passes before the change is not pinned'",
+    ),
+    (
+        "G4 passes with an unpinned entry",
+        lambda r: mutate(r / "docs" / "review-focus.md", "G4 does not pass while any entry has no `pinnedBy`.", ""),
+        "does not state 'G4 does not pass while any entry has no `pinnedBy`'",
+    ),
+    (
+        "cold lens compares before it freezes",
+        lambda r: swap_focus_steps(r),
+        "review-focus-cold does not freeze the blind pass before the compare",
+    ),
+    (
+        "cold findings not frozen verbatim",
+        lambda r: mutate(r / "docs" / "review-focus.md", "**frozen verbatim**", "**noted**"),
+        "does not state '**frozen verbatim**'",
+    ),
+    (
+        "cold lens gets the list early",
+        lambda r: mutate(r / "docs" / "review-focus.md", "It may add findings; it never edits the frozen list.", "It may add findings; it never edits the frozen list. It receives the list before its blind pass."),
+        "states 'receives the list before its blind pass'",
+    ),
+    (
+        "pin judged without the real construction path",
+        lambda r: mutate(r / "docs" / "review-focus.md", "through the real construction path", "somehow"),
+        "does not state 'real construction path'",
+    ),
+    (
+        "missed items get a third mechanism",
+        lambda r: mutate(r / "docs" / "review-focus.md", "by the mechanism implementer concerns and\nwave-check items use", "in a new review-focus queue"),
+        "does not state 'by the mechanism implementer concerns and wave-check items use'",
+    ),
+    (
+        "delta pass gets the review focus",
+        lambda r: mutate(r / "docs" / "review-focus.md", "The delta pass does not get the list", "The delta pass gets the list too"),
+        "does not state 'The delta pass does not get the list'",
+    ),
+    (
+        "tier S review focus uncapped",
+        lambda r: mutate(r / "docs" / "review-focus.md", "**at most two** entries", "any number of entries"),
+        "does not state '**at most two** entries'",
+    ),
+    (
+        "route-skipped review focus not absent",
+        lambda r: mutate(r / "docs" / "review-focus.md", "the field stays **absent**", "the field is `[]`"),
+        "does not state 'the field stays **absent**'",
+    ),
+    (
+        "review focus record loses a reader",
+        lambda r: mutate(r / "docs" / "review-focus.md", "and sc-retro (did the cold lens", "and nobody (did the cold lens"),
+        "review-focus-record block does not state 'sc-retro'",
+    ),
+    (
+        "sc-design loses the review-focus bullet",
+        lambda r: mutate(r / "skills" / "sc-design" / "SKILL.md", "never a generic edge class", "any edge class"),
+        "'## Design (architect' does not state 'never a generic edge class' (review focus)",
+    ),
+    (
+        "sc-design critic ignores the review focus",
+        lambda r: mutate(r / "skills" / "sc-design" / "SKILL.md", "likelier input the list left off", "missing input"),
+        "does not state 'likelier input the list left off' (review focus)",
+    ),
+    (
+        "G2 does not require the review focus",
+        lambda r: mutate(r / "skills" / "sc-design" / "SKILL.md", ", and `state.reviewFocus` is written (`[]` when checked and empty).", "."),
+        "'## Gate G2/G3' does not state '`state.reviewFocus` is written' (review focus)",
+    ),
+    (
+        "sc-tdd loses the pin section",
+        lambda r: mutate(r / "skills" / "sc-tdd" / "SKILL.md", "## Pin the review focus", "## Pin things"),
+        "'## Pin the review focus' does not state",
+    ),
+    (
+        "sc-tdd G4 does not require pins",
+        lambda r: mutate(r / "skills" / "sc-tdd" / "SKILL.md", "G4 does not pass with an entry unpinned.", ""),
+        "'## Gate G4' does not state 'G4 does not pass with an entry unpinned' (review focus)",
+    ),
+    (
+        "sc-review cold lens gets the list unfrozen",
+        lambda r: mutate(r / "skills" / "sc-review" / "SKILL.md", "frozen verbatim into the review artifact first", "noted"),
+        "'## Lenses' does not state 'frozen verbatim into the review artifact first' (review focus)",
+    ),
+    (
+        "sc-review triage drops review-focus items",
+        lambda r: mutate(r / "skills" / "sc-review" / "SKILL.md", "**Review-focus items are items to verify, too.**", "**Review focus.**"),
+        "'## Triage' does not state '**Review-focus items are items to verify, too.**' (review focus)",
+    ),
+    (
+        "G8 ignores review-focus dispositions",
+        lambda r: mutate(r / "skills" / "sc-review" / "SKILL.md", "missed or uncovered `state.reviewFocus` entry", "item"),
+        "'## Gate G8' does not state 'missed or uncovered `state.reviewFocus` entry' (review focus)",
+    ),
+    (
+        "G11 does not map the review focus",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "**Review focus.** Each `state.reviewFocus` entry", "**Extras.** Each entry"),
+        "'## Verify (G11)' does not state '**Review focus.**' (review focus)",
+    ),
+    (
+        "sc-retro does not read the review focus",
+        lambda r: mutate(r / "skills" / "sc-retro" / "SKILL.md", "Read `state.reviewFocus`: the\n   entries the cold lens had not raised (`cold.raised`), pins", "Read the\n   pins"),
+        "the skill does not state '`state.reviewFocus`' (review focus)",
+    ),
+    (
+        "G4 row does not require pins",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "; every `state.reviewFocus` entry pinned (test or named `n/a`)", ""),
+        "gate table's G4 row does not require every reviewFocus entry pinned",
+    ),
+    (
+        "runtime adapters miss the review-focus two-pass",
+        lambda r: mutate(r / "docs" / "runtime-adapters.md", "§`${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md`", "§sc-review"),
+        "two-pass note does not cover the review-focus compare",
+    ),
+    (
+        "state shape reviewFocus lacks pinnedBy",
+        lambda r: mutate(r / "docs" / "state-file.md", "\"pinnedBy\": \"<test id, seen failing first>", "\"pinned\": \"<test id, seen failing first>"),
+        "reviewFocus entry lacks 'pinnedBy'",
+    ),
+    (
+        "state shape reviewFocus.cold lacks raised",
+        lambda r: mutate(r / "docs" / "state-file.md", "\"cold\": { \"raised\": false,", "\"cold\": {"),
+        "reviewFocus.cold lacks one of",
     ),
 ]
 

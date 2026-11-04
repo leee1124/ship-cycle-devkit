@@ -34,6 +34,15 @@ for cycles with no route, where this stage still judges for itself.
    a test baseline) rather than counting as Red: it is Red-deferred, its criterion carried to
    `review-only (ci-deferred)`, and it is not counted as Green at G5 either.
 
+## Pin the review focus
+Each `state.reviewFocus` entry (§`${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md`) is pinned like a criterion:
+a test that drives its `input` and asserts its `expected`, run and seen failing for the right reason, recorded
+as `pinnedBy: "<test id>"`. For an entry where test-first is the wrong tool (a layout or copy item), record
+`pinnedBy: "n/a: <reason>"` naming the execution-based verification that covers it. An entry whose test
+passes before the change is not pinned — fix the entry or the test. When sc-design did not run (a route skip
+or Tier S) and the list is absent, write at most two entries yourself, `source: "sc-tdd"`, and list them in
+the G4 report; when this stage is route-skipped too, the field stays absent.
+
 ## Cover the plural case (N≥2), not just the singular
 A test that exercises **one** item passes while a bug that only manifests with **two or more** hides:
 off-by-one/index bugs, ordering & sort assumptions, batch operations, dedup/merge, pagination, and (a
@@ -63,6 +72,8 @@ verification to review/QA rather than writing a vacuous test.
   is the wrong tool (§core 3): the
   execution-based verification is named, was run, and its output read. Record it as
   `gates.G4 = "n/a: <the verification you ran>"` — a named alternative, never a silent skip.
+- Either way, every `state.reviewFocus` entry has its `pinnedBy` — a failing-first test or a named
+  `n/a: <reason>`. G4 does not pass with an entry unpinned.
 
 ## Model routing
 test-engineer runs at the **mid** tier.

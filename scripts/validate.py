@@ -1792,6 +1792,130 @@ def check_red_gate(root: Path, f: Findings) -> None:
         f.error("docs/model-routing.md", "cost readout does not carry the red-gate debug lines")
 
 
+RF_DOC = Path("docs/review-focus.md")
+# Each marker block in docs/review-focus.md and the tokens it must state (#90).
+RF_BLOCK_TOKENS = {
+    "review-focus-rule": ("`state.reviewFocus[]`", "**at most five**", "ranked by likelihood × harm",
+                          "`id`", "`input`", "`impliedBy`", "`uncovered`", "`expected`",
+                          "docs/claim-evidence.md", "**Per feature, never a class.**", "are not entries",
+                          "Accessibility floor", "**An empty list means checked, not skipped.**",
+                          "An absent field means nobody wrote one", "**Shown, not approved.**",
+                          "no separate approval round", "The critic may object"),
+    "review-focus-pin": ("**G4 pins every entry.**", "seen failing for the right reason",
+                         "`pinnedBy: \"<test id>\"`", "`pinnedBy: \"n/a: <reason>\"`",
+                         "naming the execution-based verification", "passes before the change is not pinned",
+                         "G4 does not pass while any entry has no `pinnedBy`"),
+    "review-focus-cold": ("**The cold lens gets the list only after its blind pass.**", "diff only, no list",
+                          "1. **Freeze.**", "**frozen verbatim**", "before the list is sent", "docs/wave-check.md",
+                          "2. **Compare.**", "`raised`", "`pinHolds`", "real construction path",
+                          "it never edits the frozen list", "3. **Record**",
+                          "`cold = { raised, finding, pinHolds, evidence, tree }`",
+                          "**Host without live messaging:**", "docs/runtime-adapters.md",
+                          "**Missed or not covered → items to verify.**", "`raised: false` or `pinHolds: false`",
+                          "by the mechanism implementer concerns and wave-check items use",
+                          "(fixed-here / filed-as `#NN`)", "The delta pass does not get the list"),
+    "review-focus-tier": ("**Tier S and route skips.**", "**at most two** entries", "`source: \"sc-tdd\"`",
+                          "listed in the G4 report", "the field stays **absent**", "no compare step",
+                          "blind pass and the designer lens still run"),
+    "review-focus-record": ("`id`, `input`, `impliedBy`, `uncovered`, `expected`", "`source`", "`pinnedBy`",
+                            "`cold`", "sc-tdd", "sc-review", "sc-ship G11", "sc-retro",
+                            "The list sets no gate value of its own"),
+}
+# Wording that would hand the cold lens the list early, add an approval round or accept a class as an entry.
+RF_FORBIDDEN = ("receives the list before its blind pass", "a separate approval round for the review focus",
+                "a generic edge class is an entry", "the frozen list may be edited")
+RF_ENTRY_KEYS = ("id", "input", "impliedBy", "uncovered", "expected", "source", "pinnedBy", "cold")
+RF_COLD_KEYS = ("raised", "finding", "pinHolds", "evidence", "tree")
+# (skill, section heading or None for the whole file, tokens) — every producer and consumer (#90).
+RF_SKILL_TOKENS = (
+    ("sc-design", "Design (architect", ("`state.reviewFocus[]`", "at most five", "ranked by likelihood × harm",
+                                        "never a generic edge class", "`[]` means checked and found none",
+                                        "no separate approval round", "docs/review-focus.md")),
+    ("sc-design", "Design review (critic)", ("names a generic class", "an `uncovered`",
+                                             "likelier input the list left off")),
+    ("sc-design", "Gate G2/G3", ("`state.reviewFocus` is written",)),
+    ("sc-tdd", "Pin the review focus", ("`state.reviewFocus`", "`pinnedBy: \"<test id>\"`",
+                                       "`pinnedBy: \"n/a: <reason>\"`", "at most two entries",
+                                       "`source: \"sc-tdd\"`", "the field stays absent")),
+    ("sc-tdd", "Gate G4", ("every `state.reviewFocus` entry has its `pinnedBy`", "G4 does not pass with an entry "
+                           "unpinned")),
+    ("sc-review", "Lenses", ("frozen verbatim into the review artifact first", "only then does it receive the list",
+                             "docs/review-focus.md")),
+    ("sc-review", "Triage", ("**Review-focus items are items to verify, too.**", "`raised: false`",
+                             "`pinHolds: false`", "by the same mechanism", "(fixed-here / filed-as `#NN`)")),
+    ("sc-review", "Gate G8", ("missed or uncovered `state.reviewFocus` entry", "taken after the frozen blind pass")),
+    ("sc-ship", "Verify (G11)", ("**Review focus.**", "`state.reviewFocus`", "`pinnedBy`", "`cold.pinHolds`")),
+    ("sc-retro", None, ("`state.reviewFocus`", "`cold.raised`")),
+)
+
+
+def check_review_focus(root: Path, f: Findings) -> None:
+    """#90: sc-design names the per-feature inputs no test covers; G4 pins them; the cold lens checks them
+    only after its blind pass is frozen, and what it missed reaches G8 as items to verify.
+
+    Guards the doc's blocks (freeze before compare, in that order), every producer and consumer section, the
+    orchestrator's G4 row, the runtime-adapter two-pass note and the state shape's entry and `cold` keys.
+    """
+    doc = root / RF_DOC
+    where = shown(RF_DOC)
+    if not doc.is_file():
+        f.error(where, "missing")
+        return
+    text = read(doc)
+    for marker, tokens in RF_BLOCK_TOKENS.items():
+        m = re.search(rf"<!-- {marker} -->(.*?)<!-- /{marker} -->", text, re.S)
+        if not m:
+            f.error(where, f"no <!-- {marker} --> block")
+            continue
+        body = _flat(m.group(1))
+        for token in tokens:
+            if token not in body:
+                f.error(where, f"{marker} block does not state {token!r}")
+    cm = re.search(r"<!-- review-focus-cold -->(.*?)<!-- /review-focus-cold -->", text, re.S)
+    body = cm.group(1) if cm else ""
+    order = [body.find(t) for t in ("1. **Freeze.**", "2. **Compare.**", "3. **Record**")]
+    if all(i >= 0 for i in order) and order != sorted(order):
+        f.error(where, "review-focus-cold does not freeze the blind pass before the compare")
+    flat = _flat(text)
+    for token in RF_FORBIDDEN:
+        if token in flat:
+            f.error(where, f"states {token!r} — the cold lens gets the list only after its frozen blind pass")
+    for skill, heading, tokens in RF_SKILL_TOKENS:
+        path = root / SKILLS_DIR / skill / "SKILL.md"
+        swhere = f"skills/{skill}/SKILL.md"
+        raw = read(path) if path.is_file() else ""
+        sec = _flat(_section(raw, heading) if heading else raw)
+        label = f"'## {heading}'" if heading else "the skill"
+        for token in tokens:
+            if _flat(token) not in sec:
+                f.error(swhere, f"{label} does not state {_flat(token)!r} (review focus)")
+    orch = root / SKILLS_DIR / "ship-cycle" / "SKILL.md"
+    otext = read(orch) if orch.is_file() else ""
+    row = re.search(r"^\| G4 \|(.*)$", otext, re.M)
+    if not row or "`state.reviewFocus` entry pinned" not in row.group(1):
+        f.error("skills/ship-cycle/SKILL.md", "gate table's G4 row does not require every reviewFocus entry pinned")
+    ra = root / "docs" / "runtime-adapters.md"
+    if ra.is_file() and "docs/review-focus.md" not in read(ra):
+        f.error("docs/runtime-adapters.md", "two-pass note does not cover the review-focus compare")
+    shape_path = root / STATE_SHAPE_DOC
+    shape_text = read(shape_path) if shape_path.is_file() else ""
+    blocks = re.findall(r"```json\n(.*?)\n```", shape_text, re.S)
+    try:
+        shape = json.loads(blocks[0]) if blocks else {}
+    except json.JSONDecodeError:
+        shape = {}  # reported by state_shape_fields
+    entries = shape.get("reviewFocus")
+    if not isinstance(entries, list) or not entries or not isinstance(entries[0], dict):
+        f.error(shown(STATE_SHAPE_DOC), "state shape has no reviewFocus entry")
+    else:
+        for key in RF_ENTRY_KEYS:
+            if key not in entries[0]:
+                f.error(shown(STATE_SHAPE_DOC), f"reviewFocus entry lacks '{key}'")
+        cold = entries[0].get("cold")
+        if not isinstance(cold, dict) or not all(k in cold for k in RF_COLD_KEYS):
+            f.error(shown(STATE_SHAPE_DOC), f"reviewFocus.cold lacks one of {', '.join(RF_COLD_KEYS)}")
+
+
 def main(argv: list[str]) -> int:
     root = Path(argv[1]).resolve() if len(argv) > 1 else Path(__file__).resolve().parent.parent
     f = Findings()
@@ -1817,6 +1941,7 @@ def main(argv: list[str]) -> int:
     check_impl_status(root, f)
     check_wave_check(root, f)
     check_red_gate(root, f)
+    check_review_focus(root, f)
 
     for w in f.warnings:
         print(f"warning  {w}")

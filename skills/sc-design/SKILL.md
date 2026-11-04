@@ -11,7 +11,8 @@ Two roles, run as separate agents for real adversarial separation.
 `state.route.basis` (larger `state.size`, or a `state.risk` tag or `state.nature` not in it), record
 `gates.G2/G3 = "n/a: route — <reason>"` with its log row and hand over to the next stage the route runs — the
 skip was confirmed at G1, so this stage does not re-judge it. A rise re-shows the skip first; a loop-back here
-grows this stage to `run` (§ship-cycle — Route plan).
+grows this stage to `run` (§ship-cycle — Route plan). Skipped, the review focus is sc-tdd's to write
+(`${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md` — Tier S and route skips).
 
 ## Design (architect — READ-ONLY, no code)
 Produce a design doc, not an implementation:
@@ -31,6 +32,11 @@ Produce a design doc, not an implementation:
   outside the change, an external API contract, a persisted data shape) carries its evidence — `path:line`,
   dependency source, doc URL or command output.
   Rule and definitions: `${CLAUDE_PLUGIN_ROOT}/docs/claim-evidence.md`.
+- **Review focus**: `state.reviewFocus[]` — at most five inputs or failure modes the criteria or the design
+  imply but no existing test exercises, ranked by likelihood × harm: `{id, input, impliedBy, uncovered
+  (cited), expected}`. Per feature and concrete, never a generic edge class (legacy rows, N≥2, unsaved id
+  are hunted by every review already); `[]` means checked and found none. It is in the design doc the user
+  sees at G2/G3, with no separate approval round. Rule: `${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md`.
 - **Tradeoffs & alternatives**: at least one alternative considered, with why the chosen one wins.
 - **Constitution fit**: layered separation (Controller/Service/Repository/DTO); depend on interfaces;
   business logic **inside the domain** (no anemic model). See
@@ -76,6 +82,9 @@ A separate agent attacks the design (the **union** of all architect docs when th
   code outside the change, an external API contract, a persisted data shape) needs its evidence
   (`${CLAUDE_PLUGIN_ROOT}/docs/claim-evidence.md`); open the cited line rather than trust the sentence. An
   unevidenced one, or a citation that does not say what the claim says, is an objection.
+- **Review focus**: an entry that names a generic class instead of this feature's input, an `uncovered`
+  without its citation (open it — a test that already drives the input means the entry is wrong), or a
+  likelier input the list left off is an objection (`${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md`).
 - **Inter-axis seam mismatches**: when architects were split, the critic's first job is to check their
   seams line up (names, signatures, who-owns-what) and that no two axes made contradictory scope
   assumptions.
@@ -86,7 +95,7 @@ A separate agent attacks the design (the **union** of all architect docs when th
 - Return a list of objections. Iterate design ↔ review until the list is **empty**.
 
 ## Gate G2/G3 (to advance to `sc-tdd`)
-- G2: interfaces are specified concretely.
+- G2: interfaces are specified concretely, and `state.reviewFocus` is written (`[]` when checked and empty).
 - G3: the critic's unresolved-objection list is **empty** (not "addressed later" — resolved).
 - Set `gates.G2 = pass`, `gates.G3 = pass`. On unresolved objections, loop within this stage
   (respect the orchestrator's loop cap).

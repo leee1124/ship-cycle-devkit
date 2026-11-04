@@ -73,6 +73,13 @@ the mechanics that only matter when something unusual happens to its name or its
                     "refutedCarried": { "critical": 0, "high": 1 }, "routedTo": null, "superseded": false,
                     "unresolved": [{ "item": "<finding or cannot-verify item>", "severity": "medium",
                                      "where": "src/a.py:41", "design": false }] }],
+  "reviewFocus": [{ "id": "RF1", "input": "<this feature's concrete input or state>",
+                    "impliedBy": "<the criterion or design line that implies it>",
+                    "uncovered": "<why no test covers it: path:line, or search → no hits>",
+                    "expected": "<the behaviour a user would expect>", "source": "sc-design",
+                    "pinnedBy": "<test id, seen failing first> | n/a: <the verification that covers it>",
+                    "cold": { "raised": false, "finding": null, "pinHolds": true,
+                              "evidence": "<path:line>", "tree": "<tree id G8 read>" } }],
   "bakeOff": { "stances": ["mvp-first", "risk-first", "performance-first"],
                "criteria": [{ "name": "reversibility", "weight": "high" }],
                "judgeLenses": ["algorithm", "cold"],
@@ -178,6 +185,12 @@ verification, the `refutedItems` and the refuted Critical/High still carried (`r
 sc-review brief carries to G8, and `superseded` (a re-plan invalidated it). It is advisory: it sets no gate.
 Rules:
 `${CLAUDE_PLUGIN_ROOT}/docs/wave-check.md`.
+
+`reviewFocus` (written by sc-design with the design, or by sc-tdd when sc-design did not run) holds at most
+five per-feature inputs the spec implies and no test exercises (two when sc-tdd writes it); `[]` means
+checked and none found, absent means nobody wrote one. sc-tdd adds `pinnedBy` at G4; sc-review adds `cold`
+after the cold lens's frozen blind pass; sc-ship maps each entry at G11 and sc-retro reads them. Rules:
+`${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md`.
 
 `route.ownerPresent` (UI natures) says whether the owner will watch the live visual loop. Only `true`
 permits an `owner-confirmed` visual check; absent or `false` fails closed. It has its own rule, not the

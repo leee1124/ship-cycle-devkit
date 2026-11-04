@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.3.21 — Review focus: the inputs the spec implies and no test exercises (#90)
+
+- **Why.** Spec silence is where users break software, and the kit's generic edge classes (legacy rows,
+  N≥2, unsaved id, re-run) name kinds of state, not this feature's inputs. Nothing asked anyone to name
+  those, so nothing pinned them and the cold lens could not tell what it had missed.
+- **`docs/review-focus.md`** states the rule once:
+  - **sc-design writes `state.reviewFocus[]`** with the design: at most five per-feature inputs or failure
+    modes the criteria or design imply but no existing test exercises, ranked by likelihood × harm —
+    `{id, input, impliedBy, uncovered (cited, per claim-evidence), expected}`. Never a generic class and
+    never an a11y-floor check (the designer lens owns those); `[]` means checked, absent means not written.
+    Shown in the design doc at G2/G3 with no separate approval round; the critic may object to an entry.
+  - **G4 pins every entry**: a failing-first test (`pinnedBy: "<test id>"`) or a named
+    `pinnedBy: "n/a: <reason>"` naming the execution-based verification that covers a layout/copy item. An
+    entry whose test passes before the change is not pinned. G4 does not pass with an entry unpinned.
+  - **The cold lens gets the list only after its blind pass**: its findings are frozen verbatim into the
+    review artifact (the wave check's pattern), then it reports per entry `raised` and `pinHolds` (does the
+    pin drive the input through the real construction path), recorded as the entry's `cold`. Two agents on
+    hosts without live messaging. The delta pass does not get the list.
+  - **Missed or not covered → items to verify** in the lenses' G8 brief, the mechanism implementer concerns
+    (#87) and wave-check items (#88) already use, each with a disposition; a missed entry whose pin holds is
+    fixed-here citing `pinnedBy`.
+  - **Tier S and route skips**: with no sc-design, sc-tdd writes at most two entries (`source: "sc-tdd"`);
+    when sc-tdd is route-skipped too the field stays absent and the cold lens has no compare step.
+- **Consumers.** sc-tdd (pins), sc-review (compare, brief, G8), sc-ship G11 (each entry mapped to its pin's
+  evidence; a pin that did not hold backs no claim until fixed here) and sc-retro (what the cold lens missed,
+  later defects in inputs the list left off). The orchestrator's G4 row and Tier S path, the runtime-adapter
+  two-pass note and the state shape carry it. It sets no gate value of its own.
+- **Validator.** `check_review_focus` guards the five doc blocks (freeze → compare → record in order, and
+  forbidden early-list / approval-round / class-as-entry wording), every producer and consumer section, the
+  G4 row, the runtime-adapter note and the state shape's entry and `cold` keys; 33 self-test mutations.
+
 ## 0.3.20 — When a gate goes red: reproduce, one hypothesis at a time, keep the record (#89)
 
 - **Why.** Loop-cap exhaustion was usually blind retrying: a fix made before the failure was reproduced, a
