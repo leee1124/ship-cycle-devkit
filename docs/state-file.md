@@ -175,6 +175,9 @@ not appended to.
 The seven stage skills are mid-pipeline; `parked` is a deliberate pause (not terminal); `complete`, `failed`
 and `cancelled` are terminal.
 
+`branchCreated` is `true` only when PREFLIGHT created the branch; absent (a pre-0.3.13 or migrated file) is
+treated as `false`, so a cancel cleanup keeps the branch.
+
 ## Resume and selection
 
 Read `.claude/ship-cycle/<current-branch-slug>.json`:
