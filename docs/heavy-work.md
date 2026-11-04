@@ -40,8 +40,9 @@ re-running anything. Tested with real `flock`: busy wait, N=2 slots, nesting, ba
 ```bash
 #!/usr/bin/env bash
 # usage: LOCK=/path/base [N=1] [HEAVY_WAIT=540] [HEADROOM_MB=2048] heavy-run.sh <cmd> [args...]
-# exit: the job's own code | 98 lock error, not run | 99 wait timed out, not run | 97 low headroom, not run
-: "${LOCK:?heavyLock unset}"
+# exit: the job's own code | 98 lock error/unset, not run | 99 wait timed out, not run
+#       | 97 low headroom, not run (retry later; the wrapper does not wait on memory)
+[ -n "${LOCK:-}" ] || { echo "heavy: heavyLock unset" >&2; exit 98; }
 [ -n "$SC_HEAVY_HELD" ] && exec "$@"                  # nested: outermost launcher holds the slot
 n=${N:-1}; end=$((SECONDS + ${HEAVY_WAIT:-540}))
 while :; do
@@ -85,15 +86,18 @@ the process detached, release), record its PID, and stop it at teardown — only
 flock -n -o "$LOCK.1" sh -c 'nohup <cmd> >job.log 2>&1 & echo $! >job.pid'
 ```
 
-The launching shell exits at once, so the slot frees; the job's PID is tracked in `job.pid`. A foreground
-run, or `flock -o "$LOCK.1" <cmd> &`, holds the slot for the job's whole life — do not. Never start a build while an emulator runs if headroom is short: stop the emulator first.
+The launching shell exits at once, so the slot frees; the job's PID is tracked in `job.pid`. Exit 1 from
+this line means slot 1 is busy: retry after the running job, it is not a launch failure. A foreground run,
+or `flock -o "$LOCK.1" <cmd> &`, holds the slot for the job's whole life — do not. Never start a build
+while an emulator runs if headroom is short: stop the emulator first.
 
 ## Headroom (`heavyHeadroomMB`)
 
 Read the *available* figure, not free: Linux `free -m` (`available` column); macOS `vm_stat` /
 `memory_pressure`; Windows `Get-CimInstance Win32_OperatingSystem` (`FreePhysicalMemory`, KB); on WSL also the
-Windows host via `powershell.exe`, where an emulator lives. Keep >= ~2 GB. Below the threshold: wait
-(bounded) or stop a heavy job **this session started**. No probe available: skip the check, advisory, and say
+Windows host via `powershell.exe`, where an emulator lives. Keep >= ~2 GB. Below the threshold the wrapper
+exits 97 (not run); the orchestrator retries later within its bounded wait, or stops a heavy job **this
+session started**. No probe available: skip the check, advisory, and say
 so once.
 
 ## Rules for the orchestrator
