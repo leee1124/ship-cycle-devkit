@@ -106,6 +106,12 @@ re-deriving its own skip.
   nature, plus cold on a non-trivial change) ∪ every risk-matched lens ∪ the overlay `reviews` of every
   nature in the current `state.nature` (§sc-review). **QA form** names what sc-qa runs — full bring-up +
   seams, seams only, release smoke only.
+- **UI natures**: the route may name the **live visual loop** inside `sc-implement` (the owner settles the
+  looks on the running app; `${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md`) and records whether the owner will
+  be present as `state.route.ownerPresent` (only `true` permits an `owner-confirmed` visual check; a nature
+  that grows to a UI nature re-asks it). The loop is part
+  of sc-implement, not a stage, so it is never skipped as one; the designer lens and its a11y floor join the
+  lens floor for a UI nature and no route or Tier S drops them.
 - **Growth only.** Once confirmed, a stage or lens can be added, never removed. Growth comes from: scope or
   nature growing (§Stage 0.4); a loop-back to sc-design — a loop cap or a G8 design flaw — which grows
   `sc-design` to `run` and tells the user; sc-tdd finding a contract in a routed skip. Re-show the user only
@@ -280,7 +286,7 @@ release valve, §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Parking) — and
 | G8 | 0 Critical/High (authz, paywall, anemic, N+1); every finding has a disposition (fixed-here / filed `#NN`); no `reviewJobs` entry still `running`/`launching`, `gitFreeze` released; UI → designer passes | → sc-implement (design flaw → sc-design) |
 | G9 | 0 new defects in integration/E2E vs `state.baseline` (ignoring `unrunnableHere`; `flaky` not exempt; under `ci-status-only` every defect blocks unless its suite is in `run.rechecked`); seams reproduced; ITs that **can** run here actually ran; release-artifact smoke when `appliesTo` is touched (§sc-qa Release-artifact smoke) | → sc-implement |
 | G10 | docs matching the change exist | writer |
-| G11 | every claim mapped 1:1 to a test/build/QA log | rework |
+| G11 | every claim mapped 1:1 to a test/build/QA log; a UI nature's looks → `state.visualCheck`: appearance only; not stale; `ownerPresent` true (owner-confirmed on a profile; otherwise the pre-merge manual gate) | rework |
 | G12 | build+test+review+QA passed, and every matched overlay `releaseChecklist` item ran green or (`manual`) is on the pre-merge manual gate — a `degrade` G9 / `checklist` G7b or G6 counts **only** when its item is on the pre-merge manual gate (a `deferred` release smoke included), and an `"n/a: <reason>"` gate counts with its reason carried to the PR body (not a whole-stage G2/G3, G4 or G9 `n/a` whose route entry is `run`, unless it is a config `n/a`); **branch merges cleanly into** overlay `vcs.defaultBase` (merge-tree probe + host `mergeable`); PR body's **Gate summary** matches a fresh render from state + log, re-checked right before merge | merge base + resolve, re-verify |
 | G13 | merged branch deleted (local + remote); feature worktree removed if created (**linked dep stores unlinked first**, never deleted through); cycle state file deleted; gate log archived, not deleted; base synced | — |
 
@@ -324,8 +330,9 @@ test-harness form. *Outcomes* (never dialed, for a typo fix and
 an auth change alike): the six in §core; the fail-closed floors (security/data/contract); root-cause
 analysis before any defect fix; the pre-PR conflict check (G12); and the git-write freeze while an
 out-of-process reviewer reads the branch (§sc-review — a badly-timed `commit`/`checkout` can hang the reader
-for an hour, and Tier S does not exempt you from waiting). When unsure which side something is on, it is an
-outcome.
+for an hour, and Tier S does not exempt you from waiting); and, for a UI nature, the accessibility floor —
+the designer lens or at least its a11y checklist (§`${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md`). When
+unsure which side something is on, it is an outcome.
 
 Root-cause analysis, triage and the conflict check are the cheapest stages and the first a right-sizing
 pass reaches for. They are also where the cycle earns its keep: they stop you implementing a misdiagnosed

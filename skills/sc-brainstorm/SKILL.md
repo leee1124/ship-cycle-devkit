@@ -35,7 +35,9 @@ expensive outcome. This stage ends when the user accepts a design direction — 
    ```
 
    `sc-tdd` may be skipped only for a layout, copy or config change. When the criteria reduce to one
-   stage's job, say so instead and recommend that skill standalone.
+   stage's job, say so instead and recommend that skill standalone. For a UI nature, ask whether the owner
+   will watch the live visual loop and record it as `state.route.ownerPresent` (`true` only on a yes)
+   (`${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md`).
 
 ## Don't
 - Don't jump to implementation or file edits here.

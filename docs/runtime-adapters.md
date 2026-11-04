@@ -18,6 +18,7 @@ a review responsibility until the migration lands.
 | overlay config | `.claude/ship-cycle.config.json` | `.codex/ship-cycle.config.json` *(intent — see §Known gaps)* |
 | heavy-job lock | `flock` / `mkdir` on `env.heavyLock` (see `heavy-work.md`) | same; use a workspace or `$TMPDIR` path if `/tmp` is sandboxed |
 | cycle state | `.claude/ship-cycle/<branch-slug>.json` | `.codex/ship-cycle/<branch-slug>.json` *(intent — see §Known gaps)* |
+| design-tool adapter (`visualCheck.designTool`) | an installed design skill hooked into UI stages (`visual-check.md`) | not wired: the plain fallbacks apply |
 
 Everything in the skills that reads `${CLAUDE_PLUGIN_ROOT}/docs/…` means "this kit's own `docs/`
 directory"; on Codex, resolve it against the plugin's install directory. Nothing in the lifecycle depends

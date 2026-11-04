@@ -61,6 +61,26 @@ costs more than it carries. Adapt to your stack.
 Follow the engineering constitution (`${CLAUDE_PLUGIN_ROOT}/docs/engineering-constitution.md`):
 authz from the principal only, DTOs not entities, whitelist validation, no N+1, no swallowed exceptions.
 
+## Live visual loop (UI natures)
+For a nature whose overlay declares `visualCheck` (or that `designer` reviews), the looks are settled here,
+with the owner watching the running app — not in review rounds. The rule is
+`${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md` (Live visual loop); in short: launch the live app from a
+dev/debug build (a release-form build cannot hot reload; build → start emulator → loop on a small host),
+record prior device values before changing them and restore those, also on abort; show the change on the
+first `visualCheck.profiles` entry, ask in plain words what to look at, and answer vague feedback with 2–3
+labelled, uncommitted prototypes on the running app — the chosen one is productionized and the rest deleted.
+- **Presentation-only tweaks** (styles, layout, copy, tokens, assets) iterate without re-entering sc-review
+  **before the first sc-review only**; any behaviour, state, data or navigation change goes back to sc-tdd
+  (Red first). After the first review, every edit goes through the delta re-review and G5–G7 and counts
+  against the loop cap.
+- **Before G5**, record the prototype cleanup check in `state.visualCheck[<nature>].cleanup` — it is part of
+  G5's evidence. Any loop that builds variants (a post-review re-show too) resets `preLoopTree` and
+  re-records `cleanup` before its G5.
+- Walk the accessibility-floor checks with the owner. Write `state.visualCheck[<nature>]` for every nature in
+  `state.nature` (`"n/a"` for a non-UI one). Only the top-level session that talks to the user writes
+  `owner-confirmed`, in the owner's own words, and only with `state.route.ownerPresent === true`; a subagent
+  writes `agent-captured` at most. A route plan may name this loop (§ship-cycle Route plan).
+
 ## Verify (this stage owns build + tests, separate from review)
 - **G5**: build succeeds and the **new tests pass** (Green) — or, where G4 recorded an execution-based
   verification instead, that verification ran and its output was read. Run the nature's build/test commands

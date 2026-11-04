@@ -38,10 +38,15 @@
       "match": "apps/web/**",
       "nature": "web",
       "tests": ["npm run build", "npx playwright test"],
-      "reviews": ["security", "quality", "performance", "designer"]
+      "reviews": ["security", "quality", "performance", "designer"],
+      "visualCheck": {
+        "run": ["npm run dev -w apps/web"],
+        "open": "http://localhost:3000",
+        "profiles": ["desktop 1440x900 light", "mobile 390x844 dark, browser zoom 200%"]
+      }
     },
     {
-      "$comment": "releaseSmoke: a change to these paths can break only the shrunk, signed release build (e.g. a keep rule stripping a reflectively-read generic signature), so G9 runs the listed flows on that build. See sc-qa Release-artifact smoke for evidence and the narrow conditions under which part of it may be deferred.",
+      "$comment": "releaseSmoke: a change to these paths can break only the shrunk, signed release build (e.g. a keep rule stripping a reflectively-read generic signature), so G9 runs the listed flows on that build. See sc-qa Release-artifact smoke for evidence and the narrow conditions under which part of it may be deferred. visualCheck: the owner's phone profile first, since they judge on it; devBuild installs the debug client, because a release build on the device cannot hot reload (small host: build, then start the emulator, then loop); restore puts back the prior device values the loop recorded in state (settings get system font_scale, wm size, wm density) before changing them, also on abort; with no owner present, capture runs across every profile and each lands on the pre-merge manual gate (docs/visual-check.md).",
       "match": "apps/mobile/**",
       "nature": "mobile",
       "tests": ["npx tsc --noEmit -p apps/mobile", "npm run test -w apps/mobile"],
@@ -51,6 +56,16 @@
         "artifact": ["cd apps/mobile/android && ./gradlew assembleRelease"],
         "flows": ["sign-in (email)", "sign-in (third-party SDK)", "start and finish a workout"],
         "device": "Android emulator, API 35"
+      },
+      "visualCheck": {
+        "run": ["npx expo start --dev-client"],
+        "open": "adb shell am start -n com.example.app.dev/.MainActivity",
+        "devBuild": ["cd apps/mobile && npx expo run:android --variant debug"],
+        "profiles": ["owner phone 1080x2340 450dpi font 1.0 dark", "owner phone 1080x2340 450dpi font 1.3 light"],
+        "restore": ["adb shell settings put system font_scale <recorded font_scale>", "adb shell wm size <recorded wm size>", "adb shell wm density <recorded wm density>"],
+        "capture": ["adb exec-out screencap -p > <state dir>/visual/<profile-slug>.png"],
+        "sharedPaths": ["packages/shared/src/theme/**", "apps/mobile/src/i18n/**"],
+        "designTool": "impeccable"
       }
     },
     {

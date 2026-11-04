@@ -12,6 +12,7 @@ Usage:  python3 scripts/validate_selftest.py
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -25,9 +26,11 @@ COPY_SKIP = {".git", "__pycache__", ".github"}
 
 
 def run_validator(root: Path) -> tuple[int, str]:
+    # UTF-8 both ways: messages carry non-ASCII (→, —) and a Windows console defaults to cp1252.
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
     proc = subprocess.run(
         [sys.executable, str(VALIDATOR), str(root)],
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", env=env,
     )
     return proc.returncode, proc.stdout + proc.stderr
 
@@ -628,6 +631,358 @@ CASES = [
         lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "(`state.branchCreated`) ", ""),
         "Route plan section does not state '`state.branchCreated`'",
     ),
+    (
+        "visualCheck schema stops requiring profiles",
+        lambda r: mutate(
+            r / "docs" / "ship-cycle.config.schema.json",
+            '"required": ["run", "profiles"]',
+            '"required": ["run"]',
+        ),
+        "visualCheck is missing",
+    ),
+    (
+        "visualCheck schema block opened",
+        lambda r: mutate(
+            r / "docs" / "ship-cycle.config.schema.json",
+            '"required": ["run", "profiles"],\n            "additionalProperties": false',
+            '"required": ["run", "profiles"],\n            "additionalProperties": true',
+        ),
+        "visualCheck is missing",
+    ),
+    (
+        "no example nature declares visualCheck",
+        lambda r: mutate(
+            r / "docs" / "ship-cycle.config.example.json",
+            '"visualCheck": {',
+            '"visualCheckOff": {',
+            count=-1,
+        ),
+        "no changeNature declares visualCheck",
+    ),
+    (
+        "example visualCheck loses profiles",
+        lambda r: mutate(
+            r / "docs" / "ship-cycle.config.example.json",
+            '"profiles": ["desktop',
+            '"profilez": ["desktop',
+        ),
+        "missing required field 'profiles'",
+    ),
+    (
+        "live loop drops the dev-build-not-release rule",
+        lambda r: mutate(r / "docs" / "visual-check.md", "release-form", "release", count=-1),
+        "does not state 'a release-form build installed on the device cannot reload'",
+    ),
+    (
+        "live loop drops labelled prototypes",
+        lambda r: mutate(r / "docs" / "visual-check.md", "`variant A`", "`option`", count=-1),
+        "does not state 'labelled `variant A`'",
+    ),
+    (
+        "visual evidence drops the unattended fallback",
+        lambda r: mutate(r / "docs" / "visual-check.md", "agent-captured", "captured", count=-1),
+        "does not state '**`review-only (agent-captured)`**'",
+    ),
+    (
+        "a11y floor drops reduced motion",
+        lambda r: mutate(r / "docs" / "visual-check.md", "**reduced motion**", "**motion**"),
+        "a11y-floor block does not state 'reduced motion'",
+    ),
+    (
+        "design-tool adapter drops read-only",
+        lambda r: mutate(r / "docs" / "visual-check.md", "used read-only in review", "used in review"),
+        "design-tool adapter does not state 'read-only'",
+    ),
+    (
+        "design-tool adapter drops the polish hook",
+        lambda r: mutate(r / "docs" / "visual-check.md", "`polish` —", "polish —"),
+        "no `polish` hook",
+    ),
+    (
+        "sc-implement loses the live visual loop",
+        lambda r: mutate(
+            r / "skills" / "sc-implement" / "SKILL.md",
+            "## Live visual loop (UI natures)",
+            "## Visual notes",
+        ),
+        "no '## Live visual loop' section",
+    ),
+    (
+        "live loop re-enters review per tweak",
+        lambda r: mutate(
+            r / "skills" / "sc-implement" / "SKILL.md",
+            "**before the first sc-review only**",
+            "**always**",
+        ),
+        "does not state 'before the first sc-review only'",
+    ),
+    (
+        "sc-design loses the early reuse check",
+        lambda r: mutate(
+            r / "skills" / "sc-design" / "SKILL.md",
+            "**Reuse check before any new component or token**",
+            "**Reuse**",
+        ),
+        "does not state '**Reuse check before any new component or token**'",
+    ),
+    (
+        "designer lens drops the largest font scale",
+        lambda r: mutate(r / "skills" / "sc-review" / "SKILL.md", "largest font scale", "big fonts"),
+        "designer lens does not state 'largest font scale'",
+    ),
+    (
+        "sc-ship G11 drops the owner-confirmed label",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "**`live (owner-confirmed)`**", "**`live`**"),
+        "does not state 'live (owner-confirmed)'",
+    ),
+    (
+        "pre-merge gate drops unconfirmed visual checks",
+        lambda r: mutate(
+            r / "skills" / "sc-ship" / "SKILL.md",
+            "every `state.visualCheck` entry that is not",
+            "every visual entry that is not",
+        ),
+        "'## PR (G12)' does not state 'every `state.visualCheck` entry",
+    ),
+    (
+        "G11 row drops visualCheck",
+        lambda r: mutate(
+            r / "skills" / "ship-cycle" / "SKILL.md",
+            "a UI nature's looks → `state.visualCheck`",
+            "a UI nature's looks",
+        ),
+        "G11 row does not reference state.visualCheck",
+    ),
+    (
+        "route plan stops naming the live visual loop",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "**live visual loop**", "**loop**"),
+        "'## Route plan' does not state 'live visual loop'",
+    ),
+    (
+        'stale rule drops the tree comparison',
+        lambda r: mutate(
+            r / "docs" / "visual-check.md",
+            'its `tree` equals the final tree',
+            'it looks recent',
+        ),
+        "does not state 'its `tree` equals the final tree'",
+    ),
+    (
+        'sc-ship G11 stops checking the confirmation tree',
+        lambda r: mutate(
+            r / "skills" / "sc-ship" / "SKILL.md",
+            '`visualCheck.tree` equals the final tree',
+            'the confirmation is recent',
+        ),
+        "does not state '`visualCheck.tree` equals the final tree'",
+    ),
+    (
+        "loop drops the owner's own words",
+        lambda r: mutate(
+            r / "docs" / "visual-check.md",
+            "in the owner's own words in this run",
+            'when it looks settled',
+        ),
+        'does not state "in the owner\'s own words in this run"',
+    ),
+    (
+        'subagent may write owner-confirmed',
+        lambda r: mutate(
+            r / "docs" / "visual-check.md",
+            '`agent-captured` at most.',
+            'anything.',
+        ),
+        "writer rule does not state 'a subagent writes `agent-captured` at most'",
+    ),
+    (
+        'state shape drops route.ownerPresent',
+        lambda r: mutate(
+            r / "docs" / "state-file.md",
+            '"ownerPresent": true',
+            '"ownerSeen": true',
+        ),
+        "route lacks 'ownerPresent'",
+    ),
+    (
+        'sc-ship G11 accepts owner-confirmed without the owner',
+        lambda r: mutate(
+            r / "skills" / "sc-ship" / "SKILL.md",
+            '`state.route.ownerPresent === true` (absent fails closed)',
+            '`state.route.ownerPresent` is not `false`',
+        ),
+        "does not state '`state.route.ownerPresent === true` (absent fails closed)'",
+    ),
+    (
+        'tweaks may change behaviour',
+        lambda r: mutate(
+            r / "docs" / "visual-check.md",
+            'change goes back to',
+            'change is fine, see',
+        ),
+        "does not state 'goes back to sc-tdd (Red first)'",
+    ),
+    (
+        'owner confirmation backs behaviour claims',
+        lambda r: mutate(
+            r / "docs" / "visual-check.md",
+            'backs appearance claims only',
+            'backs every claim',
+        ),
+        "does not state 'backs appearance claims only'",
+    ),
+    (
+        'state shape drops the prototype cleanup record',
+        lambda r: mutate(
+            r / "docs" / "state-file.md",
+            '"cleanup": {',
+            '"tidy": {',
+        ),
+        "visualCheck entry lacks 'cleanup'",
+    ),
+    (
+        'G8 stops verifying prototype cleanup',
+        lambda r: mutate(
+            r / "skills" / "sc-review" / "SKILL.md",
+            '**without being handed** `state.visualCheck[<nature>].cleanup`',
+            'with `state.visualCheck[<nature>].cleanup`',
+        ),
+        "'## Gate G8' does not state '**without being handed**'",
+    ),
+    (
+        'restore loses the abort path',
+        lambda r: mutate(
+            r / "docs" / "visual-check.md",
+            'and on abort',
+            'eventually',
+        ),
+        "does not state 'and on abort'",
+    ),
+    (
+        'a11y floor becomes dialable',
+        lambda r: mutate(
+            r / "docs" / "visual-check.md",
+            'not on the Tier S path, not by a route plan',
+            'unless trivial',
+        ),
+        "does not state 'not on the Tier S path, not by a route plan'",
+    ),
+    (
+        'Tier S bright line drops the accessibility floor',
+        lambda r: mutate(
+            r / "skills" / "ship-cycle" / "SKILL.md",
+            'the accessibility floor —',
+            'polish —',
+        ),
+        "'## Tier S path' does not state 'the accessibility floor'",
+    ),
+    (
+        'runtime adapters drop the design-tool row',
+        lambda r: mutate(
+            r / "docs" / "runtime-adapters.md",
+            '| design-tool adapter (`visualCheck.designTool`)',
+            '| design tool',
+        ),
+        'no design-tool adapter row',
+    ),
+    (
+        'absent ownerPresent no longer fails closed',
+        lambda r: mutate(
+            r / "docs" / "visual-check.md",
+            '— absent or `false` fails closed;',
+            '— unless `false`;',
+        ),
+        "does not state '`state.route.ownerPresent === true` — absent or `false` fails closed'",
+    ),
+    (
+        'state-file drops the absent-fails-closed rule',
+        lambda r: mutate(
+            r / "docs" / "state-file.md",
+            'absent or `false` fails closed',
+            '`false` blocks',
+        ),
+        "route.ownerPresent rule does not state 'absent or `false` fails closed'",
+    ),
+    (
+        'state-file lets ownerPresent flip without asking',
+        lambda r: mutate(
+            r / "docs" / "state-file.md",
+            '`false → true` is allowed only by asking the owner',
+            'it may change freely',
+        ),
+        "does not state '`false → true` is allowed only by asking the owner'",
+    ),
+    (
+        'writtenBy treated as proof',
+        lambda r: mutate(
+            r / "docs" / "visual-check.md",
+            '`writtenBy` is **advisory only**',
+            '`writtenBy` is **proof**',
+        ),
+        "writer rule does not state '**advisory only**'",
+    ),
+    (
+        'G11 trusts the recorded owner words',
+        lambda r: mutate(
+            r / "skills" / "sc-ship" / "SKILL.md",
+            'find the recorded owner words as a user turn in your own conversation',
+            'read the recorded owner words',
+        ),
+        "does not state 'as a user turn in your own conversation'",
+    ),
+    (
+        'G11 no longer downgrades unverified owner words',
+        lambda r: mutate(
+            r / "docs" / "visual-check.md",
+            'otherwise the entry is downgraded to',
+            'otherwise keep it',
+        ),
+        "does not state 'downgraded to `agent-captured`'",
+    ),
+    (
+        'cold lens is handed the cleanup record',
+        lambda r: mutate(
+            r / "docs" / "visual-check.md",
+            'without being handed the record',
+            'with the record',
+        ),
+        "does not state 'without being handed the record'",
+    ),
+    (
+        'variant re-show keeps the old preLoopTree',
+        lambda r: mutate(
+            r / "docs" / "visual-check.md",
+            'resets `preLoopTree` when it starts',
+            'keeps `preLoopTree`',
+        ),
+        "does not state 'resets `preLoopTree`'",
+    ),
+    (
+        'schema drops visualCheck.sharedPaths',
+        lambda r: mutate(
+            r / "docs" / "ship-cycle.config.schema.json",
+            '"sharedPaths": {',
+            '"sharedPathz": {',
+        ),
+        'visualCheck is missing',
+    ),
+    (
+        'G11 row drops its three conditions',
+        lambda r: mutate(
+            r / "skills" / "ship-cycle" / "SKILL.md",
+            'appearance only; not stale; `ownerPresent` true',
+            'appearance',
+        ),
+        'G11 row does not reference state.visualCheck with',
+    ),
+    (
+        'default profiles not concrete',
+        lambda r: mutate(
+            r / "docs" / "visual-check.md",
+            'font scale 1.0 and at the OS maximum',
+            'a few sizes',
+        ),
+        "does not state 'font scale 1.0 and at the OS maximum'",
+    ),
 ]
 
 
@@ -691,4 +1046,6 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    if hasattr(sys.stdout, "reconfigure"):  # Windows consoles default to cp1252
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main())

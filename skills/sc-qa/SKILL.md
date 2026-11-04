@@ -204,6 +204,10 @@ The entry lives in `state.releaseSmoke`, one per nature (shape: `${CLAUDE_PLUGIN
   not a `pass`.**
 - **Release smoke** (§Release-artifact smoke): every nature's `state.releaseSmoke` entry is a `pass` whose
   `tree` equals `gateTrees.G9`, an `n/a`, or carries a deferral (→ G9 `degrade`).
+- **UI natures**: the owner's confirmation in `state.visualCheck`
+  (`${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md` — Visual evidence) covers the appearance of the screens it
+  names, not their behaviour; QA does not repeat the live loop, and still owns the flows, seams and
+  release smoke. An edit made during G9 goes through sc-review's delta re-review and G5–G7.
 - Set `gates.G9 = pass|degrade|fail` in state (with `state.gateTrees.G9` = the tree identity QA ran on, §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Tree identity) as **`pass` / `degrade` / `fail`, with the reason** — the same three-way shape
   `gates.G7b` already uses (`pass`/`checklist`/`skip`). A `degrade` is **not** a failure: do **not** loop to
   `sc-implement` with a debugger that cannot conjure a database, and do **not** write `pass` because the

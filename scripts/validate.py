@@ -818,6 +818,185 @@ def check_route_plan(root: Path, f: Findings) -> None:
 # --- entry point -------------------------------------------------------------------------------
 
 
+VISUAL_DOC = Path("docs/visual-check.md")
+VISUAL_FIELDS = ("run", "open", "devBuild", "profiles", "restore", "capture", "diff", "sharedPaths",
+                 "designTool")
+A11Y_FLOOR_TOKENS = ("touch target", "contrast", "screen-reader", "largest font scale", "reduced motion")
+VISUAL_BLOCK_TOKENS = {
+    "visual-loop-rule": (
+        "a release-form build installed on the device cannot reload", "heavy-work.md",
+        "build → start emulator → loop", "read and record its prior value", "and on abort",
+        "Ask in plain words what to look at",
+        "without re-entering sc-review — before the first sc-review only",
+        "presentation-only", "goes back to sc-tdd (Red first)",
+        "delta re-review and G5–G7, and counts against the loop cap", "labelled `variant A`",
+        "temporary and uncommitted", "delete the rest before any commit, review or test",
+        "Prototype cleanup is recorded before G5", "`git diff --stat` against the pre-loop tree",
+        "in the owner's own words in this run", "state.visualCheck", "part of G5's evidence",
+        "resets `preLoopTree`", "without being handed the record",
+        "when no cold lens runs, the designer lens"),
+    "visual-evidence-rule": (
+        "backs appearance claims only",
+        "Behaviour claims (state, data, navigation) still need a test or a QA log",
+        "**`live (owner-confirmed)`**", "**`review-only (agent-captured)`**", "Pre-merge manual gate",
+        "unattended", "never inside the repo", "slugified profile name", "its `tree` equals the final tree",
+        "`git diff <tree>..HEAD`", "only when the project declares a harness", "not their behaviour",
+        "finds the recorded owner words as a user turn in its own conversation",
+        "downgraded to `agent-captured`", "`visualCheck.sharedPaths`"),
+    "a11y-floor": A11Y_FLOOR_TOKENS + ("An outcome, not ceremony",
+                                       "not on the Tier S path, not by a route plan"),
+}
+VISUAL_WRITER_TOKENS = ("for every nature in `state.nature`", "top-level session that talks to the user",
+                        "a subagent writes `agent-captured` at most",
+                        "`state.route.ownerPresent === true` — absent or `false` fails closed",
+                        "re-ask the owner", "**advisory only**", "default profile list",
+                        "font scale 1.0 and at the OS maximum")
+OWNER_PRESENT_STATE_TOKENS = ("Only `true` permits", "absent or `false` fails closed",
+                              "`false → true` is allowed only by asking the owner")
+VISUAL_STATE_KEYS = ("result", "tree", "preLoopTree", "owner", "writtenBy", "deviceRestore", "cleanup")
+DESIGN_TOOL_HOOKS = ("shape", "generate", "live", "critique", "detect", "audit", "polish")
+
+
+def _flat(text: str) -> str:
+    """Whitespace-collapsed text, so a phrase wrapped across lines still matches."""
+    return " ".join(text.split())
+
+
+def _section(text: str, heading_prefix: str) -> str:
+    m = re.search(r"^## " + re.escape(heading_prefix) + r".*?(?=^## |\Z)", text, re.M | re.S)
+    return m.group(0) if m else ""
+
+
+def check_visual_check(root: Path, f: Findings) -> None:
+    """#83: UI natures settle their looks in a live owner loop, and that is the visual evidence.
+
+    Guards the overlay's `changeNature[].visualCheck` block (closed, `run` + `profiles` required, every
+    documented field present) and an example nature using it; docs/visual-check.md keeps its loop,
+    evidence and accessibility-floor blocks and the design-tool adapter table with its read-only constraint;
+    sc-implement has the live-loop section, sc-design the reuse check, sc-review's designer lens the named
+    a11y checks, sc-ship G11 the owner-confirmed / agent-captured labels and the manual-gate item, and the
+    orchestrator's G11 row and route plan name it. It does not judge the prose.
+    """
+    schema = load_json(root, OVERLAY_SCHEMA, f)
+    if schema is not None:
+        try:
+            spec = schema["properties"]["changeNature"]["items"]["properties"]["visualCheck"]
+            ok = (spec.get("additionalProperties") is False
+                  and {"run", "profiles"} <= set(spec["required"])
+                  and set(VISUAL_FIELDS) <= set(spec["properties"]))
+        except (KeyError, TypeError):
+            ok = False
+        if not ok:
+            f.error(shown(OVERLAY_SCHEMA), "changeNature.items.properties.visualCheck is missing, "
+                                           "not closed, lacks run/profiles as required, or lacks one of "
+                                           + "/".join(VISUAL_FIELDS))
+            return
+    blocks = list(example_blocks(root, f, "visualCheck"))
+    if not blocks:
+        f.error(shown(OVERLAY_EXAMPLE), "no changeNature declares visualCheck")
+    doc = root / VISUAL_DOC
+    if not doc.is_file():
+        f.error(shown(VISUAL_DOC), "missing")
+    else:
+        text = read(doc)
+        for name, tokens in VISUAL_BLOCK_TOKENS.items():
+            m = re.search(rf"<!-- {name} -->(.*?)<!-- /{name} -->", text, re.S)
+            if not m:
+                f.error(shown(VISUAL_DOC), f"no <!-- {name} --> block")
+                continue
+            body = _flat(m.group(1))
+            for token in tokens:
+                if token not in body:
+                    f.error(shown(VISUAL_DOC), f"{name} block does not state {token!r}")
+        intro = _flat(text.split("<!-- visual-loop-rule -->")[0])
+        for token in VISUAL_WRITER_TOKENS:
+            if token not in intro:
+                f.error(shown(VISUAL_DOC), f"writer rule does not state {token!r}")
+        adapter = _flat(_section(text, "Design-tool adapter"))
+        for hook in DESIGN_TOOL_HOOKS:
+            if f"`{hook}`" not in adapter:
+                f.error(shown(VISUAL_DOC), f"design-tool adapter table has no `{hook}` hook")
+        for token in ("fallback", "never requires", "read-only", "`init`", "`document`", "hook"):
+            if token not in adapter:
+                f.error(shown(VISUAL_DOC), f"design-tool adapter does not state {token!r}")
+    shape_doc = root / STATE_SHAPE_DOC
+    if shape_doc.is_file():
+        blocks = re.findall(r"```json\n(.*?)\n```", read(shape_doc), re.S)
+        try:
+            shape = json.loads(blocks[0]) if blocks else {}
+        except json.JSONDecodeError:
+            shape = {}  # reported by state_shape_fields
+        route = shape.get("route") if isinstance(shape.get("route"), dict) else {}
+        if "ownerPresent" not in route:
+            f.error(shown(STATE_SHAPE_DOC), "route lacks 'ownerPresent'")
+        prose = _flat(read(shape_doc))
+        for token in OWNER_PRESENT_STATE_TOKENS:
+            if token not in prose:
+                f.error(shown(STATE_SHAPE_DOC), f"route.ownerPresent rule does not state {token!r}")
+        vc = shape.get("visualCheck") if isinstance(shape.get("visualCheck"), dict) else {}
+        entry = next((v for v in vc.values() if isinstance(v, dict)), {})
+        for key in VISUAL_STATE_KEYS:
+            if key not in entry:
+                f.error(shown(STATE_SHAPE_DOC), f"visualCheck entry lacks '{key}'")
+    anchors = (
+        ("sc-implement", "Live visual loop", (
+            "visual-check.md", "visualCheck.profiles", "release-form", "and restore those, also on abort",
+            "uncommitted prototypes", "before the first sc-review only", "goes back to sc-tdd",
+            "counts against the loop cap", "state.visualCheck[<nature>].cleanup", "accessibility-floor",
+            "for every nature in `state.nature`", "Only the top-level session that talks to the user writes",
+            "in the owner's own words", "`state.route.ownerPresent === true`", "`agent-captured` at most",
+            "resets `preLoopTree`", "part of G5's evidence")),
+        ("sc-design", "UI-only changes", ("**Reuse check before any new component or token**",
+                                          "design.guide", "backstop")),
+        ("sc-ship", "Verify (G11)", (
+            "visual-check.md", "state.visualCheck", "live (owner-confirmed)", "review-only (agent-captured)",
+            "pre-merge manual gate", "backs appearance claims only", "still needs a test or QA log",
+            "`state.route.ownerPresent === true` (absent fails closed)",
+            "as a user turn in your own conversation", "`writtenBy` is advisory only",
+            "downgrade it to `agent-captured`", "`visualCheck.tree` equals the final tree",
+            "`git diff <tree>..HEAD`", "`visualCheck.sharedPaths`")),
+        ("sc-ship", "PR (G12)", ("every `state.visualCheck` entry that is not `owner-confirmed`",)),
+        ("sc-qa", "Gate G9", ("state.visualCheck", "visual-check.md", "not their behaviour",
+                              "delta re-review")),
+        ("sc-review", "Gate G8", ("state.visualCheck[<nature>].cleanup", "never dropped",
+                                  "**without being handed**", "when no cold lens runs, the designer lens")),
+        ("sc-review", "Re-review after fixes", ("visual-check.md", "counted against the loop cap")),
+        ("sc-brainstorm", "Do", ("`state.route.ownerPresent`",)),
+        ("ship-cycle", "Route plan", ("live visual loop", "visual-check.md", "`state.route.ownerPresent`",
+                                      "no route or Tier S drops them")),
+        ("ship-cycle", "Tier S path", ("the accessibility floor", "visual-check.md")),
+    )
+    for skill, heading, tokens in anchors:
+        path = root / SKILLS_DIR / skill / "SKILL.md"
+        if not path.is_file():
+            continue
+        sec = _flat(_section(read(path), heading))
+        if not sec:
+            f.error(shown(path.relative_to(root)), f"no '## {heading}' section")
+            continue
+        for token in tokens:
+            if token not in sec:
+                f.error(shown(path.relative_to(root)), f"'## {heading}' does not state {token!r}")
+    review = root / SKILLS_DIR / "sc-review" / "SKILL.md"
+    if review.is_file():
+        m = re.search(r"^- \*\*designer\*\*.*?(?=^- \*\*)", read(review), re.M | re.S)
+        lens = _flat(m.group(0)) if m else ""
+        for token in A11Y_FLOOR_TOKENS + ("visual-check.md", "read-only", "runs once", "never dropped"):
+            if token not in lens:
+                f.error(shown(review.relative_to(root)), f"designer lens does not state {token!r}")
+    orch = root / SKILLS_DIR / "ship-cycle" / "SKILL.md"
+    if orch.is_file():
+        row = next((l for l in read(orch).splitlines() if l.startswith("| G11 |")), "")
+        if "state.visualCheck" not in row or "appearance only; not stale; `ownerPresent` true" not in row:
+            f.error(shown(orch.relative_to(root)), "G11 row does not reference state.visualCheck with "
+                                                   "'appearance only; not stale; `ownerPresent` true'")
+    adapters = root / "docs" / "runtime-adapters.md"
+    if adapters.is_file():
+        row = next((l for l in read(adapters).splitlines() if "visualCheck.designTool" in l), "")
+        if "fallback" not in row:
+            f.error("docs/runtime-adapters.md", "no design-tool adapter row naming the Codex fallback")
+
+
 def main(argv: list[str]) -> int:
     root = Path(argv[1]).resolve() if len(argv) > 1 else Path(__file__).resolve().parent.parent
     f = Findings()
@@ -836,6 +1015,7 @@ def main(argv: list[str]) -> int:
     check_release_checklist(root, f)
     check_heavy_work(root, f)
     check_route_plan(root, f)
+    check_visual_check(root, f)
 
     for w in f.warnings:
         print(f"warning  {w}")
@@ -850,4 +1030,6 @@ def main(argv: list[str]) -> int:
 
 
 if __name__ == "__main__":
+    if hasattr(sys.stdout, "reconfigure"):  # Windows consoles default to cp1252
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main(sys.argv))
