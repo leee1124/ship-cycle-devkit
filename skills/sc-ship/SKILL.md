@@ -9,6 +9,8 @@ description: Stage 7 of ship-cycle. Documentation + evidence-based verification 
 Update README/CHANGELOG/API docs/comments to match the change **in this same change**. G10 passes when
 `git diff --name-only <base>...HEAD` includes a doc file, or the PR body gives an explicit
 "no docs needed" reason.
+Record it: `gates.G10 = pass` in state before moving on (a no-docs reason is a pass — the reason lives in the
+PR body) — a cycle interrupted later in sc-ship then resumes past the docs check instead of re-deciding it.
 
 ## Verify (G11)
 **Run the verification and read the output** (§core 2). Read pass/fail from the command's own exit
@@ -37,6 +39,10 @@ Surface the labels in the PR body's claim map (e.g. `- ✅ rate limit rejects 11
 login_spec)` / `- ✅ owner check on delete — **review-only** (dev user can't reach another owner's record)`).
 This makes verification strength auditable and stops a review-only fallback from silently masquerading as a
 live pass. `review-only` is a legitimate outcome, not a failure — but it must be **named as such**.
+
+When every criterion is mapped, set `gates.G11 = pass` in state, so `/status` and resume can tell "claims
+mapped" from "just entered sc-ship". While an unproven criterion loops back, leave G11 unset; record a bare
+`fail` only if the cycle stops at G11, and name the criterion in the loop-back report, not in the value.
 
 ## PR (G12)
 - **Check `state.gitFreeze.active` first — do not commit, push, rebase or move the branch while it is
@@ -112,6 +118,11 @@ live pass. `review-only` is a legitimate outcome, not a failure — but it must 
   merges cleanly into the base**, the opened PR
   body carries the correct `Closes`/`Refs` token for every tracked issue (re-fetched and asserted, not
   assumed), and every deferred finding is filed and referenced.
+  Set `gates.G12 = pass` in state once all of the above hold and **before** merging; a failed condition
+  records a bare `gates.G12 = fail` (the condition goes in the loop-back report) and loops back per the gate
+  table. **A recorded `pass` does not survive time:** right before the merge — always, and especially on a
+  resumed run — re-run the merge-cleanliness probe and re-fetch the `Closes`/`Refs` tokens; if either no
+  longer holds, G12 is `fail` again.
 
 ## Cleanup (G13)
 - **Check `state.gitFreeze.active` and `state.reviewJobs` before you delete anything.** Teardown removes a

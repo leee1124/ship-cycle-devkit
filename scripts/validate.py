@@ -182,9 +182,8 @@ def check_gate_coverage(root: Path, f: Findings) -> None:
         for group in GATE_SET_RE.findall(read(path)):
             written.update(group.split("/"))
     for gate in sorted(tabled - written):
-        # Advisory pending #63: G10-G12 are performed by sc-ship and never recorded. Promote to error
-        # once that is fixed, so the direction that found the defect can also block on it.
-        f.warn("gates", f"{gate} is in the orchestrator's gate table but no stage skill sets it")
+        # An error since #63: a tabled gate that no stage records is invisible to /status and resume.
+        f.error("gates", f"{gate} is in the orchestrator's gate table but no stage skill sets it")
     for gate in sorted(written - tabled):
         f.error("gates", f"{gate} is set by a skill but absent from the orchestrator's gate table")
 
