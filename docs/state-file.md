@@ -87,6 +87,13 @@ the mechanics that only matter when something unusual happens to its name or its
   "reconcile": [{ "at": "<iso>", "recordedStage": "sc-implement", "continueFrom": "sc-tdd",
                   "mismatches": ["tests exist but G4 not recorded: src/test/RateLimitTest.java"],
                   "cleared": [] }],
+  "debug": [{ "gate": "G6", "failure": "RateLimitTest#burst", "round": 2,
+              "repro": { "command": "<the gate's real command>", "exit": 1 },
+              "hypothesis": "<one cause>", "evidence": "<path:line or command → output>",
+              "change": "<the one minimal change>", "result": "rejected",
+              "tree": "<tree id the re-run ran on>",
+              "revert": "git apply -R <scratch>/change.patch · tree back to <pre-change tree id>",
+              "at": "<iso>" }],
   "telemetry": { "upgrades": ["auth → security lens: high→top"],
                  "stages": { "review": { "tier": "top", "model": "opus", "effort": "high",
                                          "tokens": null, "cost": null },
@@ -176,6 +183,14 @@ Rules:
 permits an `owner-confirmed` visual check; absent or `false` fails closed. It has its own rule, not the
 growth-only one: `false → true` is allowed only by asking the owner, and a nature that grows to a UI nature
 re-asks it (or sets `false`).
+
+`debug` (written by sc-implement from each fix report, for a red G5–G7b, a red wave barrier or a G9
+`fail`) is append-only, one entry per hypothesis tested: the `gate` and `failure` it belongs to, the
+reproducing command and its exit code, the hypothesis with its evidence, the one change, the `result`
+(`confirmed` / `rejected` / `undetermined`), the tree the re-run ran on and the `revert` of a rejected
+change. Later fix briefs for the same
+failure carry its rejected entries; three rejected route as `BLOCKED` (design defect). It sets no gate.
+Rules: `${CLAUDE_PLUGIN_ROOT}/docs/red-gate.md`.
 
 `parked` is `null` unless `stage` is `parked` (§Parking). `reconcile` is append-only, one entry per resume
 (§Resume reconcile).
@@ -304,6 +319,11 @@ never turns a `route` entry from `run` to `skip` (a missing `route` stays missin
 never records a `pass` and never continues later than the recorded stage, however finished the worktree
 looks — a gate passes only when its stage produces the evidence. Continue from the earliest stage any row
 points at.
+
+**Debug entries survive the reconcile.** `debug` is never cleared or trimmed by a resume, whatever it
+clears: the rejected entries survive a restart, so no disproved cause is retried by the next session or
+agent. Entries are written from a finished report only, so none is ever
+pending; a round that died without reporting left no entry, and its hypothesis is simply untested.
 
 **A clear does not count against `loops`.** The cap bounds attempts that *failed*; a clear means the
 evidence for a past attempt is gone, not that the work failed — counting it would let a crashed session

@@ -37,6 +37,11 @@ piped or tailed line (§sc-implement — No false-green).
 when nothing is left — e.g. "full suite not rerun after the last edit", "emulator E2E not done", "release
 build not run". The orchestrator never claims anything on this line as verified.
 
+**Hypotheses** — optional, and required only in a red-gate fix brief
+(§`${CLAUDE_PLUGIN_ROOT}/docs/red-gate.md`): one item per hypothesis the round tested, with its evidence,
+the one change, the result and the tree. The orchestrator copies the items into `state.debug`; a red-gate
+report missing them is re-asked once as a context fetch, never treated as no report.
+
 **No silent end.** A turn that ends without this block is not a report. The implementer never ends its turn
 waiting on something; it reports `BLOCKED` with what it was waiting for.
 
@@ -60,6 +65,7 @@ command or a tool; report BLOCKED with what you were waiting for. This report is
 - Concerns: <none | one actionable sentence each, path:line where there is one>
 - Commands run: <command → exit code, one per line>
 - Not verified: <none | what this report does not prove, e.g. "full suite not rerun after the last edit">
+- Hypotheses: <omit | red-gate fix briefs, one per hypothesis: cause · evidence · change · result · tree>
 ```
 <!-- /impl-report-block -->
 

@@ -71,6 +71,9 @@ tunable only by intuition. So the cycle reports what it spent.
   status). The readout prints them, so an escalation shows as a routed status, not an unexplained cost.
 - **Wave checks ride along.** `waveReviews` holds one entry per barrier read on Tier L waved work, with the
   model it ran on (§`${CLAUDE_PLUGIN_ROOT}/docs/wave-check.md`); the readout prints one line each.
+- **Red-gate debugging rides along.** `debug` holds one entry per hypothesis a fix round tested
+  (§`${CLAUDE_PLUGIN_ROOT}/docs/red-gate.md`); the readout prints one line per failure, so a loop spent
+  re-testing the same cause shows as such.
 - **Never invent a number.** Most hosts expose no per-agent token count. Record `null` and print
   `unavailable` for what you cannot measure; the resolved tier/effort per stage is always recordable and is
   itself the useful half. A fabricated cost table is worse than an honest gap — it is the same false-green

@@ -1,5 +1,54 @@
 # Changelog
 
+## 0.3.20 — When a gate goes red: reproduce, one hypothesis at a time, keep the record (#89)
+
+- **Why.** Loop-cap exhaustion was usually blind retrying: a fix made before the failure was reproduced, a
+  flake rerun until green, a resumed session retrying a change the last one had disproved. The gate
+  table's on-failure route said only "debugger → sc-implement".
+- **`docs/red-gate.md`** states the protocol once, for a red G5/G6/G7/G7b, a red wave barrier and a genuine
+  G9 `fail` (an `unrunnableHere` suite never triggers it — diffed around, as at G6):
+  - **Reproduce first** with the gate's real command — its own exit code and the tree identity; heavy runs
+    and bisections under `env.heavyLock` with bounded waits. sc-qa's G9 hand-off is this step; the fixer
+    re-runs it once to confirm.
+  - **"Could not reproduce" is not fixed.** The gate keeps its `fail`; the log row's evidence reads
+    `undetermined: not reproduced in <N> runs` (§core 2's third state, never a pass; `<N>` = the fixed
+    count, per tree). Three exits:
+    classify and fix the flake; recheck on the base commit (fails there → pre-existing per
+    `test-baseline.md`, `flaky` exempt only when its suite is rechecked); not reproducible anywhere after
+    the fixed count → park and ask. Never rerun until green.
+  - **Read the actual error**, **compare against a working example**, then **one hypothesis with
+    evidence** (a changed tree, dependency or environment cited against a rejected entry's `tree` is new
+    evidence) and **one minimal change**. Red differently is `rejected` on the original failure. A
+    rejected change is reverted without touching the work around it: before the change record the tree
+    and `base=$(git stash create)` (never `git stash`; empty → `HEAD`) plus copies of untracked files;
+    after it, `git diff "$base" -- <files> > <scratch>/change.patch`; undo with `git apply -R`, else restore
+    the copies; never checkout/reset/stash shared files; check the tree is back to the pre-change tree.
+  - **Counting rides on #87.** Each fix round is already counted against `loops[G]`; hypotheses inside a
+    round are not loops. Three rejected inside a round → `BLOCKED` (design defect), the round's further
+    failure (+1 only then); at loop 2 with two rejected (counted across rounds), prefer sc-design over a
+    third guess; at the cap the one cap rule decides and the user gets the `state.debug` entries as
+    evidence. No second cap.
+  - **Flaky and order-dependent failures**: retry to classify (a count fixed up front), never to hide; a
+    gate never passes on the best of N. Polluter bisection with the runner's own selection flags (portable,
+    no script), waits for the condition instead of sleeps, isolated shared state, a guard at the boundary.
+- **Report contract.** The report block in `docs/impl-status.md` and the three stack prompts gains an
+  optional `- Hypotheses:` field (one item per hypothesis: `cause · evidence · change · result · tree`),
+  required only in red-gate fix briefs; a missing one is re-asked once as a context fetch (outside
+  `loops[G]`), never routed as no report.
+- **State.** `state.debug[]`, one entry per hypothesis (gate, failure — a case id, or a build's error code
+  plus file with no line/column — round, repro command + exit, hypothesis, evidence, change, result, tree,
+  revert). Written only from a finished report, so none is ever pending. Fix briefs carry a failure's
+  rejected entries ("do not retry"); the resume reconcile keeps them, so the rejected entries survive a
+  restart and no disproved cause is retried; sc-ship's cost readout prints one line per failure and sc-retro
+  reads them. It sets no gate.
+- **Pointers.** sc-implement and sc-qa gain "When a gate goes red"; G6's debugger attaches under it; the
+  orchestrator's gate table names the protocol in the G5, G6, G7, G7b and G9 "On failure" cells with a
+  note under the table; model-routing's cost readout carries the lines.
+- **Validator.** `check_red_gate` guards the four doc blocks (including the reproduce → read → compare →
+  hypothesis → change order and forbidden second-cap / best-of-N / lines-after-the-block wording), the
+  sc-implement and sc-qa sections, the gate-table cells and note, the `Hypotheses` field in the report
+  block and impl-status, the state shape, the reconcile sentence and the consumers; 55 self-test mutations.
+
 ## 0.3.19 — Wave check: one cheap read at each wave barrier, carried into G8 (#88)
 
 - **Why.** On waved work a design-level defect in wave 1 — a wrong interface, boundary or shared contract —
