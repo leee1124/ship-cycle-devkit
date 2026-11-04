@@ -1804,7 +1804,9 @@ RF_BLOCK_TOKENS = {
         "**Shown, not approved.**", "no separate approval round", "The critic may object",
         "is a logic item planned for an `n/a` pin", "**Append or annotate only after G3.**",
         "keeps its `id`", "`pinnedBy: \"<existing test id>\"`", "listed in the G4 report",
-        "`superseded: true`", "G4 re-pins", "re-opens the list at sc-design"),
+        "`superseded: true`", "G4 re-pins", "continue the numbering (`RF6`+)",
+        "the five-entry cap counts only non-superseded entries", "is a G1 re-show (§ship-cycle Stage 0.4)",
+        "re-opens the list at whichever stage wrote it"),
     "review-focus-pin": (
         "**G4 pins every entry.**", "seen failing for the right reason", "`pinnedBy: \"<test id>\"`",
         "`pinnedBy: \"n/a: <reason>\"`", "**only for a layout, copy or config item**",
@@ -1821,14 +1823,18 @@ RF_BLOCK_TOKENS = {
         "it never edits the frozen list", "3. **Record**",
         "`cold = { raised, finding, pinHolds, evidence, tree }`", "4. **Verify**",
         "The parallel lenses have already run", "**scoped second pass of a spec-anchored lens**",
-        "`model = state.models.review`", "**triage at `high` effort**", "Record who verified each",
-        "`verify = { by, model, effort, outcome }`", "**Host without live messaging:**",
+        "**triage at `high` effort**", "**The scoped pass runs on the same model and effort the chosen lens "
+        "ran with at G8**", "risk upgrade included", "Record who verified each",
+        "`verify = { by, model, effort, outcome, evidence }`", "the construction call it goes through",
+        "never a copy of `cold.evidence`", "**Host without live messaging:**",
         "docs/runtime-adapters.md", "**Three outcomes, recorded in `verify.outcome`**",
         "**`covered: <pinnedBy>`**", "not counted as fixed-here and never goes to the delta pass",
         "\"cold-lens miss, caught by the pin\"", "**`fixed-here`**",
         "**shown failing against the pre-change tree**", "`pinFixedBy`", "`pinFixEvidence`",
         "**`filed-as #NN`**", "**The delta pass sees code locations only.**",
-        "never as its `input` or `expected` text"),
+        "never as its `input` or `expected` text",
+        "**It checks only whether the pin or fix introduced a regression**",
+        "resolution is proven by `verify.pinFixEvidence` and the pin's passing run at G11"),
     "review-focus-tier": (
         "**Tier S and route skips.**", "**at most two** entries", "`source: \"sc-tdd\"`",
         "listed in the G4 report", "or `[]` when it checked and found none", "the field stays **absent**",
@@ -1838,7 +1844,8 @@ RF_BLOCK_TOKENS = {
     "review-focus-record": (
         "`id`, `input`, `impliedBy`, `uncovered`, `expected`", "`source`", "`superseded`", "`pinnedBy`",
         "`cold` and `verify`", "sc-tdd", "sc-review", "sc-ship G11", "`verify.pinFixedBy`", "sc-retro",
-        "which misses the pin caught", "The list sets no gate value of its own"),
+        "which misses the pin caught", "superseded entries as evidence of the earlier design's misses",
+        "The list sets no gate value of its own"),
 }
 # Wording that would hand the cold lens the list early, add an approval round, accept a class as an entry or
 # count a pin-caught miss as a fix.
@@ -1849,7 +1856,7 @@ RF_FORBIDDEN = ("receives the list before its blind pass", "a separate approval 
 RF_ENTRY_KEYS = ("id", "input", "impliedBy", "uncovered", "expected", "source", "superseded", "pinnedBy",
                  "cold", "verify")
 RF_COLD_KEYS = ("raised", "finding", "pinHolds", "evidence", "tree")
-RF_VERIFY_KEYS = ("by", "model", "effort", "outcome", "pinFixedBy", "pinFixEvidence")
+RF_VERIFY_KEYS = ("by", "model", "effort", "outcome", "evidence", "pinFixedBy", "pinFixEvidence")
 # (skill, section heading or None for the whole file, tokens) — every producer and consumer (#90).
 RF_SKILL_TOKENS = (
     ("sc-design", "Design (architect", (
@@ -1878,15 +1885,18 @@ RF_SKILL_TOKENS = (
     ("sc-review", "Triage", (
         "**Review-focus items are verified after the compare.**", "`raised: false`", "`pinHolds: false`",
         "never waits for their brief", "scoped second pass of a spec-anchored lens", "at `high` effort",
-        "records who did in the entry's `verify`", "`covered: <pinnedBy>`", "not fixed-here",
+        "on the same model and effort that lens ran with at G8", "`verify.evidence`", "`covered: <pinnedBy>`",
+        "not fixed-here",
         "never sent to the delta pass", "fixed-here / filed-as `#NN`", "`verify.pinFixedBy`")),
     ("sc-review", "Re-review after fixes", ("Review-focus items reach it as code locations only",
-                                            "never an entry's `input` or `expected` text")),
+                                            "never an entry's `input` or `expected` text",
+                                            "checks only whether the pin or fix introduced a regression")),
     ("sc-review", "Gate G8", ("missed or uncovered `state.reviewFocus` entry has a `verify` outcome",
                               "`pinFixedBy`", "taken after the frozen blind pass")),
     ("sc-ship", "Verify (G11)", ("**Review focus.**", "`state.reviewFocus`", "`pinnedBy`", "`cold.pinHolds`",
                                  "`verify.pinFixedBy`", "`pinFixEvidence`")),
-    ("sc-retro", None, ("`state.reviewFocus`", "\"cold-lens miss, caught by the pin\"", "`cold: null`")),
+    ("sc-retro", None, ("`state.reviewFocus`", "\"cold-lens miss, caught by the pin\"", "`cold: null`",
+                        "evidence of the earlier design's misses")),
 )
 
 

@@ -13,7 +13,8 @@ and sc-retro point here.
 **What sc-design writes.** With the design, the architect writes `state.reviewFocus[]`: **at most five**
 inputs or failure modes the acceptance criteria or the design imply but no existing test exercises, ranked
 by likelihood × harm, most likely to bite a person first. Each entry:
-- `id` — `RF1`…`RF5`, in rank order;
+- `id` — `RF1`, `RF2`, … in rank order; later entries continue the numbering (`RF6`+), and the five-entry
+  cap counts only non-superseded entries;
 - `input` — the concrete input or state, per feature (a value, a row, a sequence of actions);
 - `impliedBy` — the criterion or design line that implies it;
 - `uncovered` — why no existing test covers it, cited per §`${CLAUDE_PLUGIN_ROOT}/docs/claim-evidence.md`:
@@ -40,8 +41,9 @@ an entry that is a class, restates a criterion, has an uncited `uncovered`, is a
 **Append or annotate only after G3.** Entries are never silently rewritten once G3 passed. A **corrected**
 entry (its `uncovered` was wrong — a test already drives the input) keeps its `id`, gets
 `pinnedBy: "<existing test id>"` and is listed in the G4 report. A design **rewrite** (sc-design re-run)
-marks the old entries `superseded: true` and appends the new ones, which G4 re-pins. Scope growth
-(§ship-cycle Stage 0.4) re-opens the list at sc-design.
+marks the old entries `superseded: true` and appends the new ones, which G4 re-pins. Promoting an entry
+to a criterion after G3 is a G1 re-show (§ship-cycle Stage 0.4); the entry is marked `superseded: true`.
+Scope growth (§ship-cycle Stage 0.4) re-opens the list at whichever stage wrote it.
 <!-- /review-focus-rule -->
 
 <!-- review-focus-pin -->
@@ -74,9 +76,11 @@ agent with no prior compare in its context**. Then:
    identity.
 4. **Verify** every entry with `raised: false` or `pinHolds: false`. The parallel lenses have already run,
    so these never wait for their brief: a **scoped second pass of a spec-anchored lens** (quality or
-   algorithm, `model = state.models.review`, `effort = state.effort.review`) on just these items, or
-   **triage at `high` effort** verifying them directly. Record who verified each as
-   `verify = { by, model, effort, outcome }`.
+   algorithm) on just these items, or **triage at `high` effort** verifying them directly. **The scoped
+   pass runs on the same model and effort the chosen lens ran with at G8**, risk upgrade included
+   (§sc-review — Model routing). Record who verified each as `verify = { by, model, effort, outcome,
+   evidence }`: `evidence` is the `path:line` of the assertion and of the construction call it goes through,
+   which the verifier opens itself — never a copy of `cold.evidence`.
 
 **Host without live messaging:** two agents on the same pinned model and effort — the first runs the blind
 pass, its frozen findings go to the second with the list (§`${CLAUDE_PLUGIN_ROOT}/docs/runtime-adapters.md`).
@@ -92,7 +96,9 @@ pass, its frozen findings go to the second with the list (§`${CLAUDE_PLUGIN_ROO
 - **`filed-as #NN`** — out of scope by §sc-review — Triage, listed as open.
 
 **The delta pass sees code locations only.** A fixed-here item reaches the delta pass as the `path:line` of
-its pin or fix, never as its `input` or `expected` text — the delta pass is a cold lens too.
+its pin or fix, never as its `input` or `expected` text — the delta pass is a cold lens too. **It checks only
+whether the pin or fix introduced a regression**; resolution is proven by `verify.pinFixEvidence` and the
+pin's passing run at G11, not by the delta lens.
 <!-- /review-focus-cold -->
 
 <!-- review-focus-tier -->
@@ -104,18 +110,18 @@ then the skip path still pins them (`n/a` only for layout, copy or config) and a
 `run`. Absent: the cold lens has no compare step and nothing is carried to G8 — its blind pass and the
 designer lens still run. When no cold lens runs at all (a trivial Tier S change), entries keep
 `cold: null`, the review artifact notes "not compared", and sc-retro skips them. A cycle whose route grows
-sc-design to `run` rewrites the list there (§Append or annotate only).
+sc-design to `run` appends to the list there (§Append or annotate only).
 <!-- /review-focus-tier -->
 
 ## Record and readers
 
 <!-- review-focus-record -->
-`state.reviewFocus` holds one entry per item: `id`, `input`, `impliedBy`, `uncovered`, `expected`,
-`source` (`sc-design` or `sc-tdd`), `superseded`, `pinnedBy` (written at G4), `cold` and `verify` (written at
-G8, `null` until then — and `cold` stays `null` when no cold lens ran). Readers: sc-tdd (G4 pins), sc-review
-(the compare, the verify step and G8), sc-ship G11 (each entry is mapped to its pin's evidence like a
-criterion; a `fixed-here` entry needs `verify.pinFixedBy` with its failing-first evidence) and sc-retro (did
-the cold lens find what the list named, which misses the pin caught, and did a later defect sit in an input
-the list left off). The list sets no gate value of its own: G4 requires every entry pinned, G8 a `verify`
-outcome for every missed or uncovered entry.
+`state.reviewFocus` holds one entry per item: `id`, `input`, `impliedBy`, `uncovered`, `expected`, `source`
+(`sc-design` or `sc-tdd`), `superseded`, `pinnedBy` (written at G4), `cold` and `verify` (written at G8,
+`null` until then — and `cold` stays `null` when no cold lens ran). Readers: sc-tdd (G4 pins), sc-review (the
+compare, the verify step and G8), sc-ship G11 (each entry is mapped to its pin's evidence like a criterion; a
+`fixed-here` entry needs `verify.pinFixedBy` with its failing-first evidence) and sc-retro (did the cold lens
+find what the list named, which misses the pin caught, superseded entries as evidence of the earlier design's
+misses, and did a later defect sit in an input the list left off). The list sets no gate value of its own: G4
+requires every entry pinned, G8 a `verify` outcome for every missed or uncovered entry.
 <!-- /review-focus-record -->

@@ -277,8 +277,9 @@ or was skipped by the route, reduces no lens: G8 runs the full fleet either way.
 **Review-focus items are verified after the compare.** Every `state.reviewFocus` entry whose `cold` reads
 `raised: false` or `pinHolds: false` (§`${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md`) surfaces after the
 parallel lenses ran, so it never waits for their brief: a scoped second pass of a spec-anchored lens
-(quality or algorithm, `model = state.models.review`) on just these items, or this triage at `high`
-effort, verifies each and records who did in the entry's `verify`. Outcomes sit in the review artifact
+(quality or algorithm, on the same model and effort that lens ran with at G8 — risk upgrade included,
+§Model routing) on just these items, or this triage at `high` effort, verifies each and records who did,
+with `verify.evidence` it opened itself, in the entry's `verify`. Outcomes sit in the review artifact
 beside the other dispositions: `covered: <pinnedBy>` (the pin holds and drives the input — verified, not
 fixed-here, never sent to the delta pass), or, for a pin that does not hold — a finding — fixed-here /
 filed-as `#NN`; a fixed pin is shown failing against the pre-change tree (`verify.pinFixedBy`).
@@ -305,7 +306,8 @@ of a cycle's review spend goes once the first pass has landed. Scope it to what 
   original defect, so the independent view matters more here, not less.
 - **Review-focus items reach it as code locations only** — the `path:line` of the pin or the fix, never
   an entry's `input` or `expected` text (§`${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md`); a `covered` entry
-  does not reach it at all.
+  does not reach it at all. For these the delta pass checks only whether the pin or fix introduced a
+  regression; resolution is proven by `verify.pinFixEvidence` and the pin's passing run at G11.
 - **Same tier, same model pin** as the review it follows (§Model routing). The delta pass is narrower, not
   cheaper in judgment.
 - **Escalate to a full re-review** instead when the fix: reaches files or modules the first review never
