@@ -1107,8 +1107,8 @@ def check_evals(root: Path, f: Findings) -> None:
 
     The live runs are manual; what is mechanical is that every scenario states the rule it tests (pointing
     at a skill or doc that exists), its pressures, a POSIX setup, the prompt, the expected behaviour and a
-    post-check whose id `evals/check.py` registers; that each has a passing and a failing fixture (so its
-    checker can fail) and a RED and a GREEN row in the baseline record; that every registered check is used;
+    post-check whose id `evals/check.py` registers; that each has a passing and a failing fixture case (so
+    its checker can fail) and a RED and a GREEN row in the baseline record; that every registered check is used;
     and that the README says the evals are never a required check. Whether a scenario is a good test is the
     reviewer's.
     """
@@ -1163,10 +1163,11 @@ def check_evals(root: Path, f: Findings) -> None:
             f.error(where, f"post-check {check!r} is not a check id registered in {EVALS_CHECKER}")
         else:
             used.add(check)
+        fixtures = root / EVALS_DIR / "fixtures" / path.stem
+        cases = [c for c in fixtures.iterdir() if c.is_dir() and any(c.iterdir())] if fixtures.is_dir() else []
         for verdict in ("pass", "fail"):
-            case = root / EVALS_DIR / "fixtures" / path.stem / verdict
-            if not (case.is_dir() and any(case.iterdir())):
-                f.error(where, f"no fixture evals/fixtures/{path.stem}/{verdict}/")
+            if not any(c.name == verdict or c.name.startswith(verdict + "-") for c in cases):
+                f.error(where, f"no fixture evals/fixtures/{path.stem}/{verdict}[-<label>]/")
         for phase in ("RED", "GREEN"):
             if not any(l.startswith(f"| {path.stem} | {phase} |") for l in results):
                 f.error(shown(EVALS_RESULTS), f"no {phase} row for scenario {path.stem}")

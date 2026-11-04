@@ -1,0 +1,9 @@
+{
+  "initial": {
+    "src/invoice.py": "class Invoice: pass\n"
+  },
+  "uncommitted": {
+    "src/invoice.py": "class Invoice:\n    due_date = None\n",
+    ".eval/gh.log": "issue create --title 'line_total drops the last line'\n"
+  }
+}

@@ -1359,8 +1359,8 @@ CASES = [
     ),
     (
         "eval scenario loses its failing fixture",
-        lambda r: shutil.rmtree(r / "evals" / "fixtures" / "omit-model" / "fail"),
-        "no fixture evals/fixtures/omit-model/fail/",
+        lambda r: [shutil.rmtree(c) for c in (r / "evals" / "fixtures" / "omit-model").glob("fail*")],
+        "no fixture evals/fixtures/omit-model/fail[-<label>]/",
     ),
     (
         "eval baseline record drops a GREEN row",
@@ -1411,8 +1411,9 @@ def main() -> int:
     if code != 0:
         failures.append(f"the real repo does not pass its own validator:\n{out}")
 
-    # The eval post-checks (#85): every fixture gives its expected verdict, and a fixture whose verdict is
-    # swapped makes the checker's own self-test fail -- otherwise "selftest ok" would prove nothing.
+    # The eval post-checks (#85): every fixture gives its expected verdict, and swapping every scenario's
+    # failing case into its passing slot makes the checker's own self-test fail for each scenario --
+    # otherwise "selftest ok" would prove nothing.
     code, out = run_eval_checker(REPO)
     if code != 0:
         failures.append(f"evals/check.py selftest fails on the real repo:\n{out}")
@@ -1420,15 +1421,18 @@ def main() -> int:
         print("ok   eval post-checks give every fixture its expected verdict")
     with tempfile.TemporaryDirectory(prefix="scdk self test ") as tmp:
         root = fresh_copy(Path(tmp) / "repo copy")
-        fixtures = root / "evals" / "fixtures" / "omit-model"
-        shutil.copy(fixtures / "fail" / "transcript.jsonl", fixtures / "pass" / "transcript.jsonl")
+        swapped = []
+        for scenario in sorted(p for p in (root / "evals" / "fixtures").iterdir() if p.is_dir()):
+            if (scenario / "fail").is_dir() and (scenario / "pass").is_dir():
+                shutil.rmtree(scenario / "pass")
+                shutil.copytree(scenario / "fail", scenario / "pass")
+                swapped.append(scenario.name)
         code, out = run_eval_checker(root)
-        if code == 0:
-            failures.append("[eval checker] selftest passed with a failing transcript in a pass fixture")
-        elif "omit-model/pass" not in out:
-            failures.append(f"[eval checker] expected 'omit-model/pass' in output, got:\n{out}")
+        missed = [s for s in swapped if f"FAIL {s}/pass:" not in out]
+        if code == 0 or missed or not swapped:
+            failures.append(f"[eval checker] swapped fixtures not all caught (missed {missed}):\n{out}")
         else:
-            print("ok   eval checker selftest fails on a swapped fixture")
+            print(f"ok   eval checker selftest fails on each of {len(swapped)} swapped fixtures")
 
     for name, mutation, expected in CASES:
         with tempfile.TemporaryDirectory(prefix="scdk self test ") as tmp:

@@ -18,8 +18,8 @@ to read the transcript, not a reason to block a merge.
 | Path | What it is |
 |---|---|
 | `scenarios/<id>.md` | One scenario: rule under test, pressures, fixture setup, prompt, expected behaviour, post-check |
-| `check.py` | The post-checks: `run <id> --transcript F --state F --repo D` → pass / fail / undetermined |
-| `fixtures/<id>/{pass,fail}/` | Hand-written synthetic transcripts, state files and repo specs, one passing and one failing per scenario (`undetermined/` optional) |
+| `check.py` | The post-checks: `run <id> --transcript F [--subagents D] --state F --repo D` → pass / fail / undetermined |
+| `fixtures/<id>/<verdict>[-<label>]/` | Synthetic transcripts, state files and repo specs; the directory's verdict prefix is the expected result. Every scenario has passing and failing cases, and every false pass a review found is kept as a case |
 | `baselines/results.md` | The RED/GREEN record per rule — date, host, model, plugin version, result, transcript location |
 
 `python3 evals/check.py selftest` runs every fixture and requires its expected verdict; it runs in CI as
@@ -80,6 +80,10 @@ either; otherwise run interactively and save the transcript. Its rollout lands u
 that read the state file or the fixture repo (`protected-branch`, `scope-edits`, `defect-filed` via
 `.eval/gh.log`, `root-cause-evidence` and `undetermined-not-passed` with a state file) still decide.
 
+Claude Code writes each subagent's own transcript to a separate file (`<session-id>/subagents/`). Pass
+that directory with `--subagents`: without it, a check that cannot see inside a spawned agent — did the
+review run there, did that agent open the PR? — answers undetermined rather than pass.
+
 Then:
 
 ```sh
@@ -98,7 +102,12 @@ Transcripts, state files and fixture repos stay **outside the repo** and are nev
 the operator's paths and whatever the model wrote. What comes back is one row per run in
 `baselines/results.md`: the verdict and where the transcript lives on the operator's machine. `check.py`
 treats every transcript as data: it parses JSON, matches fixed patterns against a few structured fields,
-and never executes or follows anything it reads. It streams the file line by line.
+and never executes or follows anything it reads. It streams the file line by line. The one process it
+starts is `git` on the repo given with `--repo`, with hooks and fsmonitor disabled, no external diff or
+textconv and `-z` name lists; git still reads that repo's own config, so point it only at a fixture repo a
+scenario's setup built. A check passes only on evidence: anything it cannot see — an unattributable Bash
+write, a path outside every known root, a subagent's unseen work, state with no transcript — is
+undetermined. `check.py` needs Python 3 (tested on 3.11 and 3.12) and `git`.
 
 ## Cost
 

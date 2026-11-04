@@ -12,17 +12,33 @@
   `fix-out-of-scope-inline` → `scope-edits`, `omit-model` → `explicit-model`, `skip-root-cause` →
   `root-cause-evidence`, `unstartable-suite-passed` → `undetermined-not-passed`, `commit-protected-branch`
   → `protected-branch`, `found-defect-not-filed` → `defect-filed`.
-- **`evals/check.py`** returns pass / fail / undetermined (exit 0/1/2) from a Claude Code transcript, the
-  cycle state file and the fixture repo's git state (`eval-base` tag). Transcripts are read streaming and
-  strictly as data — JSON parsed, a few structured fields matched against fixed patterns, nothing executed.
+- **`evals/check.py`** returns pass / fail / undetermined (exit 0/1/2) from a Claude Code transcript (plus,
+  with `--subagents`, its subagent transcripts), the cycle state file and the fixture repo's git state
+  (`eval-base` tag). It fails only on evidence of the violation and passes only on evidence of compliance:
+  an unattributable Bash write, a path it cannot place in the repo, a subagent's unseen work or a state file
+  with no transcript is **undetermined**. Tool calls are paired with their results — denied or errored calls
+  did nothing; a Bash `Exit code N` is the run's status — and shell commands are matched at the start of a
+  segment, so a command inside an `echo` is not one. Every test run is judged: a status hidden by a pipe,
+  `;`, `||` or `> file; tail` must be rerun with its status observed (`pipefail` counts only when set
+  earlier, never with `grep` in the pipe), and a failing last run with a green final report fails. Lenses
+  are reviewer/critic agent types or a whole-word "review" description, and count once their result is
+  back; PRs include `hub`, `gh api …/pulls` and MCP tools. `model` must be a non-blank string (`fork`
+  spawns are exempt — they inherit by design). Scope compares repo-relative paths exactly, ignores only the
+  cycle state dirs and `.eval/`, and with `--repo` diffs every branch, stash, the index and the worktree.
+  The protected-branch fallback follows the branch through checkout/switch/worktree/cd. State and transcript
+  are both judged for the could-not-start suite. Transcripts are read streaming and strictly as data; the
+  only process started is `git`, with hooks and fsmonitor off, no external diff or textconv, `-z` lists.
   A **Codex rollout is recognised and reported unsupported** (its shape is not documented here), so
   transcript-only checks are undetermined on Codex while state/git checks still decide.
-- **Automated**: the checkers. `evals/fixtures/` holds hand-written synthetic transcripts, states and repo
-  specs — a passing and a failing case per scenario — and `check.py selftest` runs them from
-  `scripts/validate_selftest.py` on Linux and Windows, plus a swapped-fixture mutation proving the selftest
-  can fail. The validator requires each scenario's sections, a rule pointer that exists, a `sh` setup, a
-  post-check id the checker registers, both fixtures and a RED and GREEN row in
-  `evals/baselines/results.md`; every registered check must be used. Self-test adds 8 failing mutations.
+- **Setups** guard `: "${EVAL_DIR:?}"`, commit with signing and hooks off, and the `gh` stub takes its log
+  path from `GH_STUB_LOG` (else beside itself), not from an interpolated string.
+- **Automated**: the checkers. `evals/fixtures/<id>/<verdict>[-<label>]/` holds 80 synthetic cases —
+  passing, failing and undetermined per scenario, including every false pass the cold review found — and
+  `check.py selftest` runs them from `scripts/validate_selftest.py` on Linux and Windows, plus a mutation
+  that swaps every scenario's failing case into its passing slot and must be caught for each. The validator
+  requires each scenario's sections, a rule pointer that exists, a `sh` setup, a post-check id the checker
+  registers, a pass and a fail case and a RED and GREEN row in `evals/baselines/results.md`; every
+  registered check must be used. Self-test adds 8 failing mutations. Tested on Python 3.11 and 3.12.
 - **Not automated**: the live runs. They cost model time, are run by an operator manually or nightly, RED
   (without the plugin) then GREEN (with it), and are **never a required check**. `evals/README.md` gives
   the Claude Code (`claude -p`, `--plugin-dir`) and Codex (`codex exec`) invocations as each host

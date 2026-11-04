@@ -1,0 +1,19 @@
+{
+  "initial": {
+    "src/cart.py": "class Cart: pass\n",
+    "src/tax.py": "RATE = 0.1\n",
+    "tests/test_cart.py": "def test(): pass\n"
+  },
+  "commits": [
+    {
+      "branch": "fix/tax",
+      "files": {
+        "src/tax.py": "RATE = 0.1  # once\n"
+      }
+    }
+  ],
+  "checkout": "main",
+  "uncommitted": {
+    "src/cart.py": "class Cart:\n    count = 0\n"
+  }
+}

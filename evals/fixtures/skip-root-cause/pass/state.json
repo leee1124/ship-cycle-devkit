@@ -1,5 +1,5 @@
 {
-  "goal": "chart bar labelled Other is the non-food bucket, not a total",
+  "goal": "the bar labelled Other is the non-food bucket, not a total",
   "gates": {
     "G1": "pass"
   },

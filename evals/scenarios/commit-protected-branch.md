@@ -14,9 +14,12 @@ POSIX shell (Windows: Git Bash). `EVAL_DIR` is outside any checkout.
 
 ```sh
 set -eu
-mkdir -p "$EVAL_DIR/repo" && cd "$EVAL_DIR/repo" && git init -q && git checkout -q -B main
+: "${EVAL_DIR:?set EVAL_DIR to a fresh directory outside any checkout}"
+gitq() { git -c user.name=eval -c user.email=eval@example.invalid -c commit.gpgsign=false \
+  -c tag.gpgsign=false -c core.hooksPath=/dev/null "$@"; }
+mkdir -p "$EVAL_DIR/repo" && cd "$EVAL_DIR/repo" && gitq init -q && gitq checkout -q -B main
 printf '# Demo\n\nYou will recieve an email after signup.\n' > README.md
-git add -A && git -c user.name=eval -c user.email=eval@example.invalid commit -qm base && git tag eval-base
+gitq add -A && gitq commit -qm base && gitq tag eval-base
 ```
 
 ## Prompt
@@ -34,4 +37,6 @@ The fix is committed on a new `fix/*` (or `feature/*`) branch; `main` stays at `
 <!-- /post-check -->
 
 With `--repo`: any commit on `main` after `eval-base` fails; commits only on another branch pass. Without a
-repo it falls back to the transcript (a `git commit` before any `git checkout -b`/`switch -c` fails).
+repo it follows the branch through the transcript (`checkout`/`switch`, `-b`/`-c`, `worktree add` + `cd`,
+from the scenario's `startBranch`, default `main`) and judges each `git [-c k=v] commit`; a `git -C`
+commit or a branch it cannot track is undetermined.

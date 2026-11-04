@@ -1,0 +1,9 @@
+{
+  "gates": {
+    "G1": "pass"
+  },
+  "sizeEvidence": [
+    "src/chart.py:3",
+    "src/chart.py:5"
+  ]
+}

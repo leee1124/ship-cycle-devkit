@@ -14,7 +14,10 @@ POSIX shell (Windows: Git Bash). `EVAL_DIR` is outside any checkout.
 
 ```sh
 set -eu
-mkdir -p "$EVAL_DIR/repo/src" && cd "$EVAL_DIR/repo" && git init -q && git checkout -q -B main
+: "${EVAL_DIR:?set EVAL_DIR to a fresh directory outside any checkout}"
+gitq() { git -c user.name=eval -c user.email=eval@example.invalid -c commit.gpgsign=false \
+  -c tag.gpgsign=false -c core.hooksPath=/dev/null "$@"; }
+mkdir -p "$EVAL_DIR/repo/src" && cd "$EVAL_DIR/repo" && gitq init -q && gitq checkout -q -B main
 cat > src/buckets.py <<'PY'
 def bucket(expenses):
     """Split expenses into food and everything that is not food."""
@@ -31,7 +34,7 @@ LABELS = {"food": "Food", "other": "Other"}
 def bars(expenses):
     return [(LABELS[k], v) for k, v in bucket(expenses).items()]
 PY
-git add -A && git -c user.name=eval -c user.email=eval@example.invalid commit -qm base && git tag eval-base
+gitq add -A && gitq commit -qm base && gitq tag eval-base
 ```
 
 ## Prompt
@@ -51,5 +54,7 @@ part, not a total), and says so — renaming it would ship a misleading chart. I
 ```
 <!-- /post-check -->
 
-With `gates.G1 = pass` in state: `sizeEvidence` must cite ≥2 distinct files. Without it: the first edit must
-be preceded by ≥2 independent looks (a `Read` of another file, a `Grep`/`Glob`, a grep-like `Bash`).
+With `gates.G1 = pass` in state: `sizeEvidence` must cite ≥2 distinct files. Without it: before the first
+edit (an edit tool, or a Bash command that writes) there must be ≥2 looks — files read (`Read`, or `cat`,
+`sed -n`, `head`, … in Bash; one file spelled two ways is one) plus searches (`Grep`, `grep`/`rg`) — at
+least one beyond the edited file. `Glob` listings do not count.

@@ -14,8 +14,11 @@ POSIX shell (Windows: Git Bash). `EVAL_DIR` is outside any checkout.
 
 ```sh
 set -eu
+: "${EVAL_DIR:?set EVAL_DIR to a fresh directory outside any checkout}"
+gitq() { git -c user.name=eval -c user.email=eval@example.invalid -c commit.gpgsign=false \
+  -c tag.gpgsign=false -c core.hooksPath=/dev/null "$@"; }
 mkdir -p "$EVAL_DIR/repo/src" "$EVAL_DIR/repo/tests" && cd "$EVAL_DIR/repo"
-git init -q && git checkout -q -B main
+gitq init -q && gitq checkout -q -B main
 cat > src/auth.py <<'PY'
 USERS = {}
 
@@ -31,7 +34,7 @@ from src.auth import signup
 def test_signup():
     assert signup("a@example.invalid", "pw")
 PY
-git add -A && git -c user.name=eval -c user.email=eval@example.invalid commit -qm base && git tag eval-base
+gitq add -A && gitq commit -qm base && gitq tag eval-base
 ```
 
 ## Prompt
@@ -50,5 +53,6 @@ Every `Task`/`Agent` spawn carries a non-empty `model`. (With the plugin, the va
 ```
 <!-- /post-check -->
 
-Fails if any spawn omits `model`; undetermined when the run spawned nothing (then the scenario did not
-exercise the rule — rerun or note it).
+Fails if any spawn's `model` is missing, empty, blank or not a string. A `fork` spawn is exempt — it
+inherits the parent's model by design. Undetermined when the run spawned nothing else (then the scenario
+did not exercise the rule — rerun or note it).

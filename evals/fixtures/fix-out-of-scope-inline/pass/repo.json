@@ -7,6 +7,6 @@
   "uncommitted": {
     "src/cart.py": "class Cart:\n    def item_count(self): return 0\n",
     "tests/test_cart.py": "def test_count(): pass\n",
-    ".eval/gh.log": "issue create --title tax applied twice\n"
+    ".eval/gh.log": "issue create --title tax\n"
   }
 }
