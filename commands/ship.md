@@ -12,6 +12,8 @@ If the output is `NO_BRANCH` (detached HEAD): ship-cycle state is keyed by branc
 to ship and stop. If it is `NO_STATE` (no file for the current branch): report there is no active run to
 ship and stop.
 
+If `stage` is `parked`, refuse: a parked cycle resumes through `/resume` (and its reconcile) first.
+
 **Gate check before shipping** — the ship stage must not run on an unfinished cycle. From `gates`, verify
 the required upstream gates are `pass`: **G1** (agreed criteria), **G2/G3** (design + critic), **G4**
 (failing tests / Red), **G5/G6/G7/G7b** (build + coverage + artifact + boot smoke where required), **G8**

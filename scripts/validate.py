@@ -43,6 +43,11 @@ GATE_TABLE_ROW_RE = re.compile(r"^\|\s*((?:G\d+[a-z]?)(?:[/–-]G\d+[a-z]?)*)\s*
 FRONTMATTER_RE = re.compile(r"\A---\n(.*?)\n---\n", re.S)
 CHANGELOG_VERSION_RE = re.compile(r"^##\s+(\d+\.\d+\.\d+)", re.M)
 SEMVER_RE = re.compile(r"\A\d+\.\d+\.\d+\Z")
+STAGE_VOCAB_RE = re.compile(r"<!-- stage-vocabulary -->(.*?)<!-- /stage-vocabulary -->", re.S)
+# A stage literal in prose or JSON: `"stage": "x"`, `stage: "x"`, `stage = "x"`, `` `stage` = `x` ``.
+STAGE_LITERAL_RE = re.compile(r"""[`"']?\bstage[`"']?\s*[:=]\s*[`"']([A-Za-z][A-Za-z0-9_-]*)[`"']""")
+# Non-skill stage values every reader branches on; the seven stage skills come from the pipeline table.
+REQUIRED_NON_SKILL_STAGES = ("parked", "complete", "failed", "cancelled")
 
 CLAUDE_REQUIRED = ("name", "version", "description", "skills")
 CODEX_REQUIRED = ("name", "version", "description", "author", "interface")
@@ -188,6 +193,31 @@ def check_gate_coverage(root: Path, f: Findings) -> None:
         f.error("gates", f"{gate} is in the orchestrator's gate table but no stage skill sets it")
     for gate in sorted(written - tabled):
         f.error("gates", f"{gate} is set by a skill but absent from the orchestrator's gate table")
+
+
+def check_stage_vocabulary(root: Path, f: Findings) -> None:
+    """`stage` values come from one documented list, and nothing in the kit writes one outside it.
+
+    Readers branch on `stage` (`/resume` refuses terminal values, `/ship` refuses `parked`), so a value one
+    writer invents -- `paused` beside `parked` -- is a state every reader silently mishandles.
+    """
+    path = root / STATE_SHAPE_DOC
+    if not path.is_file():
+        return  # reported by state_shape_fields
+    m = STAGE_VOCAB_RE.search(read(path))
+    if not m:
+        f.error(shown(STATE_SHAPE_DOC), "no <!-- stage-vocabulary --> block found")
+        return
+    vocab = set(re.findall(r"`([A-Za-z][A-Za-z0-9_-]*)`", m.group(1)))
+    orchestrator = root / SKILLS_DIR / "ship-cycle" / "SKILL.md"
+    pipeline = set(re.findall(r"^\|\s*\d+\s*\|\s*`(sc-[a-z-]+)`", read(orchestrator), re.M)) \
+        if orchestrator.is_file() else set()
+    for stage in sorted((pipeline | set(REQUIRED_NON_SKILL_STAGES)) - vocab):
+        f.error(shown(STATE_SHAPE_DOC), f"stage vocabulary is missing '{stage}'")
+    for md in markdown_files(root):
+        for value in STAGE_LITERAL_RE.findall(read(md)):
+            if value not in vocab:
+                f.error(shown(md.relative_to(root)), f"stage '{value}' is not in the stage vocabulary")
 
 
 def check_manifests_and_versions(root: Path, f: Findings) -> None:
@@ -349,6 +379,7 @@ def main(argv: list[str]) -> int:
     check_doc_references(root, f)
     check_state_producers_consumers(root, f)
     check_gate_coverage(root, f)
+    check_stage_vocabulary(root, f)
     check_manifests_and_versions(root, f)
     check_skill_frontmatter(root, f)
     check_example_coverage(root, f)

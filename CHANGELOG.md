@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.3.5 — `parked` stage and a resume reconcile (#68)
+
+- **`stage: "parked"`** with `parked: { reason, resumeStage, at, holds }`, from any non-terminal stage on
+  request. Re-prioritising mid-cycle had no state, so the operator tracked it by hand.
+- **Parking settles or records what is live**: a `running` review job or an active `gitFreeze` survives
+  parking only if `parked.holds` names it, and a held freeze stays binding while parked. Parking records no
+  gate and **does not reset `loops`**.
+- **Resume reconcile** (`/resume` and PREFLIGHT's resume path) compares the worktree — uncommitted/untracked
+  files, commits since the base, test files, the evidence behind each recorded `pass`, subagents that died
+  with the session — with `stage`/`gates`, prints the mismatches and appends them to `state.reconcile`.
+  Inference only lowers: it may move `stage` earlier or clear a `pass`, never record one.
+- `/status` shows parked cycles (reason, resume stage, age, holds) and the last reconcile; `/ship` refuses a
+  parked cycle.
+- **Stage vocabulary** is one list in `docs/state-file.md`; the validator rejects a `stage` literal outside
+  it and a vocabulary missing a pipeline stage or `parked`. Two self-test cases.
+
 ## 0.3.4 — G6 coverage has a measurement path (#67)
 
 - **Overlay `changeNature[].coverage`** (`command`, `reportPath`, `format`, `corePaths`, `sourceRoots?`,

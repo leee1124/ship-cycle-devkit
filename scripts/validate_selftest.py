@@ -196,6 +196,20 @@ CASES = [
         "absent from the orchestrator's gate table",
     ),
     (
+        "stage literal outside the documented vocabulary",
+        lambda r: mutate(
+            r / "skills" / "sc-qa" / "SKILL.md",
+            "## Model routing",
+            'Set `stage: "paused"` while waiting.\n\n## Model routing',
+        ),
+        "is not in the stage vocabulary",
+    ),
+    (
+        "stage vocabulary drops parked",
+        lambda r: mutate(r / "docs" / "state-file.md", "`sc-ship`, `parked`,", "`sc-ship`,"),
+        "stage vocabulary is missing 'parked'",
+    ),
+    (
         "example overlay coverage format outside the schema enum",
         lambda r: mutate(
             r / "docs" / "ship-cycle.config.example.json",
