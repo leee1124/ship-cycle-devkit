@@ -284,10 +284,25 @@ CASES = [
         "G12 row no longer requires the Gate summary",
         lambda r: mutate(
             r / "skills" / "ship-cycle" / "SKILL.md",
-            "; PR body's **Gate summary** matches the gate log, re-rendered right before merge",
+            "; PR body's **Gate summary** matches a fresh render from state + log,"
+            " re-checked right before merge",
             "",
         ),
         "G12 row of the gate table does not require the Gate summary",
+    ),
+    (
+        "G12 row weakened to 'matches the gate log'",
+        lambda r: mutate(
+            r / "skills" / "ship-cycle" / "SKILL.md",
+            "matches a fresh render from state + log",
+            "matches the gate log",
+        ),
+        "does not require the summary to match a fresh render",
+    ),
+    (
+        "gate-log escaping no longer says it is applied once",
+        lambda r: mutate(r / "docs" / "state-file.md", "applied exactly once", "applied everywhere"),
+        "does not state 'applied exactly once'",
     ),
     (
         "sc-ship names no gate-log path",

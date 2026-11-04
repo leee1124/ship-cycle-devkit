@@ -275,10 +275,15 @@ header; every transition after that appends **one row**:
   a CI link; `—` when there is none.
 
 <!-- gate-log-cell-escaping -->
-**Cell escaping — one rule for every cell, applied by the log writer and again by sc-ship's Gate summary:**
-`|` → `\|`, each newline (CR, LF or CRLF) → one space, then cut the cell to **200 characters**, ending a cut
-cell with `…`. Free text (an n/a reason, a parked reason, an evidence pointer) is the only thing that can
-break a row; an unescaped `|` shifts every later column and a newline ends the row early.
+**Cell escaping — one rule, applied exactly once, by whoever writes a cell from raw text:** first each
+newline (CR, LF or CRLF) → one space, then cut to **200 characters** (a cut cell ends with `…`), **then**
+`|` → `\|`. Cutting before escaping means a cut never splits a `\|`. The log writer applies it when it
+appends a row, so a log cell is already escaped: sc-ship's Gate summary **copies log cells as they are**
+and escapes only the cells it sources from `gates` itself (`log≠state` and `(no log row)` rows) —
+escaping a log cell again would turn `\|` into `\\|`. Free text (an n/a reason, a parked reason, an
+evidence pointer) is the only thing that can break a row; an unescaped `|` shifts every later column and a
+newline ends the row early. "Verbatim" for a reason carried into a cell (G12's n/a reasons included)
+means verbatim up to the cap.
 <!-- /gate-log-cell-escaping -->
 
 ### Who appends

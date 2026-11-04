@@ -11,7 +11,7 @@ Show the current ship-cycle run status by reading its state file (read-only — 
 Last rows of this cycle's gate log (append-only history,
 §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Gate log):
 
-!`slug="$(git branch --show-current | tr '/' '-')"; f=".claude/ship-cycle/$slug.log.md"; if [ -n "$slug" ] && [ -f "$f" ]; then tail -n 8 "$f"; else echo "NO_LOG"; m="$(git worktree list --porcelain 2>/dev/null | sed -n '1s/^worktree //p')"; ls "$m/.claude/ship-cycle/archive/$slug"-*.log.md 2>/dev/null | tail -n 3; fi`
+!`slug="$(git branch --show-current | tr '/' '-')"; f=".claude/ship-cycle/$slug.log.md"; if [ -n "$slug" ] && [ -f "$f" ]; then tail -n 8 "$f"; else echo "NO_LOG"; m="$(git worktree list --porcelain 2>/dev/null | sed -n '1s/^worktree //p')"; ls -t "$m/.claude/ship-cycle/archive/$slug"-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]*.log.md 2>/dev/null | head -n 3; fi`
 
 All cycles in this working directory (`.claude/ship-cycle/` — this cwd only, not sibling worktrees;
 includes the current branch's own file), one line per file: stage, and for a parked one its reason, resume
@@ -47,7 +47,10 @@ Otherwise parse the JSON and print a compact, scannable status report:
   evidence). The gate table below comes from the state file, which is authoritative; if the latest log row
   for a gate disagrees with `gates`, say so rather than picking one. `NO_LOG` means the cycle started
   before 0.3.7, its log is missing, or it was archived — print any archive paths listed under it (the main
-  checkout's `.claude/ship-cycle/archive/`) so a finished cycle's history can still be found.
+  checkout's `.claude/ship-cycle/archive/`, newest first by modification time — each archive's last write
+  is its final row, so this orders `DATE.log.md` and its `-2`/`-3` siblings correctly; the glob is anchored
+  on the date so `feat/a` does not list `feat/a-b`'s archives) so a finished cycle's history can still be
+  found.
 - **Gate table** — for **G1–G13**, show the value in `gates`: `pass` / `fail` / `—` (not yet reached) /
   a three-way value (`degrade`, `checklist`, `skip`) / `"n/a: <reason>"` (a stage deliberately skipped —
   print the reason, and never fold it in with `fail`).

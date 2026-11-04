@@ -83,7 +83,9 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   **"Gate summary"** table, one row per gate G1–G13: the **latest** logged result and its evidence pointer,
   verbatim — an `n/a: <reason>` keeps its reason, a `degrade`/`checklist`/`deferred` keeps its manual-gate
   pointer — plus the loop count from `state.loops` and a `cleared` count when the reconcile cleared it.
-  Every cell goes through the log's cell-escaping rule again (§Gate log — Format). G12 reads
+  Log cells are copied as they are — the writer already escaped them; only a cell sourced from
+  `state.gates` gets the cell-escaping rule here (§Gate log — Format), and "verbatim" means up to its
+  200-character cap. G12 reads
   `pending (this PR)` and G13 `after merge` at render time. The state file is authoritative: where a gate's
   latest log row disagrees with `state.gates`, print the state value and mark the row `log≠state`; a gate
   with a value in `state.gates` but **no log row** renders from the state marked `(no log row)`. With no
@@ -144,17 +146,19 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
 - Gate: build + test + review + QA all passed — a `gates.G9: degrade` or a `gates.G7b`/`gates.G6: checklist` counts as
   satisfied **only** when its item is on the pre-merge manual gate above, with its reason, and a gate
   recorded as `"n/a: <reason>"` for a stage that plainly had nothing to do (§ship-cycle — Pipeline) counts
-  as satisfied with its reason carried to the PR body — **the branch
+  as satisfied with its reason carried to the PR body (verbatim up to the cell cap) — **the branch
   merges cleanly into the base**, the opened PR
   body carries the correct `Closes`/`Refs` token for every tracked issue (re-fetched and asserted, not
-  assumed), its Gate summary matches the gate log, and every deferred finding is filed and referenced.
+  assumed), its Gate summary matches a fresh render from state + log, and every deferred finding is filed
+  and referenced.
   Set `gates.G12 = pass` in state once all of the above hold and **before** merging; a failed condition
   records a bare `gates.G12 = fail` (the condition goes in the loop-back report) and loops back per the gate
   table. **A recorded `pass` does not survive time:** right before the merge — always, and especially on a
   resumed run — re-run the merge-cleanliness probe and re-fetch the `Closes`/`Refs` tokens; if either no
-  longer holds, G12 is `fail` again. In the same re-check, **re-render the Gate summary** from the log and
-  `state` as they are now and, if it differs from the body's, **patch the body** before merging — a summary
-  rendered when the PR opened goes stale as soon as a later gate, loop or clear lands.
+  longer holds, G12 is `fail` again. In the same re-check, **re-render the Gate summary** from state + log
+  as they are now and, if the body's no longer matches that fresh render, **patch the body** before
+  merging — a summary rendered when the PR opened goes stale as soon as a later gate, loop or clear
+  lands.
 
 ## Cleanup (G13)
 - **Check `state.gitFreeze.active` and `state.reviewJobs` before you delete anything.** Teardown removes a

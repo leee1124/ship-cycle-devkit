@@ -58,6 +58,7 @@ REQUIRED_NON_SKILL_STAGES = ("parked", "complete", "failed", "cancelled")
 SHIP_SKILL = Path("skills/sc-ship/SKILL.md")
 GATE_LOG_HEADING = "## Gate log"
 GATE_SUMMARY_PHRASE = "Gate summary"
+G12_FRESH_RENDER_PHRASE = "fresh render from state + log"
 # The log lives in the host's state dir: `.claude/ship-cycle/` (Claude), `.codex/ship-cycle/` (Codex), or the
 # generic `<state dir>/` placeholder.
 GATE_LOG_PATH_RE = re.compile(
@@ -66,7 +67,7 @@ GATE_LOG_PATH_RE = re.compile(
 GATE_LOG_ESCAPING_RE = re.compile(
     r"<!-- gate-log-cell-escaping -->(.*?)<!-- /gate-log-cell-escaping -->", re.S
 )
-GATE_LOG_ESCAPING_TOKENS = ("`|` → `\\|`", "newline", "200 characters")
+GATE_LOG_ESCAPING_TOKENS = ("`|` → `\\|`", "newline", "200 characters", "applied exactly once")
 G12_ROW_RE = re.compile(r"^\|\s*G12\s*\|(.*)$", re.M)
 
 CLAUDE_REQUIRED = ("name", "version", "description", "skills")
@@ -280,6 +281,10 @@ def check_gate_summary(root: Path, f: Findings) -> None:
         if not row or GATE_SUMMARY_PHRASE not in row.group(1):
             f.error(shown(orchestrator.relative_to(root)),
                     f"G12 row of the gate table does not require the {GATE_SUMMARY_PHRASE}")
+        elif G12_FRESH_RENDER_PHRASE not in row.group(1):
+            # "Matches the log" lets a stale, log-copied summary pass; it must match a re-render.
+            f.error(shown(orchestrator.relative_to(root)),
+                    f"G12 row does not require the summary to match a {G12_FRESH_RENDER_PHRASE}")
     ship = root / SHIP_SKILL
     if not ship.is_file():
         f.error(shown(SHIP_SKILL), "missing")
