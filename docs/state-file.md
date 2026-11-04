@@ -45,8 +45,10 @@ the mechanics that only matter when something unusual happens to its name or its
 
 `baseline.source` is `local`, `ci` or `ci-status-only`. Under a CI source `baseline.run` holds the run
 reference (`ref`, `commit`, `job`, `report`, `rechecked`); under `ci-status-only` every failure blocks unless
-its suite is in `run.rechecked`, and `failing` holds entries only for rechecked suites. Shape and rules:
-`${CLAUDE_PLUGIN_ROOT}/docs/test-baseline.md`.
+its suite is in `run.rechecked`, and `failing` holds entries only for rechecked suites. A `failing` entry is a
+bare case id (captured at PREFLIGHT) or `{ "case", "capturedAt": "<stage>" }` (added by a recheck);
+`flaky` cases are never exempt — a recheck replaces a suite's `failing` entries, it does not exempt `flaky`.
+Shape and rules: `${CLAUDE_PLUGIN_ROOT}/docs/test-baseline.md`.
 
 ## The slug
 
