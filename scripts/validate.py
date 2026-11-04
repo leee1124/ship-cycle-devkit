@@ -536,16 +536,18 @@ def check_release_checklist(root: Path, f: Findings) -> None:
 
 
 def check_heavy_work(root: Path, f: Findings) -> None:
-    """#74: `env.heavyLock`/`maxConcurrentHeavy`/`heavyHeadroomMB` are documented and the stages point at the rule.
+    """#74: `env` heavy-work keys are documented and the stages point at the rule.
 
     Guards the schema entries (types, bounds), that the example env is well-formed (unknown keys warn),
-    that docs/heavy-work.md exists and states its lock-fd, nesting and fallback rules, and that the orchestrator,
-    sc-implement, sc-review and sc-qa reference it while sc-review no longer carries the ad-hoc 'smaller batches' advice.
+    that docs/heavy-work.md exists and states its lock-fd, nesting and fallback rules, and that the
+    orchestrator, sc-implement, sc-review and sc-qa reference it while sc-review no longer carries the
+    ad-hoc 'smaller batches' advice.
     """
     schema = load_json(root, OVERLAY_SCHEMA, f)
     example = load_json(root, OVERLAY_EXAMPLE, f)
     if schema is None or example is None:
         return
+    p: dict = {}
     try:
         p = schema["properties"]["env"]["properties"]
         ok = (p["heavyLock"]["type"] == "string"
@@ -580,7 +582,7 @@ def check_heavy_work(root: Path, f: Findings) -> None:
     else:
         text = read(doc)
         for token in ("flock", "mkdir", "SC-DEGRADE-ENV", "sequential", "PID", "do not inherit",
-                      "SC_HEAVY_HELD", "-o", "available"):
+                      "SC_HEAVY_HELD", "{fd}>&-", "available", "heavy-run.sh"):
             if token not in text:
                 f.error("docs/heavy-work.md", f"does not state {token!r}")
     for skill in ("ship-cycle", "sc-implement", "sc-review", "sc-qa"):

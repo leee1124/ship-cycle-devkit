@@ -18,6 +18,11 @@
   never a pass; hardened `mkdir` fallback (pid file, stale lock reported, never stolen); headroom uses
   available memory per OS and runs inside the lock; SC-DEGRADE-ENV names both fallbacks; "no `heavyLock`
   on a small host: run sequentially" restored in sc-review/sc-implement; locking row in runtime-adapters.
+- **Delta-review fixes**: the doc now ships a tested `heavy-run.sh` — the wrapper shell holds the slot on an
+  fd and closes it for the job, so the job runs exactly once, returns its own code, and a busy slot is told
+  from a `flock` error (98) without re-running; headroom hook inside the lock; `HEAVY_WAIT` default 540 s kept
+  under agent tool timeouts, a tool-killed wait is "not run"; exact fork-and-exit form for long-lived jobs;
+  SC-DEGRADE-ENV also names the dropped `heavyHeadroomMB`.
 - **Validator** guards the schema entries (types, bounds, `heavyLock` minLength), the example env values
   (non-object env errors, unknown keys warn), that the doc states the lock-fd, nesting and fallback rules,
   that the four skills reference it and that "smaller batches" does not return; eight self-test

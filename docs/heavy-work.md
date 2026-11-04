@@ -16,7 +16,7 @@ heavy part is what it launches. Cheap targeted runs (one test file, a lint) are 
 
 | key | meaning |
 |---|---|
-| `heavyLock` | base path of the lock files shared by **every** heavy command, across sessions and worktrees |
+| `heavyLock` | base path of the slot locks shared by every **one-shot** heavy command (long-lived ones go by headroom) |
 | `maxConcurrentHeavy` | integer >= 1: heavy jobs allowed at once (N slots); effective value 1 if unset |
 | `heavyHeadroomMB` | integer: free memory required before launching a heavy job; default off |
 
@@ -31,38 +31,62 @@ heavy-launching lenses/agents sequentially. Semantics:
 
 ## Running a one-shot heavy job (suite, build)
 
-Take the first free slot, waiting a bounded time; run with `-o` so the lock fd is not inherited by children
-(a daemon the job spawns — gradle daemon, adb server — would otherwise hold the slot forever):
+Save the wrapper below as `heavy-run.sh` and run every one-shot heavy command through it. The wrapper
+shell holds the slot on an fd and closes that fd for the job (`{fd}>&-`), so a daemon the job spawns (gradle
+daemon, adb server) cannot keep the slot, the job runs exactly once, and its own exit code is returned.
+Busy (`flock` exit 1) is told apart from a real `flock` error (e.g. cannot open the file) without
+re-running anything. Tested with real `flock`: busy wait, N=2 slots, nesting, backgrounded children.
 
 ```bash
-# SC_HEAVY_HELD is set by the outermost launcher; inner wrappers see it and run the command directly.
-[ -n "$SC_HEAVY_HELD" ] && exec "$@"
-end=$((SECONDS+${HEAVY_WAIT:-900})); n=${N:-1}
-while [ $SECONDS -lt $end ]; do
+#!/usr/bin/env bash
+# usage: LOCK=/path/base [N=1] [HEAVY_WAIT=540] [HEADROOM_MB=2048] heavy-run.sh <cmd> [args...]
+# exit: the job's own code | 98 lock error, not run | 99 wait timed out, not run | 97 low headroom, not run
+: "${LOCK:?heavyLock unset}"
+[ -n "$SC_HEAVY_HELD" ] && exec "$@"                  # nested: outermost launcher holds the slot
+n=${N:-1}; end=$((SECONDS + ${HEAVY_WAIT:-540}))
+while :; do
   for k in $(seq 1 "$n"); do
-    SC_HEAVY_HELD="$LOCK.$k" flock -n -E 99 -o "$LOCK.$k" "$@"; rc=$?
-    [ $rc -ne 99 ] && exit $rc   # 99 = slot busy; any other code is the job's own
+    slot="$LOCK.$k"
+    exec {fd}>>"$slot" || { echo "heavy: cannot open $slot" >&2; exit 98; }
+    flock -n "$fd"; rc=$?
+    if [ $rc -eq 0 ]; then
+      # headroom check goes here, inside the lock (available MB; skip with a note if no probe)
+      if [ -n "$HEADROOM_MB" ] && [ -r /proc/meminfo ]; then
+        avail=$(awk '/MemAvailable/{print int($2/1024)}' /proc/meminfo)
+        [ "$avail" -lt "$HEADROOM_MB" ] && { echo "heavy: only ${avail} MB available" >&2; exit 97; }
+      fi
+      SC_HEAVY_HELD="$slot" "$@" {fd}>&-               # job runs once; children do not inherit the fd
+      exit $?                                          # lock released when this shell exits
+    fi
+    exec {fd}>&-
+    [ $rc -ne 1 ] && { echo "heavy: flock error $rc on $slot" >&2; exit 98; }   # 1 = busy
   done
+  [ $SECONDS -ge $end ] && { echo "heavy: lock wait timed out" >&2; exit 99; }
   sleep $((3 + RANDOM % 5))
 done
-echo "heavy: lock wait timed out" >&2; exit 99
 ```
 
-(`-E 99` makes "busy" distinct from the job's own exit status; a job that itself exits 99 is ambiguous —
-pick another code then.)
-
-- **Bounded wait** (default 15 min): on timeout the step is **not run** — report it like a killed lens, never
-  count it as a pass, never hang a gate.
+- **Bounded wait** (`HEAVY_WAIT`, default 540 s): keep it **below the agent's tool timeout** (Claude Code
+  Bash: 120 s default, 600 s max in the foreground; Codex has its own) or run the wrapper in the background
+  and poll. A tool-killed or timed-out wait (exit 99) means the step is **not run** — report it like a killed
+  lens, never count it as a pass, never hang a gate. Codes 97–99 are the wrapper's; the stderr `heavy:` line
+  says which.
 - **Nesting**: only the outermost launcher takes the lock (`SC_HEAVY_HELD`). Do not wrap overlay test
   commands that already call `flock` on the same path — that self-deadlocks.
-- Check headroom **inside** the lock, immediately before the job starts.
+- Headroom is checked **inside** the lock (the `HEADROOM_MB` hook; set it from `heavyHeadroomMB`).
 
 ## Long-lived heavy jobs (emulator, dev server, daemons)
 
 Never run these in the foreground under `flock`; they would hold a slot for the whole session. Decision: they
 are **governed by the headroom check, not by the lock**. Take a slot only to launch (check headroom, start
-the process detached with `flock -o`, release), record its PID, and stop it at teardown — only jobs this
-session started. Never start a build while an emulator runs if headroom is short: stop the emulator first.
+the process detached, release), record its PID, and stop it at teardown — only jobs this session started:
+
+```bash
+flock -n -o "$LOCK.1" sh -c 'nohup <cmd> >job.log 2>&1 & echo $! >job.pid'
+```
+
+The launching shell exits at once, so the slot frees; the job's PID is tracked in `job.pid`. A foreground
+run, or `flock -o "$LOCK.1" <cmd> &`, holds the slot for the job's whole life — do not. Never start a build while an emulator runs if headroom is short: stop the emulator first.
 
 ## Headroom (`heavyHeadroomMB`)
 
@@ -96,4 +120,5 @@ inside the workspace or `$TMPDIR` when the sandbox forbids `/tmp`.
 ## When `env` is ignored
 
 A schema-invalid `env` is ignored (SC-DEGRADE-ENV). If the raw `env` had `heavyLock` or `maxConcurrentHeavy`,
-the lock is lost: run heavy work sequentially, one at a time, and print that. Otherwise nothing changes.
+the lock is lost and `heavyHeadroomMB` with it: run heavy work sequentially, one at a time, and print that.
+Otherwise nothing changes.

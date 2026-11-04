@@ -344,6 +344,17 @@ CASES = [
         "does not state 'mkdir'",
     ),
     (
+        "heavy-work doc drops the fd-closing wrapper",
+        lambda r: mutate(r / "docs" / "heavy-work.md", "{fd}>&-", "", count=-1),
+        "does not state '{fd}>&-'",
+    ),
+    (
+        "schema env has no properties (no crash)",
+        lambda r: mutate(r / "docs" / "ship-cycle.config.schema.json", '"env": {\n      "type": "object",\n      "properties": {',
+                         '"env": {\n      "type": "object",\n      "propertiesx": {'),
+        "env lacks heavyLock",
+    ),
+    (
         "sc-qa stops referencing heavy-work",
         lambda r: mutate(r / "skills" / "sc-qa" / "SKILL.md", "docs/heavy-work.md", "docs/other.md"),
         "does not reference docs/heavy-work.md",
