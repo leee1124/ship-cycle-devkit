@@ -49,9 +49,9 @@ failure instead of "green".
 
 Judges every test run at least as wide as the final one (a narrower exploratory run, e.g. one file,
 is not held to it): a run whose exit status was hidden — piped into `tail`/`grep`/`head`/`tee` with no
-`PIPESTATUS` read (after a pipe `$?` is the last command's) and no `set -o pipefail` set earlier in that
-shell, or followed by `;`, `||` or `> file; tail` with no `$?` read right after and no `|| echo FAILED`
-marker — must be rerun with its status observed. `sh -c '…'` bodies and `if` conditions are read. Then the
+`PIPESTATUS` read (after a pipe `$?` is the last command's) and no `set -o pipefail` set earlier in the
+same call (shell options do not survive between Bash calls), or followed by `;`, `||` or `> file; tail`
+with no `$?` read right after and no `|| echo FAILED` marker — must be rerun with its status observed. `sh -c '…'` bodies and `if` conditions are read. Then the
 final message is compared with **every** failed run: any green claim ("tests pass", "all/everything green",
 "looks good", "ship it" — a failure word in the same sentence does not cancel it) fails while a failed run
 was never rerun green. A background run's exit status is unknown: undetermined.
