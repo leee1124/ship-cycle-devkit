@@ -6,33 +6,45 @@
   flake rerun until green, a resumed session retrying a change the last one had disproved. The gate
   table's on-failure route said only "debugger → sc-implement".
 - **`docs/red-gate.md`** states the protocol once, for a red G5/G6/G7/G7b, a red wave barrier and a genuine
-  G9 `fail`:
+  G9 `fail` (an `unrunnableHere` suite never triggers it — diffed around, as at G6):
   - **Reproduce first** with the gate's real command — its own exit code and the tree identity; heavy runs
-    and bisections under `env.heavyLock` with bounded waits. "Could not reproduce" is `undetermined`, not
-    fixed; a flip with no change is classified, never exempt, and never rerun until green.
-  - **Read the actual error** (the first failure, from the runner's report), **compare against a working
-    example** (the base commit, the last passing tree, a passing sibling).
-  - **One hypothesis with evidence** (the claim-evidence rule), **one minimal change**, re-run; a rejected
-    change is reverted before the next.
-  - **Three rejected hypotheses on the same failure** stop the guessing: reported as `BLOCKED` (design
-    defect) — or `NEEDS_CONTEXT` / park and ask when the evidence names a missing fact or the environment —
-    and routed by sc-implement's table, counted once toward `loops[G]` like any design defect (#87). Not a
-    second cap: the one cap rule stays the orchestrator's.
+    and bisections under `env.heavyLock` with bounded waits. sc-qa's G9 hand-off is this step; the fixer
+    re-runs it once to confirm.
+  - **"Could not reproduce" is not fixed.** The gate keeps its `fail`; the log row's evidence reads
+    `undetermined: not reproduced in <N> runs` (§core 2's third state, never a pass). Three exits:
+    classify and fix the flake; recheck on the base commit (fails there → pre-existing per
+    `test-baseline.md`, `flaky` exempt only when its suite is rechecked); not reproducible anywhere after
+    the fixed count → park and ask. Never rerun until green.
+  - **Read the actual error**, **compare against a working example**, then **one hypothesis with
+    evidence** (a changed tree, dependency or environment cited against a rejected entry's `tree` is new
+    evidence) and **one minimal change**. Red differently is `rejected` on the original failure. A
+    rejected change is reverted safely: snapshot `git diff -- <files> > pre.patch`, undo with
+    `git apply -R`, never checkout/reset/stash shared files, and check the tree is back to the pre-change
+    tree.
+  - **Counting rides on #87.** Each fix round is already counted against `loops[G]`; hypotheses inside a
+    round are not loops. Three rejected inside a round → `BLOCKED` (design defect), the round's further
+    failure (+1 only then); at loop 2 with two rejected, prefer sc-design over a third guess; at the cap the
+    one cap rule decides and the user gets the `state.debug` entries as evidence. No second cap.
   - **Flaky and order-dependent failures**: retry to classify (a count fixed up front), never to hide; a
     gate never passes on the best of N. Polluter bisection with the runner's own selection flags (portable,
     no script), waits for the condition instead of sleeps, isolated shared state, a guard at the boundary.
-- **State.** `state.debug[]`, one entry per hypothesis (gate, failure, round, repro command + exit,
-  hypothesis, evidence, change, result, tree). Fix briefs carry a failure's rejected entries ("do not
-  retry") and return one `- Hypothesis:` line each; the resume reconcile keeps them so a resumed session
-  neither retries a disproved cause nor resets the count; sc-ship's cost readout prints one line per
-  failure and sc-retro reads them. It sets no gate.
+- **Report contract.** The report block in `docs/impl-status.md` and the three stack prompts gains an
+  optional `- Hypotheses:` field (one item per hypothesis: cause, evidence, change, result, tree),
+  required only in red-gate fix briefs; a missing one is re-asked once as a context fetch (outside
+  `loops[G]`), never routed as no report.
+- **State.** `state.debug[]`, one entry per hypothesis (gate, failure — a case id, or a build's error code
+  plus file with no line/column — round, repro command + exit, hypothesis, evidence, change, result, tree,
+  revert). Written only from a finished report, so none is ever pending. Fix briefs carry a failure's
+  rejected entries ("do not retry"); the resume reconcile keeps them so a resumed session neither retries
+  a disproved cause nor resets the count; sc-ship's cost readout prints one line per failure and sc-retro
+  reads them. It sets no gate.
 - **Pointers.** sc-implement and sc-qa gain "When a gate goes red"; G6's debugger attaches under it; the
   orchestrator's gate table names the protocol in the G5, G6, G7, G7b and G9 "On failure" cells with a
   note under the table; model-routing's cost readout carries the lines.
 - **Validator.** `check_red_gate` guards the four doc blocks (including the reproduce → read → compare →
-  hypothesis → change order and forbidden second-cap / best-of-N wording), the sc-implement and sc-qa
-  sections, the gate-table cells and note, the state shape, the reconcile sentence and the consumers;
-  28 self-test mutations.
+  hypothesis → change order and forbidden second-cap / best-of-N / lines-after-the-block wording), the
+  sc-implement and sc-qa sections, the gate-table cells and note, the `Hypotheses` field in the report
+  block and impl-status, the state shape, the reconcile sentence and the consumers; 47 self-test mutations.
 
 ## 0.3.19 — Wave check: one cheap read at each wave barrier, carried into G8 (#88)
 

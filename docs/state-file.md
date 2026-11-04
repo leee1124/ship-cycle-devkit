@@ -91,7 +91,8 @@ the mechanics that only matter when something unusual happens to its name or its
               "repro": { "command": "<the gate's real command>", "exit": 1 },
               "hypothesis": "<one cause>", "evidence": "<path:line or command → output>",
               "change": "<the one minimal change>", "result": "rejected",
-              "tree": "<tree id the re-run ran on>", "at": "<iso>" }],
+              "tree": "<tree id the re-run ran on>",
+              "revert": "git apply -R pre.patch · tree back to <pre-change tree id>", "at": "<iso>" }],
   "telemetry": { "upgrades": ["auth → security lens: high→top"],
                  "stages": { "review": { "tier": "top", "model": "opus", "effort": "high",
                                          "tokens": null, "cost": null },
@@ -185,7 +186,8 @@ re-asks it (or sets `false`).
 `debug` (written by sc-implement from each fix report, for a red G5–G7b, a red wave barrier or a G9
 `fail`) is append-only, one entry per hypothesis tested: the `gate` and `failure` it belongs to, the
 reproducing command and its exit code, the hypothesis with its evidence, the one change, the `result`
-(`confirmed` / `rejected` / `undetermined`) and the tree the re-run ran on. Later fix briefs for the same
+(`confirmed` / `rejected` / `undetermined`), the tree the re-run ran on and the `revert` of a rejected
+change. Later fix briefs for the same
 failure carry its rejected entries; three rejected route as `BLOCKED` (design defect). It sets no gate.
 Rules: `${CLAUDE_PLUGIN_ROOT}/docs/red-gate.md`.
 
@@ -319,8 +321,8 @@ points at.
 
 **Debug entries survive the reconcile.** `debug` is never cleared or trimmed by a resume, whatever it
 clears: a rejected hypothesis stays rejected, so the next session or agent does not retry it, and the count
-toward three rejections carries over. An entry with no `result` (the session died mid-run) is not a result:
-its re-run is repeated before the next hypothesis.
+toward three rejections carries over. Entries are written from a finished report only, so none is ever
+pending; a round that died without reporting left no entry, and its hypothesis is simply untested.
 
 **A clear does not count against `loops`.** The cap bounds attempts that *failed*; a clear means the
 evidence for a past attempt is gone, not that the work failed — counting it would let a crashed session

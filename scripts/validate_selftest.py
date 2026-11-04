@@ -2074,19 +2074,20 @@ CASES = [
     (
         "three rejections become a second cap",
         lambda r: mutate(r / "docs" / "red-gate.md",
-                         "This is **not a\n   second cap**", "This has its own loop cap"),
+                         "This is **not a second cap**", "This has its own loop cap"),
         "states 'its own loop cap'",
     ),
     (
         "three rejections not routed as design defect",
         lambda r: mutate(r / "docs" / "red-gate.md",
-                         "reports\n   `BLOCKED` (design defect)", "reports\n   failure"),
+                         "reports\n     `BLOCKED` (design defect)", "reports\n     failure"),
         "red-gate-protocol block does not state '`BLOCKED` (design defect)'",
     ),
     (
         "three rejections not counted",
-        lambda r: mutate(r / "docs" / "red-gate.md", "counts toward `loops[G]` once", "is free"),
-        "does not state 'counts toward `loops[G]` once'",
+        lambda r: mutate(r / "docs" / "red-gate.md", "already a fix-round re-dispatch counted against",
+                         "free, not counted against"),
+        "does not state 'already a fix-round re-dispatch counted against `loops[G]`'",
     ),
     (
         "protocol hypothesises before reading the error",
@@ -2159,8 +2160,7 @@ CASES = [
     (
         "debug entry loses its tree",
         lambda r: mutate(r / "docs" / "state-file.md",
-                         '\n              "tree": "<tree id the re-run ran on>", "at"',
-                         '\n              "at"'),
+                         '\n              "tree": "<tree id the re-run ran on>",', ''),
         "debug entry lacks 'tree'",
     ),
     (
@@ -2187,6 +2187,114 @@ CASES = [
         lambda r: mutate(r / "skills" / "sc-retro" / "SKILL.md",
                          "Read `state.debug` (or", "Read the debug log (or"),
         "skills/sc-retro/SKILL.md: does not read `state.debug`",
+    ),
+    (
+        "third rejection always +1 even at the cap",
+        lambda r: mutate(r / "docs" / "red-gate.md",
+                         "**When the rounds already reached the cap**", "**Always**"),
+        "does not state '**When the rounds already reached the cap**'",
+    ),
+    (
+        "loop 2 keeps guessing",
+        lambda r: mutate(r / "docs" / "red-gate.md",
+                         "prefer sc-design over a third guess", "try a third guess"),
+        "prefer sc-design over a third guess",
+    ),
+    (
+        "hypotheses outside the report block",
+        lambda r: mutate(r / "docs" / "red-gate.md",
+                         "requires the report block's `- Hypotheses:` field",
+                         "asks for lines after the report block"),
+        "states 'lines after the report block'",
+    ),
+    (
+        "missing hypotheses treated as no report",
+        lambda r: mutate(r / "docs" / "red-gate.md",
+                         "never routed as\n  `BLOCKED` (no report)", "is routed as `BLOCKED` (no report)"),
+        "is routed as `BLOCKED` (no report)",
+    ),
+    (
+        "prompt drops the Hypotheses field",
+        lambda r: mutate(r / "prompts" / "impl-web.md", "- Hypotheses: <omit", "- Notes: <omit"),
+        "report block has no '- Hypotheses:' line",
+    ),
+    (
+        "impl-status loses the Hypotheses rule",
+        lambda r: mutate(r / "docs" / "impl-status.md", "never treated as no report", "routed as no report"),
+        "for the Hypotheses field",
+    ),
+    (
+        "could-not-reproduce has no base recheck exit",
+        lambda r: mutate(r / "docs" / "red-gate.md", "**(b) Recheck on the base commit.**", "**(b) Wait.**"),
+        "does not state '**(b) Recheck on the base commit.**'",
+    ),
+    (
+        "could-not-reproduce loops forever",
+        lambda r: mutate(r / "docs" / "red-gate.md", "**(c) Not reproducible anywhere.**", "**(c) Retry.**"),
+        "does not state '**(c) Not reproducible anywhere.**'",
+    ),
+    (
+        "flaky exemption clause dropped",
+        lambda r: mutate(r / "docs" / "red-gate.md", "unless their suite is rechecked", "always"),
+        "does not state 'unless their suite is rechecked'",
+    ),
+    (
+        "undetermined written as a gate value",
+        lambda r: mutate(r / "docs" / "red-gate.md",
+                         "the log has no\n   `undetermined` value", "the log records\n   `undetermined`"),
+        "does not state 'the log has no `undetermined` value'",
+    ),
+    (
+        "revert by checkout",
+        lambda r: mutate(r / "docs" / "red-gate.md",
+                         "Never `git checkout`, `git reset` or `git stash`", "Use `git checkout` on"),
+        "does not state 'Never `git checkout`, `git reset` or `git stash`'",
+    ),
+    (
+        "revert not checked against the pre-change tree",
+        lambda r: mutate(r / "docs" / "red-gate.md",
+                         "the tree identity must equal the pre-change\n   tree", "check"),
+        "does not state 'the tree identity must equal the pre-change tree'",
+    ),
+    (
+        "red differently opens a new group",
+        lambda r: mutate(r / "docs" / "red-gate.md",
+                         "**Red differently is\n   `rejected`** on the original failure",
+                         "**Red differently is a new failure**"),
+        "does not state '**Red differently is `rejected`** on the original failure'",
+    ),
+    (
+        "build failure key keeps line numbers",
+        lambda r: mutate(r / "docs" / "red-gate.md", "no line or column", "with line and column"),
+        "does not state 'no line or column'",
+    ),
+    (
+        "pending entries re-run on resume",
+        lambda r: mutate(r / "docs" / "state-file.md", "none is ever\npending", "its re-run is repeated"),
+        "resume reconcile does not keep `debug` entries (none pending)",
+    ),
+    (
+        "changed tree not new evidence",
+        lambda r: mutate(r / "docs" / "red-gate.md", "cited against that entry's `tree`", "cited"),
+        'does not state "cited against that entry\'s `tree`"',
+    ),
+    (
+        "QA hand-off re-reproduced from scratch",
+        lambda r: mutate(r / "skills" / "sc-qa" / "SKILL.md",
+                         "That hand-off is the protocol's reproduce step", "Then reproduce again"),
+        'does not state "That hand-off is the protocol\'s reproduce step"',
+    ),
+    (
+        "unrunnableHere triggers the protocol",
+        lambda r: mutate(r / "docs" / "red-gate.md",
+                         "`baseline.unrunnableHere` never triggers it",
+                         "`baseline.unrunnableHere` triggers it too"),
+        "does not state '`baseline.unrunnableHere` never triggers it'",
+    ),
+    (
+        "debug entry loses its revert",
+        lambda r: mutate(r / "docs" / "state-file.md", '"revert": "git apply -R pre.patch', '"undo": "x'),
+        "debug entry lacks 'revert'",
     ),
 ]
 

@@ -219,10 +219,12 @@ The entry lives in `state.releaseSmoke`, one per nature (shape: `${CLAUDE_PLUGIN
 A genuine G9 `fail` is fixed under the red-gate protocol (`${CLAUDE_PLUGIN_ROOT}/docs/red-gate.md`), run
 by the debugger sc-implement dispatches. QA's part is the reproduction: hand over the failing flow or
 suite with its real command, exit code and tree, the actual error and the evidence path — not a summary.
-A flow that failed once and not on a rerun is `undetermined`, not passed: classify it as flaky or
-order-dependent per that doc, and never rerun until green. Each tested hypothesis lands in `state.debug`,
-so a later G9 round does not retry a disproved cause; three rejected hypotheses route as `BLOCKED`
-(design defect), counted once toward `loops[G9]`.
+That hand-off is the protocol's reproduce step; the fixer re-runs it once to confirm. A flow that failed
+once and not on a rerun is `undetermined`, not passed: it leaves by the doc's three exits (classify and
+fix, base-commit recheck, or park and ask), and never rerun until green. Each tested hypothesis lands in
+`state.debug`, so a later G9 round does not retry a disproved cause; the rounds count toward `loops[G9]`
+as the doc's counting says, and three rejected inside a round route as `BLOCKED`
+(design defect).
 
 ## Model routing
 qa-tester + verifier run at the **mid** tier.

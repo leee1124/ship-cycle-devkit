@@ -304,8 +304,9 @@ release valve, §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Parking) — and
 | G13 | merged branch deleted (local + remote); feature worktree removed if created (**linked dep stores unlinked first**, never deleted through); cycle state file deleted; gate log archived, not deleted; base synced | — |
 
 **Red-gate protocol** — every build-fixer or debugger the "On failure" column sends reproduces first, then
-tests one evidenced hypothesis per minimal change and records each in `state.debug`; three rejected on one
-failure route as `BLOCKED` (design defect) under the one cap rule
+tests one evidenced hypothesis per minimal change and records each in `state.debug`; fix rounds count
+as #87 says, and three rejected on one failure inside a round route as `BLOCKED` (design defect) — no
+second cap, under the one cap rule
 (§`${CLAUDE_PLUGIN_ROOT}/docs/red-gate.md`).
 
 ## Model routing (resolved at PREFLIGHT)

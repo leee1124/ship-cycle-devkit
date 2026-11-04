@@ -13,6 +13,8 @@ G5's build, §sc-implement — waved execution; mapping each error to its owning
 reproduce step at file granularity) and a genuine `fail` at G9 in sc-qa. It binds the build-fixer or
 debugger the gate's "On failure" column sends, and every later round on the same failure. An undetermined
 check is not red: fix the probe and re-run it (§sc-implement — No false-red); a `degrade` is not red either.
+A suite in `baseline.unrunnableHere` never triggers it: it is diffed around, as at G6, neither a regression
+nor coverage (§`${CLAUDE_PLUGIN_ROOT}/docs/test-baseline.md`).
 A defect goal's root cause is sc-brainstorm's job (§sc-brainstorm — Root-cause analysis); this protocol is
 for a gate that this cycle's own change turned red, and uses the same standard — a cause, never a
 restatement of the symptom.
@@ -26,11 +28,21 @@ restatement of the symptom.
    line) and the tree identity (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Tree identity). A full
    suite, a build, an emulator run or a bisection is heavy: run it under overlay `env.heavyLock` with a
    bounded wait (§`${CLAUDE_PLUGIN_ROOT}/docs/heavy-work.md`). Narrow to the failing case once it
-   reproduces, and keep the full command for the final re-run.
-   **"Could not reproduce" is not fixed.** It is `undetermined`: the gate stays not-passed, the red is
-   withheld, not cleared. A case that failed and then passed with no change is classified by §Flaky and
-   order-dependent failures and, like `baseline.flaky`, is not exempt
-   (§`${CLAUDE_PLUGIN_ROOT}/docs/test-baseline.md`). Never retry until green to pass a gate.
+   reproduces, and keep the full command for the final re-run. A G9 hand-off from sc-qa (command, exit
+   code, tree, error) **is** this step: the fixer re-runs it once to confirm on its own tree, no more.
+   **"Could not reproduce" is not fixed.** The red stands: `gates.<G>` keeps its `fail`, and the gate-log
+   row reads `fail` with evidence `undetermined: not reproduced in <N> runs` — the log has no
+   `undetermined` value (§core 2's third state lives in the evidence, never as a pass). It leaves by one
+   of three exits, never by a rerun that happens to go green (never retry until green to pass a gate):
+   - **(a) Classify and fix.** A case that failed and then passed with no change is classified per
+     §Flaky and order-dependent failures, and the cause of the flake is fixed under this protocol.
+   - **(b) Recheck on the base commit.** Run that one suite on the base commit (never the working tree).
+     It fails the same way there → pre-existing, recorded per
+     `${CLAUDE_PLUGIN_ROOT}/docs/test-baseline.md` (a `capturedAt` entry; `flaky` cases stay not exempt
+     unless their suite is rechecked, as that doc says).
+   - **(c) Not reproducible anywhere.** After the fixed count of runs (§Flaky) on both trees: record the
+     runs in `state.debug`, park the cycle and ask the user
+     (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Parking).
 2. **Read the actual error.** The full text of the first failure, from the runner's report where there is
    one (`<failure>` vs `<error>`, `FAILED` vs `ERROR`), not the summary line and not the last error of a
    cascade. N identical infrastructure errors are one broken check.
@@ -42,20 +54,35 @@ restatement of the symptom.
    dependency source line, a version-matched doc, or a command and its output
    (§`${CLAUDE_PLUGIN_ROOT}/docs/claim-evidence.md`). Recall is not evidence. **Read `state.debug` first:**
    a hypothesis already `rejected` for this failure is not tried again unless new evidence says why this
-   attempt differs, and that evidence is cited.
+   attempt differs, and that evidence is cited. A tree, dependency or environment that changed since the
+   rejected entry — cited against that entry's `tree` (a diff, a lockfile line, a probe's output) — is new
+   evidence.
 5. **One minimal change, then re-run.** Make the smallest change that tests the hypothesis — one change,
-   not a bundle — and rerun the reproducing command. The result is `confirmed` (the failure is gone for
-   the stated reason), `rejected` (still red, or red differently) or `undetermined` (the run errored).
-   A rejected change is reverted before the next hypothesis, so changes do not pile up.
+   not a bundle — and rerun the reproducing command. The result is `confirmed` (the original failure is
+   gone for the stated reason), `rejected` or `undetermined` (the run errored). **Red differently is
+   `rejected`** on the original failure: the failure stays the same group until its original error is
+   gone, and only then does a new error open a new one.
+   **Revert safely.** Before the change, snapshot it — record the tree identity and
+   `git diff -- <files> > pre.patch`, or the hunk itself — and undo a rejected change with
+   `git apply -R` on exactly that change. Never `git checkout`, `git reset` or `git stash` files other
+   agents or the earlier rounds also touch. After the revert, the tree identity must equal the pre-change
+   tree; record the revert in the entry. Changes never pile up.
 6. **Record every attempt** as one `state.debug` entry (§The record), confirmed or not, before the next.
-7. **Three rejected hypotheses on the same failure: stop guessing.** The fixing agent stops and reports
-   `BLOCKED` (design defect) — three disproved causes are a design-level signal — unless its evidence
-   names a missing fact (then `NEEDS_CONTEXT`) or the environment (then the orchestrator parks and asks the
-   user). The report is routed by §sc-implement — Route the implementer's status: the design-defect row
-   goes to sc-design and counts toward `loops[G]` once, like any design defect (#87). This is **not a
-   second cap**: it changes the route, it never stops the cycle by itself, and the one cap rule stays the
-   orchestrator's (§ship-cycle — Loop cap) — at the cap the user decides. sc-design gets the failure's
-   `state.debug` entries as its evidence.
+7. **Stop guessing before the third blind try.** The counting rides on #87 and adds nothing to it: each
+   fix round that ends with its hypotheses rejected is already a fix-round re-dispatch counted against
+   `loops[G]` (§sc-implement — Route the implementer's status); hypotheses tested inside one round are
+   not loops.
+   - **Three rejected hypotheses on the same failure inside a round:** the fixing agent stops and reports
+     `BLOCKED` (design defect) — three disproved causes are a design-level signal — unless its evidence
+     names a missing fact (then `NEEDS_CONTEXT`) or the environment (then the orchestrator parks and asks
+     the user). Routed by the design-defect row to sc-design; it is the round's "further failure", +1 to
+     `loops[G]` only because it happened inside the round.
+   - **At loop 2 with two rejected hypotheses**, prefer sc-design over a third guess.
+   - **When the rounds already reached the cap**, the one cap rule decides: stop, park and ask; the user
+     decides, with the failure's `state.debug` entries handed over as the evidence.
+   This is **not a second cap**: it changes the route, it never stops the cycle by itself, and the one cap
+   rule stays the orchestrator's (§ship-cycle — Loop cap). sc-design gets the failure's `state.debug`
+   entries as its evidence.
 
 The gate passes only on its own commands, run by the stage that owns it: a `confirmed` entry is a claim,
 not a pass, and the full command reruns before the gate is recorded.
@@ -71,23 +98,28 @@ not a pass, and the full command reruns before the gate is recorded.
   "repro": { "command": "./gradlew test --tests RateLimitTest", "exit": 1 },
   "hypothesis": "the bucket refill reads the wall clock, not the injected Clock",
   "evidence": "src/main/java/RateLimiter.java:41", "change": "use the injected Clock in refill()",
-  "result": "rejected", "tree": "<tree id the re-run ran on>", "at": "<iso>" }
+  "result": "rejected", "tree": "<tree id the re-run ran on>",
+  "revert": "git apply -R pre.patch · tree back to <pre-change tree id>", "at": "<iso>" }
 ```
 
-- `failure` names the failure so entries group: the failing case id, or the first error line for a build.
-  "The same failure" is the same `gate` and `failure`; a new error after a change is a new failure.
-- `round` is the `telemetry.implStatus` round that tested it; `tree` is the tree identity the re-run ran
-  on; `result` is `confirmed`, `rejected` or `undetermined`.
-- **Who writes it.** A fix brief carries this protocol and the failure's existing entries, and asks for
-  one line per hypothesis after the report block:
-  `- Hypothesis: <cause> · evidence: <cite> · change: <change> · result: <result> · tree: <id>`.
-  The orchestrator copies each line into `state.debug`. A fix-round report without them is incomplete
-  and is routed as `BLOCKED` (no report): nothing shows which causes were tested.
+- `failure` names the failure so entries group: the failing case id, or for a build the error code plus
+  the file, normalised — no line or column, so an edit that shifts lines keeps the same key. "The same
+  failure" is the same `gate` and `failure`; a new group opens only once the original error is gone.
+- `round` is the `telemetry.implStatus` round that tested it — the round, not a loop: rounds are what
+  `loops[G]` counts (§step 7), several entries share one round. `tree` is the tree identity the re-run
+  ran on; `result` is `confirmed`, `rejected` or `undetermined`; `revert` records the undo of a rejected
+  change.
+- **Who writes it.** A red-gate fix brief carries this protocol and the failure's existing entries, and
+  requires the report block's `- Hypotheses:` field (§`${CLAUDE_PLUGIN_ROOT}/docs/impl-status.md`), one
+  item per hypothesis: `<cause> · evidence: <cite> · change: <change> · result: <result> · tree: <id>`.
+  The field is optional in every other brief. The orchestrator copies each item into `state.debug`. A
+  fix-round report missing it is re-asked once as a context fetch (outside `loops[G]`), never routed as
+  `BLOCKED` (no report): the rest of the report is a report.
 - **Consumers.** sc-implement passes the rejected entries for a failure into every later fix brief for it
   (do not retry); the resume reconcile keeps them (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Resume
-  reconcile), so a resumed session or
-  a fresh agent does not retry a disproved cause and the three-rejection count survives a restart;
-  sc-ship's cost readout prints one line per failure; sc-retro reads them for loops. None decides a gate.
+  reconcile), so a resumed session or a fresh agent does not retry a disproved cause and the
+  three-rejection count survives a restart; sc-ship's cost readout prints one line per failure; sc-retro
+  reads them for loops. None decides a gate.
 <!-- /red-gate-record -->
 
 ## Flaky and order-dependent failures

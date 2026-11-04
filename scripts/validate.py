@@ -1283,7 +1283,7 @@ IMPL_VOCAB_TOKENS = ("**Changed**", "**Concerns**", "**Commands run**", "exit co
                      "applies to every status", "No silent end", "never approves anything", "missing context",
                      "reasoning limit", "too large", "design defect", "**no report**")
 IMPL_CARRIERS = ("build-fixer", "debugger", "wave")
-IMPL_REPORT_LINES = ("- Changed:", "- Concerns:", "- Commands run:", "- Not verified:")
+IMPL_REPORT_LINES = ("- Changed:", "- Concerns:", "- Commands run:", "- Not verified:", "- Hypotheses:")
 # Route column of the routing table: each status/reason row must carry these tokens.
 IMPL_ROUTES = {
     "`DONE`": ("G5", "own commands", "Not verified"),
@@ -1609,25 +1609,50 @@ RED_DOC = Path("docs/red-gate.md")
 RED_BLOCK_TOKENS = {
     "red-gate-trigger": ("G5, G6, G7 or G7b", "red wave barrier", "genuine `fail` at G9",
                          "every later round on the same failure", "An undetermined check is not red",
-                         "§sc-brainstorm — Root-cause analysis", "never a restatement of the symptom"),
+                         "§sc-brainstorm — Root-cause analysis", "never a restatement of the symptom",
+                         "`baseline.unrunnableHere` never triggers it", "diffed around, as at G6"),
     "red-gate-protocol": ("**Reproduce first, with the real command.**", "its own exit code",
                           "tree identity", "`env.heavyLock`", "bounded wait", "docs/heavy-work.md",
                           "**\"Could not reproduce\" is not fixed.**", "`undetermined`",
-                          "is not exempt", "docs/test-baseline.md", "Never retry until green to pass a gate",
+                          "A G9 hand-off from sc-qa", "**is** this step", "re-runs it once to confirm",
+                          "The red stands: `gates.<G>` keeps its `fail`",
+                          "evidence `undetermined: not reproduced in <N> runs`",
+                          "the log has no `undetermined` value", "three exits",
+                          "never retry until green to pass a gate", "**(a) Classify and fix.**",
+                          "**(b) Recheck on the base commit.**", "pre-existing", "docs/test-baseline.md",
+                          "unless their suite is rechecked", "**(c) Not reproducible anywhere.**",
+                          "park the cycle and ask the user",
                           "**Read the actual error.**", "**Compare against a working example.**",
                           "never the working tree", "**One hypothesis, with evidence.**",
                           "docs/claim-evidence.md", "**Read `state.debug` first:**",
-                          "not tried again unless new evidence", "**One minimal change, then re-run.**",
-                          "one change, not a bundle", "reverted before the next hypothesis",
-                          "**Record every attempt**", "**Three rejected hypotheses on the same failure",
+                          "not tried again unless new evidence",
+                          "cited against that entry's `tree`", "is new evidence",
+                          "**One minimal change, then re-run.**", "one change, not a bundle",
+                          "**Red differently is `rejected`** on the original failure",
+                          "only then does a new error open a new one", "**Revert safely.**",
+                          "`git diff -- <files> > pre.patch`", "`git apply -R`",
+                          "Never `git checkout`, `git reset` or `git stash`",
+                          "the tree identity must equal the pre-change tree", "record the revert",
+                          "**Record every attempt**", "The counting rides on #87 and adds nothing to it",
+                          "already a fix-round re-dispatch counted against `loops[G]`",
+                          "hypotheses tested inside one round are not loops",
+                          "**Three rejected hypotheses on the same failure inside a round:**",
                           "`BLOCKED` (design defect)", "`NEEDS_CONTEXT`", "parks and asks the user",
-                          "Route the implementer's status", "counts toward `loops[G]` once",
+                          "Route the implementer's status", "the round's \"further failure\"",
+                          "only because it happened inside the round",
+                          "**At loop 2 with two rejected hypotheses**, prefer sc-design over a third guess",
+                          "**When the rounds already reached the cap**", "handed over as the evidence",
                           "**not a second cap**", "never stops the cycle by itself",
                           "the one cap rule stays the orchestrator's", "the user decides",
                           "a `confirmed` entry is a claim, not a pass"),
     "red-gate-record": ("`state.debug` is append-only", "one entry per hypothesis tested", "`failure`",
-                        "same `gate` and `failure`", "`round`", "`result` is `confirmed`, `rejected` or "
-                        "`undetermined`", "- Hypothesis:", "`BLOCKED` (no report)", "(do not retry)",
+                        "same `gate` and `failure`", "no line or column",
+                        "a new group opens only once the original error is gone", "`round`",
+                        "the round, not a loop", "`revert`", "`result` is `confirmed`, `rejected` or "
+                        "`undetermined`", "`- Hypotheses:` field", "docs/impl-status.md",
+                        "optional in every other brief",
+                        "re-asked once as a context fetch (outside `loops[G]`)",
+                        "never routed as `BLOCKED` (no report)", "(do not retry)",
                         "the resume reconcile keeps them", "the three-rejection count survives a restart",
                         "cost readout", "sc-retro", "None decides a gate"),
     "red-gate-flaky": ("**Retry to classify, never to hide.**", "count fixed before the first one",
@@ -1640,17 +1665,23 @@ RED_BLOCK_TOKENS = {
 }
 # Wording that would make the protocol a second cap or let a retry pass a gate.
 RED_FORBIDDEN = ("its own loop cap", "may pass on the best of", "rerun until it passes",
-                 "could not reproduce counts as fixed")
-RED_DEBUG_KEYS = ("gate", "failure", "round", "repro", "hypothesis", "evidence", "change", "result", "tree")
+                 "could not reproduce counts as fixed", "lines after the report block",
+                 "is routed as `BLOCKED` (no report)", "its re-run is repeated")
+RED_DEBUG_KEYS = ("gate", "failure", "round", "repro", "hypothesis", "evidence", "change", "result", "tree",
+                  "revert")
 RED_FAILURE_GATES = ("G5", "G6", "G7", "G7b", "G9")
 RED_SKILL_TOKENS = {
     "sc-implement": ("When a gate goes red", ("docs/red-gate.md", "reproduce with the real command first",
                                               "`undetermined`, never fixed", "one hypothesis with evidence",
-                                              "`state.debug`", "\"do not retry\"",
+                                              "`state.debug`", "\"do not retry\"", "`- Hypotheses:`",
+                                              "re-asked once as a context fetch",
                                               "`BLOCKED` (design defect)", "never a second cap",
+                                              "the round's further failure", "prefer sc-design",
                                               "the user decides", "`env.heavyLock`",
                                               "Never rerun until green")),
     "sc-qa": ("When a gate goes red", ("docs/red-gate.md", "real command, exit code and tree",
+                                       "That hand-off is the protocol's reproduce step",
+                                       "re-runs it once to confirm", "three exits",
                                        "`undetermined`, not passed", "never rerun until green",
                                        "`state.debug`", "`BLOCKED`\n(design defect)", "`loops[G9]`")),
 }
@@ -1712,6 +1743,14 @@ def check_red_gate(root: Path, f: Findings) -> None:
     if not note or "docs/red-gate.md" not in note.group(1) or "the one cap rule" not in _flat(note.group(1)):
         f.error("skills/ship-cycle/SKILL.md", "gate table has no red-gate note pointing to docs/red-gate.md "
                                               "under the one cap rule")
+    if note and "no second cap" not in _flat(note.group(1)):
+        f.error("skills/ship-cycle/SKILL.md", "gate table red-gate note does not say 'no second cap'")
+    idoc = root / IMPL_STATUS_DOC
+    ivocab = _flat(read(idoc)) if idoc.is_file() else ""
+    for token in ("**Hypotheses** — optional, and required only in a red-gate fix brief", "docs/red-gate.md",
+                  "re-asked once as a context fetch, never treated as no report"):
+        if token not in ivocab:
+            f.error(shown(IMPL_STATUS_DOC), f"does not state {token!r} for the Hypotheses field")
     shape_path = root / STATE_SHAPE_DOC
     shape_text = read(shape_path) if shape_path.is_file() else ""
     blocks = re.findall(r"```json\n(.*?)\n```", shape_text, re.S)
@@ -1729,8 +1768,9 @@ def check_red_gate(root: Path, f: Findings) -> None:
         repro = entries[0].get("repro")
         if not isinstance(repro, dict) or not all(k in repro for k in ("command", "exit")):
             f.error(shown(STATE_SHAPE_DOC), "debug.repro lacks command/exit")
-    if "**Debug entries survive the reconcile.**" not in shape_text:
-        f.error(shown(STATE_SHAPE_DOC), "resume reconcile does not keep `debug` entries")
+    if "**Debug entries survive the reconcile.**" not in shape_text or \
+            "none is ever\npending" not in shape_text:
+        f.error(shown(STATE_SHAPE_DOC), "resume reconcile does not keep `debug` entries (none pending)")
     for skill in ("sc-ship", "sc-retro"):
         p = root / SKILLS_DIR / skill / "SKILL.md"
         if p.is_file() and "state.debug" not in read(p):

@@ -155,9 +155,12 @@ the red-gate protocol in `${CLAUDE_PLUGIN_ROOT}/docs/red-gate.md`: reproduce wit
 (command, exit code, tree — "could not reproduce" is `undetermined`, never fixed), read the actual error,
 compare against a working example, then one hypothesis with evidence and one minimal change per re-run.
 - **The brief carries the record.** Pass the failure's `state.debug` entries into every fix brief for it,
-  rejected ones marked "do not retry", and copy the report's hypothesis lines back into `state.debug`.
-- **Three rejected hypotheses on one failure** are reported as `BLOCKED` (design defect) and routed by the
-  table above — counted once toward `loops[G]`, never a second cap; at the cap the user decides.
+  rejected ones marked "do not retry", require the report's `- Hypotheses:` field and copy its items into
+  `state.debug`; a report missing it is re-asked once as a context fetch, never "no report".
+- **Counting rides on the fix rounds.** Each fix round is already counted (above); three rejected
+  hypotheses on one failure inside a round are reported as `BLOCKED` (design defect) and routed by the
+  table — the round's further failure, never a second cap. At loop 2 with two rejected, prefer sc-design
+  over a third guess; at the cap the user decides, with the `state.debug` entries as evidence.
 - Repro runs and bisections are heavy: under `env.heavyLock`, with bounded waits
   (§`${CLAUDE_PLUGIN_ROOT}/docs/heavy-work.md`). Never rerun until green to pass a gate.
 
