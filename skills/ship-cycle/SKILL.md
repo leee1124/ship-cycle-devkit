@@ -108,6 +108,9 @@ re-deriving its own skip.
   nature, plus cold on a non-trivial change) ∪ every risk-matched lens ∪ the overlay `reviews` of every
   nature in the current `state.nature` (§sc-review). **QA form** names what sc-qa runs — full bring-up +
   seams, seams only, release smoke only.
+- **Wave check (Tier L waved or multi-stack work)**: `state.route.waveCheck` is `"run"` by default and may
+  be `"skip: <reason>"` — it is ceremony (agent count), so the route may dial it, and G8 still runs the full
+  fleet when it is skipped (§`${CLAUDE_PLUGIN_ROOT}/docs/wave-check.md`).
 - **UI natures**: the route may name the **live visual loop** inside `sc-implement` (the owner settles the
   looks on the running app; `${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md`) and records whether the owner will
   be present as `state.route.ownerPresent` (only `true` permits an `owner-confirmed` visual check; a nature
@@ -243,6 +246,8 @@ is not resumed by a new goal: ask "resume or replace?" (`/resume` is the explici
    where overlay `modelRouting.securityReviewModel` is set the `security`/`authz` lenses use it over their
    tier-resolved model — record it as `models["review.security"]` for sc-review, and when the pin differs
    print `SC-ROUTE-AVOID: security-lens <tier-model>→<securityReviewModel>`.
+   On Tier L also resolve the wave check's reviewer — mid tier, `medium` — as `models["review.wave"]` and
+   `effort["review.wave"]` (§`${CLAUDE_PLUGIN_ROOT}/docs/wave-check.md`).
 8. **Init state**: write this cycle's `.claude/ship-cycle/<branch-slug>.json` with everything resolved above
    plus an empty `telemetry`, an empty `reviewJobs` and `gitFreeze` inactive, and create its gate log
    `<branch-slug>.log.md` beside it with the first stage's `enter` row — archiving any log a replaced state
@@ -313,7 +318,7 @@ inline.
 |---|---|
 | **xhigh** | design; the final adversarial review/critique — **Tier L only** |
 | **high** | **root-cause analysis** (§sc-brainstorm); **triage** (fix-here / file-and-link — §sc-review); Tier M review; the G11 evidence mapping |
-| **medium** | Tier S review; test design (sc-tdd); QA exploration; the edit itself when it is a multi-file refactor |
+| **medium** | Tier S review; the wave check (§sc-implement); test design (sc-tdd); QA exploration; the edit itself when it is a multi-file refactor |
 | **low** | worktree/branch setup, grep and file discovery, commit/push/PR, running tests, docs, manifest re-pinning, schema/XML validation, one-line edits |
 
 Every stage gets an entry in `state.effort`: `brainstorm` and `qa` follow the size tier, `tdd` is

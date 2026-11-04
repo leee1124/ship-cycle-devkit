@@ -1434,6 +1434,110 @@ def check_impl_status(root: Path, f: Findings) -> None:
             f.error(shown(p.relative_to(root)), "does not read `telemetry.implStatus`")
 
 
+WAVE_DOC = Path("docs/wave-check.md")
+# Each marker block in docs/wave-check.md and the tokens it must state (#88).
+WAVE_BLOCK_TOKENS = {
+    "wave-check-trigger": ("**Tier L**", "multi-stack", "every barrier that has a later wave",
+                           "after that barrier's build/typecheck has passed", "The last barrier gets none",
+                           "Tier S and Tier M never run it"),
+    "wave-check-route": ("ceremony", "`state.route.waveCheck`", "\"skip: <reason the user saw>\"",
+                         "growth-only", "G8 still runs the full fleet"),
+    "wave-check-rule": ("`model = state.models[\"review.wave\"]`", "`effort = state.effort[\"review.wave\"]`",
+                        "cold first", "Cold pass", "before it sees the spec", "Spec alignment",
+                        "acceptance criteria", "cannot verify from the diff", "Tree identity",
+                        "Read-only and alone", "`env.heavyLock`", "§sc-review — Git-write freeze",
+                        "Same evidence rule as review findings", "claim-evidence.md",
+                        "§sc-review — Verify findings",
+                        "Only a **design** finding that survives verification",
+                        "`BLOCKED` (design defect)", "loop cap", "lets the next wave start",
+                        "sc-review brief as an item to verify", "G8 requires one", "not a second one",
+                        "sets no `gates` entry", "approves nothing"),
+    "wave-check-record": ("`state.waveReviews`", "`tree`", "`model`", "`routedTo`", "`unresolved`",
+                          "cost readout", "sc-retro", "None decides a gate"),
+}
+# A wave check is advisory: these sentences would make it a gate or a lens substitute.
+WAVE_FORBIDDEN = ("wave check is a gate", "replaces G8", "skips the G8", "blocks the next wave on any")
+WAVE_ENTRY_KEYS = ("wave", "from", "tree", "model", "effort", "findings", "refuted", "routedTo", "unresolved")
+WAVE_SKILL_TOKENS = {
+    "sc-implement": ("Large cross-cutting change", ("Wave check at each barrier", "docs/wave-check.md",
+                                                     "`state.route.waveCheck`", "`state.waveReviews`",
+                                                     "design-level finding stops the waves")),
+    "sc-review": ("Triage", ("Wave-check items are items to verify", "`state.waveReviews`",
+                             "not the cold lens's", "G8 runs the full fleet either way")),
+    "ship-cycle": ("Route plan", ("`state.route.waveCheck`", "G8 still runs the full fleet",
+                                  "docs/wave-check.md")),
+}
+
+
+def check_wave_check(root: Path, f: Findings) -> None:
+    """#88: a cheap advisory read at each Tier L wave barrier, its findings carried into G8.
+
+    Guards the rule doc's trigger, route, reviewer and record blocks (stated once, there); that sc-implement's
+    waved section points to it, sc-review triages the unresolved items and G8 requires a disposition, the
+    orchestrator lets the route dial it while G8 keeps the full fleet and resolves its model and effort; and
+    that `state.waveReviews` is in the state shape with its keys and read by sc-ship's readout and sc-retro.
+    """
+    doc = root / WAVE_DOC
+    where = shown(WAVE_DOC)
+    if not doc.is_file():
+        f.error(where, "missing")
+        return
+    text = read(doc)
+    for marker, tokens in WAVE_BLOCK_TOKENS.items():
+        m = re.search(rf"<!-- {marker} -->(.*?)<!-- /{marker} -->", text, re.S)
+        if not m:
+            f.error(where, f"no <!-- {marker} --> block")
+            continue
+        body = _flat(m.group(1))
+        for token in tokens:
+            if token not in body:
+                f.error(where, f"{marker} block does not state {token!r}")
+    for token in WAVE_FORBIDDEN:
+        if token in _flat(text):
+            f.error(where, f"states {token!r} — a wave check is advisory and G8 stays the gate")
+    for skill, (heading, tokens) in WAVE_SKILL_TOKENS.items():
+        path = root / SKILLS_DIR / skill / "SKILL.md"
+        swhere = f"skills/{skill}/SKILL.md"
+        sec = _flat(_section(read(path), heading)) if path.is_file() else ""
+        for token in tokens:
+            if token not in sec:
+                f.error(swhere, f"'## {heading}' does not state {token!r}")
+    review = root / SKILLS_DIR / "sc-review" / "SKILL.md"
+    if review.is_file() and "`state.waveReviews` (§Triage)" not in _flat(_section(read(review), "Gate G8")):
+        f.error("skills/sc-review/SKILL.md",
+                "'## Gate G8' does not require a disposition per wave-check item")
+    orch = root / SKILLS_DIR / "ship-cycle" / "SKILL.md"
+    otext = read(orch) if orch.is_file() else ""
+    if 'models["review.wave"]' not in otext:
+        f.error("skills/ship-cycle/SKILL.md", 'PREFLIGHT does not resolve models["review.wave"]')
+    erow = re.search(r"^\|\s*\*\*medium\*\*\s*\|(.*)$", otext, re.M)
+    if not erow or "the wave check" not in erow.group(1):
+        f.error("skills/ship-cycle/SKILL.md", "effort table's medium row does not price the wave check")
+    shape_path = root / STATE_SHAPE_DOC
+    blocks = re.findall(r"```json\n(.*?)\n```", read(shape_path), re.S) if shape_path.is_file() else []
+    try:
+        shape = json.loads(blocks[0]) if blocks else {}
+    except json.JSONDecodeError:
+        shape = {}  # reported by state_shape_fields
+    entries = shape.get("waveReviews")
+    if not isinstance(entries, list) or not entries or not isinstance(entries[0], dict):
+        f.error(shown(STATE_SHAPE_DOC), "state shape has no waveReviews entry")
+    else:
+        for key in WAVE_ENTRY_KEYS:
+            if key not in entries[0]:
+                f.error(shown(STATE_SHAPE_DOC), f"waveReviews entry lacks '{key}'")
+    route = shape.get("route") if isinstance(shape.get("route"), dict) else {}
+    if "waveCheck" not in route:
+        f.error(shown(STATE_SHAPE_DOC), "route lacks 'waveCheck'")
+    for key in ("models", "effort"):
+        if "review.wave" not in (shape.get(key) or {}):
+            f.error(shown(STATE_SHAPE_DOC), f"{key} lacks 'review.wave'")
+    for skill in ("sc-ship", "sc-retro"):
+        p = root / SKILLS_DIR / skill / "SKILL.md"
+        if p.is_file() and "state.waveReviews" not in read(p):
+            f.error(shown(p.relative_to(root)), "does not read `state.waveReviews`")
+
+
 def main(argv: list[str]) -> int:
     root = Path(argv[1]).resolve() if len(argv) > 1 else Path(__file__).resolve().parent.parent
     f = Findings()
@@ -1457,6 +1561,7 @@ def main(argv: list[str]) -> int:
     check_evals(root, f)
     check_session_hook(root, f)
     check_impl_status(root, f)
+    check_wave_check(root, f)
 
     for w in f.warnings:
         print(f"warning  {w}")

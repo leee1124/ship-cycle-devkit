@@ -16,7 +16,7 @@ the mechanics that only matter when something unusual happens to its name or its
              "stages": { "sc-design": "skip: config bump, nothing to design", "sc-tdd": "run",
                          "sc-implement": "run", "sc-review": "run", "sc-qa": "run", "sc-ship": "run" },
              "lenses": ["security", "quality", "cold"], "qa": "full bring-up + seam checks",
-             "ownerPresent": true },
+             "waveCheck": "run", "ownerPresent": true },
   "sizeEvidence": ["src/a.py:41", "src/b.py:88"],
   "baseline": { "capturedOn": "<base-sha>", "source": "local",
                 "run": null,
@@ -53,13 +53,19 @@ the mechanics that only matter when something unusual happens to its name or its
                                "captures": [] },
                    "backend": "n/a" },
   "models": { "brainstorm": "opus", "design": "opus", "tdd": "sonnet", "implement": "sonnet",
-              "review": "opus", "qa": "sonnet", "ship": "sonnet" },
+              "review": "opus", "review.wave": "sonnet", "qa": "sonnet", "ship": "sonnet" },
   "effort": { "design": "xhigh", "tdd": "medium", "implement": "low",
-              "review": "high", "qa": "medium", "ship": "low" },
+              "review": "high", "review.wave": "medium", "qa": "medium", "ship": "low" },
   "reviewJobs": [{ "id": "<host job id>", "agent": "<external reviewer name>",
                    "lens": "external-adversarial", "status": "running", "startedAt": "<iso>",
                    "endedAt": null, "snapshot": "<path outside the worktree>",
                    "resultPath": "<path outside the worktree>" }],
+  "waveReviews": [{ "wave": 1, "from": "<tree id of the previous barrier, or the base>",
+                    "tree": "<tree id of this barrier>", "model": "sonnet", "effort": "medium",
+                    "findings": { "critical": 0, "high": 0, "medium": 1, "low": 2 }, "refuted": 1,
+                    "routedTo": null,
+                    "unresolved": [{ "item": "<finding or cannot-verify item>", "severity": "medium",
+                                     "where": "src/a.py:41", "design": false }] }],
   "bakeOff": { "stances": ["mvp-first", "risk-first", "performance-first"],
                "criteria": [{ "name": "reversibility", "weight": "high" }],
                "judgeLenses": ["algorithm", "cold"],
@@ -140,6 +146,16 @@ reached. `basis` is `size`, `risk` and `nature` at confirmation: a larger size, 
 it, invalidates every skip. `lenses` and `qa` are what sc-review (with the floor) and sc-qa run. It only
 grows: entries turn from `skip` to `run` and lenses are added, never the reverse. Absent on a cycle started
 before 0.3.13 — stages then decide from the tier as before.
+
+`route.waveCheck` is `"run"` or `"skip: <reason>"` on Tier L waved or multi-stack work and absent
+otherwise; it follows the growth-only rule.
+
+`waveReviews` (written by sc-implement at each Tier L wave barrier) is append-only, one entry per wave check:
+the two barrier tree identities it read (§Tree identity), the model and effort it ran on, findings by
+severity after verification, the refuted count, `routedTo` (`"sc-design"` when a verified design finding
+stopped the waves, else `null`) and the `unresolved` items the sc-review brief carries to G8. It is
+advisory: it sets no gate and the reconcile does not read it. Rules:
+`${CLAUDE_PLUGIN_ROOT}/docs/wave-check.md`.
 
 `route.ownerPresent` (UI natures) says whether the owner will watch the live visual loop. Only `true`
 permits an `owner-confirmed` visual check; absent or `false` fails closed. It has its own rule, not the

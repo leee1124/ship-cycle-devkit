@@ -244,6 +244,7 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   tier, model, effort** and whatever usage the host actually exposed (tokens/cost/wall-clock), plus the run
   total and which risk-gated upgrades fired (`telemetry.upgrades`), plus one line per
   `telemetry.implStatus` entry (round, brief, status, reason, route) so stalls and re-dispatches are seen,
+  one line per `state.waveReviews` entry (wave, model, findings by severity, routedTo, unresolved count),
   and the open `notVerified` items (no `coveredBy`) from G11.
   **Record `unavailable` for anything the host does not expose — never estimate a number.** Ordering is
   the whole point, and the branch/state deletes below are not the only hazard: the cycle's state file

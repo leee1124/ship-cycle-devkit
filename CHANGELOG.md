@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.3.19 — Wave check: one cheap read at each wave barrier, carried into G8 (#88)
+
+- **Why.** On waved work a design-level defect in wave 1 — a wrong interface, boundary or shared contract —
+  was built on by waves 2..N before any lens saw it, and G8 then found it under every later wave's edits.
+- **`docs/wave-check.md`** states the rule once.
+  - **Trigger:** Tier L waved or multi-stack (contract-first) work, at every barrier that has a later wave,
+    after that barrier's build/typecheck passed; the last barrier gets none (G5–G8 read the whole change).
+    Tier S and Tier M never run it.
+  - **Reviewer:** one read-only agent on `models["review.wave"]` / `effort["review.wave"]` (mid tier,
+    `medium`, resolved at PREFLIGHT), cold pass on `git diff <from> <tree>` (barrier tree identities) first,
+    then spec alignment against the criteria and design, listing what it cannot verify from the diff. No
+    subagents, no suite rerun; a heavy run goes under `env.heavyLock`; an out-of-process reviewer follows
+    sc-review's git-write freeze as written.
+  - **Advisory:** findings follow the review evidence rule (one refuter for Critical/High and design
+    findings). Only a verified design finding stops the waves, routed exactly as the `BLOCKED` (design
+    defect) row (sc-design, loop cap). Everything else lets the next wave start; surviving, undetermined and
+    cannot-verify items are unresolved and go into the sc-review brief as items to verify, each needing a
+    disposition at G8 — the mechanism implementer concerns use. It sets no gate and approves nothing.
+  - **Dialable:** it is ceremony (agent count), so `state.route.waveCheck` may be `"skip: <reason>"`;
+    skipped or not, G8 runs the full fleet.
+- **State.** `state.waveReviews[]` (wave, from/tree, model, effort, findings by severity, refuted, routedTo,
+  unresolved), `route.waveCheck`, `models`/`effort["review.wave"]`. Read by the sc-review brief and G8,
+  sc-ship's cost readout and sc-retro's review-effectiveness pass.
+- **Validator.** `check_wave_check` guards the four doc blocks, the forbidden gate wording, the
+  sc-implement / sc-review / ship-cycle hooks, the effort row, the state shape and the consumers; self-test
+  mutations for each.
+
 ## 0.3.18 — Implementer status: one report contract, routed per status (#87)
 
 - **Why.** Implementer doubts and blockers arrived as free prose at the end of a run and were lost or

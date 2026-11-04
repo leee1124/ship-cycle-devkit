@@ -69,6 +69,8 @@ tunable only by intuition. So the cycle reports what it spent.
 - **Implementer reports ride along.** `telemetry.implStatus` holds one entry per implementer report —
   status, route, and the tier/model of a re-dispatch one tier up (§sc-implement — Route the implementer's
   status). The readout prints them, so an escalation shows as a routed status, not an unexplained cost.
+- **Wave checks ride along.** `waveReviews` holds one entry per barrier read on Tier L waved work, with the
+  model it ran on (§`${CLAUDE_PLUGIN_ROOT}/docs/wave-check.md`); the readout prints one line each.
 - **Never invent a number.** Most hosts expose no per-agent token count. Record `null` and print
   `unavailable` for what you cannot measure; the resolved tier/effort per stage is always recordable and is
   itself the useful half. A fabricated cost table is worse than an honest gap — it is the same false-green

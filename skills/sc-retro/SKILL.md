@@ -79,7 +79,9 @@ run them sequentially (§`${CLAUDE_PLUGIN_ROOT}/docs/heavy-work.md`).
    `state.telemetry.implStatus` (or its cost-readout lines) for implementer stalls, re-dispatches and the
    status that sent each.
 2. **Review effectiveness** — findings by lens; defects found later (QA, CI, the owner, after merge) that
-   no lens caught and which lens owned that class; findings refuted as false positives.
+   no lens caught and which lens owned that class; findings refuted as false positives. Read
+   `state.waveReviews` (or its cost-readout lines): a defect G8 found that a wave check read past, and
+   whether a wave check that stopped the waves found a real design defect.
 3. **Stage / route fit** — read `state.route` or the log's `route` rows and `n/a: route` rows: a skipped
    stage whose absence a later loop or defect traces to; a stage that ran, passed first try, caught
    nothing and cost wall-clock (ceremony). Tie each to the route rule that decided it.

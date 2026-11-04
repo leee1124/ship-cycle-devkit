@@ -262,6 +262,11 @@ not correctness/scope (§sc-implement — Route the implementer's status) is lis
 lenses' brief, not the cold lens's, which stays spec-blind — as an item to verify. Each gets a disposition
 (fixed-here / filed-as `#NN`) in the review artifact like any finding.
 
+**Wave-check items are items to verify, too.** Every `unresolved` entry of `state.waveReviews`
+(§`${CLAUDE_PLUGIN_ROOT}/docs/wave-check.md`) goes into the same lenses' brief by the same mechanism — not
+the cold lens's — and gets a disposition (fixed-here / filed-as `#NN`). A wave check that found nothing,
+or was skipped by the route, reduces no lens: G8 runs the full fleet either way.
+
 ## Re-review after fixes — the delta pass
 An edit after the first review — including a live-visual-loop tweak during a re-show, G9 or G11 — comes here:
 delta re-review, then G5–G7, counted against the loop cap (`${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md`).
@@ -308,6 +313,7 @@ of a cycle's review spend goes once the first pass has landed. Scope it to what 
   only over the findings *marked* filed would pass vacuously on an artifact that was never triaged.
 - **Every implementer concern handed to review has a disposition** — the `DONE_WITH_CONCERNS` items from
   `state.telemetry.implStatus` that skipped the fix round (§Triage); one without a disposition fails G8.
+  The same holds for every unresolved wave-check item in `state.waveReviews` (§Triage).
 - If a finding is a **design flaw** (not an impl bug), loop back to `sc-design`, not `sc-implement`.
 - **UI nature**: the designer lens ran (a11y floor — never dropped), and the cold lens hunted
   losing-variant leftovers in the diff **without being handed** `state.visualCheck[<nature>].cleanup` — no

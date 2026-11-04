@@ -1710,6 +1710,125 @@ CASES = [
                          "`coveredBy` is unset"),
         "does not state '`coveredBy` is `null`'",
     ),
+    # The wave check (#88).
+    (
+        "wave-check doc missing",
+        lambda r: (r / "docs" / "wave-check.md").unlink(),
+        "docs/wave-check.md: missing",
+    ),
+    (
+        "wave check runs on Tier M too",
+        lambda r: mutate(r / "docs" / "wave-check.md", "Tier S and Tier M never run it",
+                         "Tier S never runs it"),
+        "wave-check-trigger block does not state 'Tier S and Tier M never run it'",
+    ),
+    (
+        "wave check reads a red barrier",
+        lambda r: mutate(r / "docs" / "wave-check.md", "after that barrier's build/typecheck has passed",
+                         "at that barrier"),
+        "does not state \"after that barrier's build/typecheck has passed\"",
+    ),
+    (
+        "wave check spec-alignment runs before the cold pass",
+        lambda r: mutate(r / "docs" / "wave-check.md", "before it sees the spec", "with the spec"),
+        "wave-check-rule block does not state 'before it sees the spec'",
+    ),
+    (
+        "wave check reviewer model not pinned",
+        lambda r: mutate(r / "docs" / "wave-check.md", '`model = state.models["review.wave"]`',
+                         "a cheap model"),
+        "wave-check-rule block does not state",
+    ),
+    (
+        "wave check stops the waves on any finding",
+        lambda r: mutate(r / "docs" / "wave-check.md", "Only a **design** finding that survives verification",
+                         "Any finding"),
+        "does not state 'Only a **design** finding that survives verification'",
+    ),
+    (
+        "wave check invents a second carry mechanism",
+        lambda r: mutate(r / "docs" / "wave-check.md", "not a second one", "a mechanism of its own"),
+        "wave-check-rule block does not state 'not a second one'",
+    ),
+    (
+        "wave check heavy run escapes the lock",
+        lambda r: mutate(r / "docs" / "wave-check.md", "goes under overlay `env.heavyLock`",
+                         "runs directly"),
+        "wave-check-rule block does not state '`env.heavyLock`'",
+    ),
+    (
+        "wave check becomes a gate",
+        lambda r: mutate(r / "docs" / "wave-check.md", "It does not\nreplace G8:",
+                         "The wave check is a gate and it does not\nreplace G8:"),
+        "a wave check is advisory and G8 stays the gate",
+    ),
+    (
+        "wave check route skip drops the G8 fleet",
+        lambda r: mutate(r / "docs" / "wave-check.md", "G8 still runs the full fleet",
+                         "G8 runs fewer lenses"),
+        "wave-check-route block does not state 'G8 still runs the full fleet'",
+    ),
+    (
+        "sc-implement waved section loses the wave check",
+        lambda r: mutate(r / "skills" / "sc-implement" / "SKILL.md",
+                         "**Wave check at each barrier (Tier L).**", "**Barrier note.**"),
+        "'## Large cross-cutting change' does not state 'Wave check at each barrier'",
+    ),
+    (
+        "sc-review brief drops wave-check items",
+        lambda r: mutate(r / "skills" / "sc-review" / "SKILL.md",
+                         "**Wave-check items are items to verify, too.**", "**Wave notes.**"),
+        "'## Triage' does not state 'Wave-check items are items to verify'",
+    ),
+    (
+        "G8 stops requiring wave-check dispositions",
+        lambda r: mutate(r / "skills" / "sc-review" / "SKILL.md",
+                         "The same holds for every unresolved wave-check item in "
+                         "`state.waveReviews` (§Triage).",
+                         "Wave checks are advisory."),
+        "does not require a disposition per wave-check item",
+    ),
+    (
+        "route plan no longer dials the wave check",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md",
+                         "`state.route.waveCheck` is `\"run\"` by default",
+                         "the wave check is on by default"),
+        "'## Route plan' does not state '`state.route.waveCheck`'",
+    ),
+    (
+        "PREFLIGHT stops resolving the wave reviewer model",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", 'as `models["review.wave"]` and',
+                         "as a model and"),
+        'PREFLIGHT does not resolve models["review.wave"]',
+    ),
+    (
+        "effort table drops the wave check",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md",
+                         "Tier S review; the wave check (§sc-implement);", "Tier S review;"),
+        "medium row does not price the wave check",
+    ),
+    (
+        "waveReviews entry loses its tree",
+        lambda r: mutate(r / "docs" / "state-file.md", '"tree": "<tree id of this barrier>", ', ""),
+        "waveReviews entry lacks 'tree'",
+    ),
+    (
+        "route shape loses waveCheck",
+        lambda r: mutate(r / "docs" / "state-file.md", '"waveCheck": "run", ', ""),
+        "route lacks 'waveCheck'",
+    ),
+    (
+        "sc-ship readout stops printing waveReviews",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "one line per `state.waveReviews` entry",
+                         "one line per wave check"),
+        "skills/sc-ship/SKILL.md: does not read `state.waveReviews`",
+    ),
+    (
+        "sc-retro stops reading waveReviews",
+        lambda r: mutate(r / "skills" / "sc-retro" / "SKILL.md", "Read\n   `state.waveReviews`",
+                         "Read\n   the wave checks"),
+        "skills/sc-retro/SKILL.md: does not read `state.waveReviews`",
+    ),
 ]
 
 
