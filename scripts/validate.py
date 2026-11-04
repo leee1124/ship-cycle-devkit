@@ -1090,6 +1090,92 @@ def check_retro(root: Path, f: Findings) -> None:
             f.error(shown(p.relative_to(root)), f"'## {heading}' does not offer `sc-retro` as never a gate")
 
 
+EVALS_DIR = Path("evals")
+EVALS_CHECKER = EVALS_DIR / "check.py"
+EVALS_README = EVALS_DIR / "README.md"
+EVALS_RESULTS = EVALS_DIR / "baselines" / "results.md"
+EVAL_SECTIONS = ("Rule under test", "Pressures", "Setup", "Prompt", "Expected behaviour", "Post-check")
+EVAL_README_TOKENS = ("never a required check", "RED", "GREEN", "outside the repo", "run interactively and "
+                      "save the transcript", "Claude Code", "Codex", "heuristics, not proofs",
+                      "no known violation pattern was found", "spot-checked by a person reading the transcript")
+CHECK_IDS_RE = re.compile(r"^CHECK_IDS = \((.*?)^\)", re.M | re.S)
+EVAL_POST_CHECK_RE = re.compile(r"<!-- post-check -->\s*```json\n(.*?)```\s*<!-- /post-check -->", re.S)
+EVAL_RULE_REF_RE = re.compile(r"`((?:skills|docs)/[A-Za-z0-9._/-]+\.md)`")
+
+
+def check_evals(root: Path, f: Findings) -> None:
+    """#85: behaviour evals — pressure scenarios with deterministic post-checks.
+
+    The live runs are manual; what is mechanical is that every scenario states the rule it tests (pointing
+    at a skill or doc that exists), its pressures, a POSIX setup, the prompt, the expected behaviour and a
+    post-check whose id `evals/check.py` registers; that each has a passing and a failing fixture case (so
+    its checker can fail) and a RED and a GREEN row in the baseline record; that every registered check is used;
+    and that the README says the evals are never a required check. Whether a scenario is a good test is the
+    reviewer's.
+    """
+    checker = root / EVALS_CHECKER
+    if not checker.is_file():
+        f.error(shown(EVALS_CHECKER), "missing")
+        return
+    m = CHECK_IDS_RE.search(read(checker))
+    ids = set(re.findall(r'"([a-z0-9-]+)"', m.group(1))) if m else set()
+    if not ids:
+        f.error(shown(EVALS_CHECKER), "no CHECK_IDS registry")
+        return
+    readme = root / EVALS_README
+    if not readme.is_file():
+        f.error(shown(EVALS_README), "missing")
+    else:
+        flat = _flat(read(readme))
+        for token in EVAL_README_TOKENS:
+            if token not in flat:
+                f.error(shown(EVALS_README), f"does not state {token!r}")
+    results_path = root / EVALS_RESULTS
+    results = read(results_path).splitlines() if results_path.is_file() else []
+    if not results:
+        f.error(shown(EVALS_RESULTS), "missing")
+    scenarios = sorted((root / EVALS_DIR / "scenarios").glob("*.md"))
+    if not scenarios:
+        f.error(shown(EVALS_DIR / "scenarios"), "no scenarios")
+    used: set[str] = set()
+    for path in scenarios:
+        where = shown(path.relative_to(root))
+        text = read(path)
+        for heading in EVAL_SECTIONS:
+            if not _section(text, heading):
+                f.error(where, f"no '## {heading}' section")
+        refs = EVAL_RULE_REF_RE.findall(_section(text, "Rule under test"))
+        if not refs:
+            f.error(where, "'## Rule under test' points at no skill or doc")
+        for ref in refs:
+            if not (root / ref).is_file():
+                f.error(where, f"'## Rule under test' points at {ref}, which does not exist")
+        if "```sh" not in _section(text, "Setup"):
+            f.error(where, "'## Setup' has no ```sh setup script")
+        pc = EVAL_POST_CHECK_RE.search(_section(text, "Post-check"))
+        try:
+            params = json.loads(pc.group(1)) if pc else None
+        except ValueError:
+            params = None
+        check = params.get("check") if isinstance(params, dict) else None
+        if check is None:
+            f.error(where, "no <!-- post-check --> json block with a \"check\" id")
+        elif check not in ids:
+            f.error(where, f"post-check {check!r} is not a check id registered in {EVALS_CHECKER}")
+        else:
+            used.add(check)
+        fixtures = root / EVALS_DIR / "fixtures" / path.stem
+        cases = [c for c in fixtures.iterdir() if c.is_dir() and any(c.iterdir())] if fixtures.is_dir() else []
+        for verdict in ("pass", "fail"):
+            if not any(c.name == verdict or c.name.startswith(verdict + "-") for c in cases):
+                f.error(where, f"no fixture evals/fixtures/{path.stem}/{verdict}[-<label>]/")
+        for phase in ("RED", "GREEN"):
+            if not any(l.startswith(f"| {path.stem} | {phase} |") for l in results):
+                f.error(shown(EVALS_RESULTS), f"no {phase} row for scenario {path.stem}")
+    for unused in sorted(ids - used):
+        f.error(shown(EVALS_CHECKER), f"check {unused!r} is used by no scenario")
+
+
 def main(argv: list[str]) -> int:
     root = Path(argv[1]).resolve() if len(argv) > 1 else Path(__file__).resolve().parent.parent
     f = Findings()
@@ -1110,6 +1196,7 @@ def main(argv: list[str]) -> int:
     check_route_plan(root, f)
     check_visual_check(root, f)
     check_retro(root, f)
+    check_evals(root, f)
 
     for w in f.warnings:
         print(f"warning  {w}")

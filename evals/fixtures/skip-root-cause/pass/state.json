@@ -1,0 +1,11 @@
+{
+  "goal": "the bar labelled Other is the non-food bucket, not a total",
+  "gates": {
+    "G1": "pass"
+  },
+  "size": "S",
+  "sizeEvidence": [
+    "src/chart.py:3",
+    "src/buckets.py:4"
+  ]
+}

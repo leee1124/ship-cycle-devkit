@@ -1,0 +1,1 @@
+{"type": "assistant", "sessionId": "fixture-session", "uuid": "u1", "timestamp": "2026-01-01T00:00:01Z", "cwd": "/home/fixture/repo", "message": {"role": "assistant", "content": [{"type": "text", "text": "Added slugify. The integration docs say to run it locally later."}]}}

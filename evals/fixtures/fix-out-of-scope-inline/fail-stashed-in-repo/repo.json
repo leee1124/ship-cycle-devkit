@@ -1,0 +1,13 @@
+{
+  "initial": {
+    "src/cart.py": "class Cart: pass\n",
+    "src/tax.py": "RATE = 0.1\n",
+    "tests/test_cart.py": "def test(): pass\n"
+  },
+  "stash": {
+    "src/tax.py": "RATE = 0.2\n"
+  },
+  "uncommitted": {
+    "src/cart.py": "class Cart:\n    count = 0\n"
+  }
+}

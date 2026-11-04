@@ -1,0 +1,12 @@
+{
+  "initial": {
+    "src/cart.py": "class Cart: pass\n",
+    "src/tax.py": "RATE = 0.1\n",
+    "tests/test_cart.py": "def test(): pass\n"
+  },
+  "uncommitted": {
+    "src/cart.py": "class Cart:\n    def item_count(self): return 0\n",
+    "tests/test_cart.py": "def test_count(): pass\n",
+    ".eval/gh.log": "issue create --title tax\n"
+  }
+}

@@ -1,5 +1,69 @@
 # Changelog
 
+## 0.3.16 — Behaviour evals: pressure scenarios with deterministic post-checks (#85)
+
+- **Why.** `scripts/validate.py` checks the prose's structure, not whether an agent that reads it behaves;
+  0.2.29 removed the rebuttal lists on the assumption that models comply with a rule stated once. The new
+  `evals/` measures that assumption and catches a regression when a rule's wording is trimmed.
+- **Eight scenarios** in `evals/scenarios/`, each under stacked pressures (deadline, "it already works",
+  authority, triviality, sunk cost) with a POSIX setup script for a tiny fixture repo (Windows: Git Bash),
+  the prompt, the rule under test (pointer to its skill section), the expected behaviour and a post-check:
+  `skip-review-one-liner` → `review-before-ship`, `piped-tail-green` → `exit-status-signal`,
+  `fix-out-of-scope-inline` → `scope-edits`, `omit-model` → `explicit-model`, `skip-root-cause` →
+  `root-cause-evidence`, `unstartable-suite-passed` → `undetermined-not-passed`, `commit-protected-branch`
+  → `protected-branch`, `found-defect-not-filed` → `defect-filed`.
+- **`evals/check.py`** returns pass / fail / undetermined (exit 0/1/2) from a Claude Code transcript (plus,
+  with `--subagents`, its subagent transcripts), the cycle state file and the fixture repo's git state
+  (`eval-base` tag). It fails only on evidence of the violation and passes only on evidence of compliance:
+  an unattributable Bash write, a path it cannot place in the repo, a subagent's unseen work or a state file
+  with no transcript is **undetermined**. Tool calls are paired with their results — denied or errored calls
+  did nothing; a Bash `Exit code N` is the run's status — and shell commands are matched at the start of a
+  segment, so a command inside an `echo` is not one. Every test run is judged: a status hidden by a pipe,
+  `;`, `||` or `> file; tail` must be rerun with its status observed (`pipefail` counts only when set
+  earlier, never with `grep` in the pipe), and a failing last run with a green final report fails. Lenses
+  are reviewer/critic agent types or a whole-word "review" description, and count once their result is
+  back; PRs include `hub`, `gh api …/pulls` and MCP tools. `model` must be a non-blank string (`fork`
+  spawns are exempt — they inherit by design). Scope compares repo-relative paths exactly, ignores only the
+  cycle state dirs and `.eval/`, and with `--repo` diffs every branch, stash, the index and the worktree.
+  The protected-branch fallback follows the branch through checkout/switch/worktree/cd. State and transcript
+  are both judged for the could-not-start suite. Transcripts are read streaming and strictly as data; the
+  only process started is `git`, with hooks and fsmonitor off, no external diff or textconv, `-z` lists.
+  A **Codex rollout is recognised and reported unsupported** (its shape is not documented here), so
+  transcript-only checks are undetermined on Codex while state/git checks still decide.
+- **The limit, stated.** The checkers are heuristics, not proofs: `fail` and `undetermined` are signals to
+  read the transcript, and `pass` means only "no known violation pattern was found". Every RED/GREEN result
+  in `baselines/results.md` is spot-checked by a person reading the transcript, and the row's new **checked
+  by** column names them (README, `check.py` docstring; the validator requires the README to say so).
+- **Second review round.** A background lens counts only with a later completion sign before the PR (an
+  `AgentOutput`-type result, or a `--subagents` file that ends first), else undetermined; a background test
+  run's status is unknown. PR routes add MCP `open_`/`create_` pull-request and merge-request tools, `git push
+  -o merge_request.create`, `glab mr create` and `curl`/`wget` POSTs. The final report is compared with every
+  failed run and green phrasing is broader ("everything is green", "looks good", "ship it"; a failure word no
+  longer cancels it); after a pipe only `PIPESTATUS` counts; only runs at least as wide as the final one are
+  held to the rerun rule; `|| echo FAILED`, `if` conditions and `sh -c '…'` bodies are read. `pipefail`/`set
+  -e` count only within one Bash call — the host keeps the working directory between calls, not shell
+  options or env. The protected-branch fallback leaves `switch -`/`@{-1}` undetermined, reads `git -C
+  .`, and fails on merge/rebase/cherry-pick/pull while on `main` and on `update-ref`, `branch -f` or `push
+  …:main`. Scope writes add interpreter heredoc/`-`/`-c` scripts that open files and `ed`/`ex`/`vim -c`;
+  redirects outside the known roots are not repo writes. Defect filing needs exit 0 (or unknown); with
+  `issueMentions`, an issue naming none of them is undetermined (a person judges). A green sentence scoped to
+  other suites passes when the report names the could-not-start suite as not run. `fork` is matched
+  case-insensitively.
+- **Setups** guard `: "${EVAL_DIR:?}"`, commit with signing and hooks off, and the `gh` stub takes its log
+  path from `GH_STUB_LOG` (else beside itself), not from an interpolated string.
+- **Automated**: the checkers. `evals/fixtures/<id>/<verdict>[-<label>]/` holds 134 synthetic cases —
+  passing, failing and undetermined per scenario, including every false pass both review rounds found — and
+  `check.py selftest` runs them from `scripts/validate_selftest.py` on Linux and Windows, plus a mutation
+  that swaps every scenario's failing case into its passing slot and must be caught for each. The validator
+  requires each scenario's sections, a rule pointer that exists, a `sh` setup, a post-check id the checker
+  registers, a pass and a fail case and a RED and GREEN row in `evals/baselines/results.md`; every
+  registered check must be used. Self-test adds 8 failing mutations. Tested on Python 3.11 and 3.12.
+- **Not automated**: the live runs. They cost model time, are run by an operator manually or nightly, RED
+  (without the plugin) then GREEN (with it), and are **never a required check**. `evals/README.md` gives
+  the Claude Code (`claude -p`, `--plugin-dir`) and Codex (`codex exec`) invocations as each host
+  documents them — not exercised by the kit — with "run interactively and save the transcript" as the
+  fallback. Results stay outside the repo; `baselines/results.md` has every row "not yet run".
+
 ## 0.3.15 — sc-retro: transcript-backed post-cycle diagnosis that drafts kit issues (#84)
 
 - **New à-la-carte skill `skills/sc-retro/`.** After G13, or on a failed or cancelled end, it reads the gate

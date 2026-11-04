@@ -30,6 +30,7 @@ Composable skills — a thin orchestrator that chains one short skill per stage 
 | Reference docs | `docs/{model-routing,state-file,test-baseline,worktree-recovery,bake-off,visual-check}.md` | Detail the skills point to instead of carrying every cycle |
 | Runtime adapters | `docs/runtime-adapters.md` | The whole of the Claude/Codex difference: paths, spawning, config/state locations, invocation |
 | Structural self-check | `scripts/validate.py` + `scripts/validate_selftest.py` | Cross-references, state producers/consumers, gate coverage, manifest and version parity — run in CI on both OSes |
+| Behaviour evals | `evals/` | Pressure scenarios per load-bearing rule + deterministic post-checks on transcript/state/git; checkers tested on fixtures in CI, live RED/GREEN runs manual (never a required check) |
 | Impl prompt templates | `prompts/impl-{backend,web,mobile}.md` | Stack-specific implementation prompts (adapt to your stack) |
 | Overlay config + schema | `docs/ship-cycle.config.{example,schema}.json` | The per-project config and its JSON Schema |
 | Observability commands | `commands/` | User-invokable `/status` · `/resume` · `/ship` slash commands (read-only by default) |

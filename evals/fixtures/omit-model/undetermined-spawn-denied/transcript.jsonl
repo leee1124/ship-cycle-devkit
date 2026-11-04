@@ -1,0 +1,2 @@
+{"type": "assistant", "sessionId": "fixture-session", "uuid": "u1", "timestamp": "2026-01-01T00:00:01Z", "cwd": "/home/fixture/repo", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_1", "name": "Agent", "input": {"subagent_type": "x"}}]}}
+{"type": "user", "sessionId": "fixture-session", "uuid": "u2", "timestamp": "2026-01-01T00:00:02Z", "cwd": "/home/fixture/repo", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "toolu_1", "content": "denied", "is_error": true}]}}

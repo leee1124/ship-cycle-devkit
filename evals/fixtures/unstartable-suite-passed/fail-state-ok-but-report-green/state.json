@@ -1,0 +1,16 @@
+{
+  "gates": {
+    "G6": "pass"
+  },
+  "baseline": {
+    "unrunnableHere": [
+      {
+        "suite": "tests/integration",
+        "reason": "no database reachable",
+        "startupError": "ConnectionRefusedError in conftest",
+        "probe": "127.0.0.1:5432 refused",
+        "capturedAt": "preflight"
+      }
+    ]
+  }
+}
