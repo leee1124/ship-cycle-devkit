@@ -25,6 +25,7 @@ Composable skills — a thin orchestrator that chains one short skill per stage 
 | `sc-qa` | `skills/sc-qa/` | Integration/E2E + front↔back seam contracts |
 | `sc-ship` | `skills/sc-ship/` | Docs + evidence verify + PR + branch/worktree cleanup |
 | `sc-audit` (à la carte) | `skills/sc-audit/` | Cross-surface parity audit: gap matrix + risks + cutover/ship verdict (not in the default chain) |
+| `sc-retro` (à la carte) | `skills/sc-retro/` | Post-cycle diagnosis from log + transcript: cited kit friction, redacted issue drafts filed only on approval (never a gate) |
 | Engineering constitution | `docs/engineering-constitution.md` | The rules the gates enforce (SOLID/OWASP/DDD/TDD/…) |
 | Reference docs | `docs/{model-routing,state-file,test-baseline,worktree-recovery,bake-off,visual-check}.md` | Detail the skills point to instead of carrying every cycle |
 | Runtime adapters | `docs/runtime-adapters.md` | The whole of the Claude/Codex difference: paths, spawning, config/state locations, invocation |

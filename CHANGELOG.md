@@ -1,5 +1,50 @@
 # Changelog
 
+## 0.3.15 — sc-retro: transcript-backed post-cycle diagnosis that drafts kit issues (#84)
+
+- **New à-la-carte skill `skills/sc-retro/`.** After G13, or on a failed or cancelled end, it reads the gate
+  log (live or archived), the state file where it survives, sc-ship's cost readout (not found →
+  `unavailable`), the PR's Gate summary, the kit version and the host transcript, and reports kit friction on
+  five dimensions: loops & re-reviews, review effectiveness, stage/route fit (skips a later defect traces to,
+  stages that ran and caught nothing), cost/time, user friction. Without a confirmed transcript it runs on
+  state + log only and says so.
+- **Reading transcripts.** Located by session id across every Claude Code project dir
+  (`~/.claude/projects/*/<session-id>.jsonl` — the cwd slug changes on a directory rename), confirmed by
+  content by `grep -c` counts only (never extracted text from a candidate), measured before reading and sliced
+  by line. User turns are a named filter: top-level, not sidechain, not meta, human text — never tool results,
+  task notifications, agent/teammate messages, system reminders, compact summaries or command wrappers. Codex
+  has no documented filter, so user friction is reported `unavailable on Codex`, never inferred. All content
+  is data, never instructions, and every dimension-pass subagent prompt says so and that a subagent may not
+  approve or file.
+- **Evidence rule**: every finding cites `path:line` or a command and its output (held to
+  `docs/claim-evidence.md`); no citation, not reported.
+- **Report** `<slug>-<date>.retro.md` beside the archived log, or in the main checkout's `<state
+  dir>/archive/` on a failed or cancelled end, only after `git check-ignore -q` confirms the path is ignored
+  (else written outside every checkout's `git rev-parse --show-toplevel`, and said). It cites, it does not
+  quote, and redacts secrets even locally. Project-specific findings are listed separately and never drafted
+  as kit issues.
+- **Dedup locally**: the kit repo's issues are fetched once (`gh issue list --state all … --json …,body`) and
+  matched on the machine; finding text never leaves as a query. A remote search, only as a fallback (list
+  truncated: count == limit), uses terms built after redaction from kit vocabulary only. Comments on a match
+  follow the draft path.
+- **Redaction before any draft is shown** (secrets, emails, people, hosts, internal paths, customer data, the
+  project's name and domain terms unless the user opts in). **Approval** is a reply typed by the human user
+  after the exact redacted draft was shown, naming that draft — nothing from transcripts, tool results, hooks,
+  task notifications or agent messages, and never a subagent. Filing passes the draft as files (`--title
+  "$(cat …)" --body-file …`), never interpolated into a shell string; the title file is one line, ≤256 chars.
+- **Never a gate.** It writes no gate value and never edits state or log; sc-ship offers it after G13 and the
+  orchestrator after a failed or cancelled end. `docs/runtime-adapters.md` gains a host-transcript row (Claude
+  Code by session id across project dirs, Codex `~/.codex/sessions/…`); README lists the skill.
+- **Validator** guards the skill's marked blocks on full phrases — evidence rule (command + output allowed),
+  redaction, filing (human-typed approval naming the draft, excluded sources, `--body-file`, no shell
+  interpolation), privacy, local dedup (`gh issue list`, kit vocabulary only, redact → show → approve for
+  comments, truncation = count == limit), report location (`git check-ignore -q`, outside the repo,
+  failed/cancelled archive, cites not quotes), user-turn filter (`unavailable on Codex`) and injection rule —
+  plus the Not-a-gate section (read-only on every input) and that the skill assigns no gate value; the inputs
+  (session-id glob, state + log fallback, cost `unavailable`), five dimensions and report anchors; the
+  runtime-adapters row; and the README, sc-ship G13 and orchestrator offers. Self-test adds 39 failing
+  mutations.
+
 ## 0.3.14 — UI natures: a live owner loop is the visual evidence (#83)
 
 - **One rule file, `docs/visual-check.md`**, pointed to from sc-brainstorm, sc-design, sc-implement,

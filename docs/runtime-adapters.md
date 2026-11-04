@@ -19,6 +19,7 @@ a review responsibility until the migration lands.
 | heavy-job lock | `flock` / `mkdir` on `env.heavyLock` (see `heavy-work.md`) | same; use a workspace or `$TMPDIR` path if `/tmp` is sandboxed |
 | cycle state | `.claude/ship-cycle/<branch-slug>.json` | `.codex/ship-cycle/<branch-slug>.json` *(intent — see §Known gaps)* |
 | design-tool adapter (`visualCheck.designTool`) | an installed design skill hooked into UI stages (`visual-check.md`) | not wired: the plain fallbacks apply |
+| host transcript (read by `sc-retro`) | search `~/.claude/projects/*/<session-id>.jsonl` (the cwd slug can change on a directory rename), subagents in `<session-id>/subagents/` | `~/.codex/sessions/<YYYY>/<MM>/<DD>/rollout-<time>-<id>.jsonl` (under `$CODEX_HOME` if set) |
 
 Everything in the skills that reads `${CLAUDE_PLUGIN_ROOT}/docs/…` means "this kit's own `docs/`
 directory"; on Codex, resolve it against the plugin's install directory. Nothing in the lifecycle depends
