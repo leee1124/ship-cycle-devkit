@@ -73,6 +73,9 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   file in this diff** (host API: open PRs → changed files) and, if any overlap, warn in the PR body which
   sibling PR shares which file so the merge order is a conscious choice (union-merge at merge time, not a
   surprise). This is a heads-up, not a gate.
+- **Coverage line, per nature, from `state.coverage`**: `percent` against `floor`, or the n/a string
+  verbatim, so "never measured" cannot read as "covered". **Refuse to proceed** on any `undetermined`
+  entry unless it is `undetermined (ci-deferred)` and listed on the pre-merge manual gate below.
 - If `state.bakeOff` exists, the body records **which stance won and why**, and `converged: true` when the
   candidates agreed — cycle state is deleted at G13, so the PR body is the only place the next person
   choosing for this shape of change can still read it.
@@ -82,7 +85,8 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
 - **Surface any deferred manual checks recorded in state as a pre-merge manual gate.** If a stage could
   not verify something in this environment and recorded a checklist item — a `gates.G7b: checklist` boot
   deferral (sc-implement couldn't load a full context locally), sc-qa's device-gap / reachability-blocked
-  items, a `baseline.unrunnableHere` suite that is a criterion's only coverage, or a declared external
+  items, a `baseline.unrunnableHere` suite that is a criterion's only coverage, an `undetermined
+  (ci-deferred)` `state.coverage` entry (the `ciReport` job + artifact whose coverage must clear the threshold), or a declared external
   review that ended `timeout`/`failed` (name the reviewer, the job id, **and the elapsed wait
   `startedAt → endedAt`**, so a review that was never actually waited for is visible as such — §sc-review)
   — list them in the
@@ -111,7 +115,7 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   passing. A finding triaged as out-of-scope and then never filed is not deferred, it is **dropped** — the
   same silent leak as a missing `Closes` token.
 - If `vcs.tracker` defines a board, move the item **In Progress → Done** as work completes.
-- Gate: build + test + review + QA all passed — a `gates.G9: degrade` or `gates.G7b: checklist` counts as
+- Gate: build + test + review + QA all passed — a `gates.G9: degrade` or a `gates.G7b`/`gates.G6: checklist` counts as
   satisfied **only** when its item is on the pre-merge manual gate above, with its reason, and a gate
   recorded as `"n/a: <reason>"` for a stage that plainly had nothing to do (§ship-cycle — Pipeline) counts
   as satisfied with its reason carried to the PR body — **the branch

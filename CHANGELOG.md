@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.4 — G6 coverage has a measurement path (#67)
+
+- **Overlay `changeNature[].coverage`** (`command`, `reportPath`, `format`, `corePaths`, `sourceRoots?`,
+  `threshold?` = 80). "Core coverage ≥80%" named no command, report or core set, so it was skipped silently.
+- **G6 reads line coverage from the report file**, never stdout: `pass` at the threshold, and below it
+  only against a measured base (`baseline.coverage`, measured locally at PREFLIGHT when it can run). A
+  missing, stale or unparseable report is `undetermined` and blocks; an unknown base or an unrunnable suite
+  is `undetermined (ci-deferred)` → `gates.G6 = checklist` on the pre-merge manual gate. Rule: sc-implement G6.
+- **No config is recorded, not skipped**: `state.coverage[<nature>] = "n/a: no coverage config"`, carried
+  into the PR body.
+- The validator checks the example overlay's `coverage` against the schema; two self-test cases.
+
 ## 0.3.3 — A CI run on the base commit counts as baseline evidence (#66)
 
 - **`state.baseline.source`: `local`, `ci` or `ci-status-only`.** A full local baseline run can take an

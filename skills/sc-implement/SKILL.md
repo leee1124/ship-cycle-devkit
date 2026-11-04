@@ -66,7 +66,7 @@ authz from the principal only, DTOs not entities, whitelist validation, no N+1, 
   and read the output (§core 2).
 - **G6**: no failures **new vs `state.baseline`** (the base-branch reds captured at PREFLIGHT don't
   block — don't make each implementer re-derive "mine or pre-existing?" by stash-and-compare; diff the
-  run against `state.baseline.failing`), core coverage ≥80%. On a genuinely new failure, attach a
+  run against `state.baseline.failing`), and core coverage clears its threshold (next bullet). On a genuinely new failure, attach a
   debugger and loop. `baseline.flaky` cases are not exempt. Under **`ci-status-only`** every
   failure blocks unless its suite is in `baseline.run.rechecked`. A failure you believe is pre-existing or
   environment-only is settled by rechecking that suite on the base commit — never the working tree — per
@@ -79,6 +79,44 @@ authz from the principal only, DTOs not entities, whitelist validation, no N+1, 
   commit and is gated by the **same dependency whose probe already failed at PREFLIGHT** — it *inherits*
   that entry (`inheritedFrom`), and inheriting is not counting: **G5 does not treat it as Green**, and its
   criterion goes to `review-only (ci-deferred)` (§sc-ship G11).
+- **G6 coverage — measured from the report, or recorded as n/a, never skipped.** "Core coverage ≥80%"
+  with no named command, report or core set gets skipped silently, which is §core 2 failing quietly. This
+  bullet is the whole rule; the field docs are in `${CLAUDE_PLUGIN_ROOT}/docs/ship-cycle.config.schema.json`.
+  Per nature in `state.nature`, write one `state.coverage[<nature>]` entry:
+  - **Not configured** (no overlay `changeNature[].coverage`): the string `"n/a: no coverage config"`.
+    `gates.G6 = pass` with that entry is valid; sc-ship states it in the PR body.
+  - **Configured**: record `runStartedAt`, run `command` as its own step, record the report's `reportMtime`,
+    then read the file at `reportPath` as `format` — never the command's stdout summary.
+  - **Path matched against `corePaths`** = the file's normalised repo-relative path (forward slashes, no
+    `./`; a path outside the repo matches nothing). Per format: **JaCoCo** `<package name>/<sourcefile
+    name>`; **Cobertura** `<sources><source>` + `<class filename>`; **LCOV** `SF:`; **istanbul** the file
+    key. An absolute path drops the repo-root prefix; a relative one takes the first `sourceRoots` entry
+    under which that file exists (none configured: the repo root). JaCoCo records no source root, so a
+    JaCoCo nature needs `sourceRoots` unless its `corePaths` are written package-relative.
+  - **Counted, lines only — branch coverage is not gated**: JaCoCo `<sourcefile>`'s `<counter
+    type="LINE">` (`covered` ÷ `covered + missed`); Cobertura `<line hits>`, covered when `hits > 0`, never
+    an average of `line-rate`; LCOV `LH` ÷ `LF`; istanbul `coverage-summary.json` `lines.covered` ÷
+    `lines.total` (a `coverage-final.json` alone is `format: "other"`). Each file counts once,
+    deduplicated by normalised path — a multi-module or per-class listing does not double its lines, and
+    natures sharing a `reportPath` run the command once. `format: "other"` must record a `method` (how the
+    per-file counts were extracted), or the entry is undetermined.
+  - **Base**: PREFLIGHT measures the base commit the same way (command, staleness, matching, counting)
+    into `baseline.coverage[<nature>]` — **locally whenever the command can run here, even under a CI
+    `baseline.source`**; else from `ciReport`'s artifact for the base commit; else `"unmeasured: <reason>"`.
+  - **Result — set by the evidence, not by choice.** `percent ≥ threshold` (default 80) → `pass`, whatever
+    the base. Below it: base measured → `floor = min(threshold, base percent)` (a base already under the
+    threshold must not get worse); `percent ≥ floor` → `pass`, else `fail`, which loops back like a new
+    failure. Base unmeasured → `undetermined (ci-deferred)`, reason `"base unknown"` — never `fail`.
+  - **`undetermined`, which blocks**: the command errored before writing a report; the report is missing,
+    or `reportMtime ≤ runStartedAt` (left over from an earlier run); it does not parse as `format`; or **no
+    entry matches `corePaths`** — zero core lines is a vacuous 100%, not a pass. Paste the error, fix the
+    coverage run, re-run (the three-state rule below).
+  - **`undetermined (ci-deferred)`**: the command needs a suite in `state.baseline.unrunnableHere`, or the
+    base is unknown as above. Not a pass and not a dead end: set `gates.G6 = "checklist"` (as G7b does) and
+    sc-ship lists it on the pre-merge manual gate, naming `ciReport` (job + artifact) when configured.
+  - Entry shape: `{ result, percent, floor, threshold, report, format, runStartedAt, reportMtime }` (+
+    `method` for `other`); an undetermined entry has `percent: null` plus `error` (the run's own error
+    text) or `reason` (why it is deferred).
 - **No false-green (how you read G5/G6)**: judge pass/fail from the command's **own exit status or its
   machine-readable report** (surefire/JUnit XML, runner JSON) — never from a piped/tailed/grepped stdout
   line. `mvn test | grep -i fail | tail` returns the *pipeline's last* exit code (the tail's `0`), so a red
@@ -161,7 +199,7 @@ authz from the principal only, DTOs not entities, whitelist validation, no N+1, 
   `releaseOn: "job-complete"` the reviewer is on the live tree, so the edits themselves must wait. The
   better move is usually neither: if the fix will rewrite what the reviewer is reading, that job is
   **superseded** — cancel it, release the freeze, and re-launch against the fixed head (§sc-review).
-- Set `gates.G5/G6/G7/G7b` in state.
+- Set `gates.G5/G6/G7/G7b` in state, and `state.coverage` with G6.
 
 ## Model routing
 executor + build-fixer run at the **mid** tier. Cheap path first: implement on mid → verify → escalate

@@ -144,6 +144,8 @@ for that transformation's difficulty.
    `baseline.source` is `local` (default), `ci` (the base commit's CI report ingested into `failing`) or
    `ci-status-only` (green run, no report: **every failure blocks unless its suite was rechecked**);
    `baseline.run` records the run. Rules and trade-offs: `${CLAUDE_PLUGIN_ROOT}/docs/test-baseline.md`.
+   Where a nature declares `coverage`, measure it on the base too — locally if it can run here, even under a
+   CI source — into `baseline.coverage[<nature>]` (§sc-implement G6).
    `baseline.unrunnableHere` records suites this environment **cannot start at all** (no database
    reachable, a service absent, a sandbox policy refusing it): neither a failure to diff against nor
    something that counts as passed. It is pre-committed against the base commit, may only shrink, and
@@ -177,7 +179,7 @@ for that transformation's difficulty.
 (slug = branch with `/` → `-`). It lives in the cycle's own working directory — its worktree if PREFLIGHT
 created one, else the main checkout — so concurrent cycles never clobber a shared file and each owns its
 `loops`. It carries `goal`/`branch`/`stage`/`gates`/`loops`, the PREFLIGHT results (`nature`, `risk`,
-`size`, `baseline`, `models`, `effort`), `reviewJobs`, `gitFreeze` and `telemetry`; the full shape, naming,
+`size`, `baseline`, `models`, `effort`), `coverage`, `reviewJobs`, `gitFreeze` and `telemetry`; the full shape, naming,
 collision guard, resume/selection and legacy migration are in
 `${CLAUDE_PLUGIN_ROOT}/docs/state-file.md`.
 Write it at every transition; read this cycle's file at PREFLIGHT to **resume** and to enforce **its** loop
@@ -197,14 +199,14 @@ an active `gitFreeze` or a `running` `reviewJobs` entry, and treat another cycle
 | G2/G3 | interfaces specified + 0 unresolved critic objections | re-design |
 | G4 | failing tests exist for the change's logic (Red evidence) — or, for layout/copy/config, the execution-based verification is named instead (§core 3) | reject |
 | G5 | build succeeds + new tests pass (Green) | build-fixer |
-| G6 | no failures **new vs `state.baseline`** (`unrunnableHere` suites are neither pass nor regression; `baseline.flaky` cases are not exempt; under `ci-status-only` every failure blocks unless its suite is in `run.rechecked`); core coverage ≥80% | debugger → sc-implement |
+| G6 | no failures **new vs `state.baseline`** (`unrunnableHere` suites are neither pass nor regression; `baseline.flaky` cases are not exempt; under `ci-status-only` every failure blocks unless its suite is in `run.rechecked`); core coverage from the **report** clears its floor, or `"n/a: no coverage config"`; ci-deferred coverage → `checklist` (§sc-implement G6) | debugger → sc-implement (undetermined → fix the coverage run) |
 | G7 | (if an artifact ships) real build succeeds | build-fixer |
 | G7b | (if the nature declares `bootCheck`) full-context **eager** boot/context-load smoke passes on a non-inert change | build-fixer (env can't load → checklist) |
 | G8 | 0 Critical/High (authz, paywall, anemic, N+1); every finding has a disposition (fixed-here / filed `#NN`); no `reviewJobs` entry still `running`/`launching`, `gitFreeze` released; UI → designer passes | → sc-implement (design flaw → sc-design) |
 | G9 | 0 new defects in integration/E2E vs `state.baseline` (ignoring `unrunnableHere`; `flaky` not exempt; under `ci-status-only` every defect blocks unless its suite is in `run.rechecked`); seams reproduced; ITs that **can** run here actually ran | → sc-implement |
 | G10 | docs matching the change exist | writer |
 | G11 | every claim mapped 1:1 to a test/build/QA log | rework |
-| G12 | build+test+review+QA passed — a `degrade` G9 / `checklist` G7b counts **only** when its item is on the pre-merge manual gate, and an `"n/a: <reason>"` gate counts with its reason carried to the PR body; **branch merges cleanly into** overlay `vcs.defaultBase` (merge-tree probe + host `mergeable`) | merge base + resolve, re-verify |
+| G12 | build+test+review+QA passed — a `degrade` G9 / `checklist` G7b or G6 counts **only** when its item is on the pre-merge manual gate, and an `"n/a: <reason>"` gate counts with its reason carried to the PR body; **branch merges cleanly into** overlay `vcs.defaultBase` (merge-tree probe + host `mergeable`) | merge base + resolve, re-verify |
 | G13 | merged branch deleted (local + remote); feature worktree removed if created (**linked dep stores unlinked first**, never deleted through); cycle state file deleted; base synced | — |
 
 ## Model routing (resolved at PREFLIGHT)

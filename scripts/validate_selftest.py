@@ -195,6 +195,24 @@ CASES = [
         ),
         "absent from the orchestrator's gate table",
     ),
+    (
+        "example overlay coverage format outside the schema enum",
+        lambda r: mutate(
+            r / "docs" / "ship-cycle.config.example.json",
+            '"format": "jacoco"',
+            '"format": "xml"',
+        ),
+        "is not in the schema enum",
+    ),
+    (
+        "example overlay coverage missing a required key",
+        lambda r: mutate(
+            r / "docs" / "ship-cycle.config.example.json",
+            '"reportPath": "apps/backend/build/reports/jacoco/test/jacocoTestReport.xml",',
+            "",
+        ),
+        "missing required field 'reportPath'",
+    ),
 ]
 
 
