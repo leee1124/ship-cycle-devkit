@@ -475,6 +475,29 @@ def check_skill_frontmatter(root: Path, f: Findings) -> None:
                 f.warn(shown(rel), f"description is {words} words; it loads in every session")
 
 
+def check_entry_path_inventory(root: Path, f: Findings) -> None:
+    """sc-design asks for an entry-path inventory and its critic pass checks it against the code.
+
+    #71: a restructured tab shipped a design that assumed one entry path; the critic found the primary one
+    missing late. The rule is prose, so the mechanical part is that the three anchors still exist: the
+    `### Entry-path inventory` subsection, the `## Design` checklist bullet, and the critic's bullet.
+    """
+    skill = root / SKILLS_DIR / "sc-design" / "SKILL.md"
+    if not skill.is_file():
+        return
+    where = shown(skill.relative_to(root))
+    text = read(skill)
+    if not re.search(r"^### Entry-path inventory", text, re.M | re.I):
+        f.error(where, "no '### Entry-path inventory' subsection")
+    sections = re.split(r"^## ", text, flags=re.M)
+    design = next((s for s in sections if s.startswith("Design (architect")), "")
+    critic = next((s for s in sections if s.startswith("Design review (critic")), "")
+    if not re.search(r"^- \*\*Entry paths\*\*", design, re.M | re.I):
+        f.error(where, "'## Design' checklist has no '**Entry paths**' bullet pointing to the inventory")
+    if not re.search(r"^- \*\*Entry-path inventory\*\*", critic, re.M | re.I):
+        f.error(where, "critic review has no '**Entry-path inventory**' bullet")
+
+
 # --- entry point -------------------------------------------------------------------------------
 
 
@@ -488,6 +511,7 @@ def main(argv: list[str]) -> int:
     check_stage_vocabulary(root, f)
     check_manifests_and_versions(root, f)
     check_gate_summary(root, f)
+    check_entry_path_inventory(root, f)
     check_skill_frontmatter(root, f)
     check_example_coverage(root, f)
     check_example_release_smoke(root, f)

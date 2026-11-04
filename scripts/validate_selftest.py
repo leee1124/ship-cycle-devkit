@@ -309,6 +309,25 @@ CASES = [
         lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "<branch-slug>.log.md", "the log", count=-1),
         "does not name the gate log",
     ),
+    (
+        "sc-design loses the Entry-path inventory subsection",
+        lambda r: mutate(r / "skills" / "sc-design" / "SKILL.md", "### Entry-path inventory", "### Entry points"),
+        "no '### Entry-path inventory' subsection",
+    ),
+    (
+        "sc-design Design checklist drops the Entry paths bullet",
+        lambda r: mutate(r / "skills" / "sc-design" / "SKILL.md", "- **Entry paths**", "- Entry paths"),
+        "no '**Entry paths**' bullet",
+    ),
+    (
+        "sc-design critic stops checking the entry-path inventory",
+        lambda r: mutate(
+            r / "skills" / "sc-design" / "SKILL.md",
+            "- **Entry-path inventory** (when",
+            "- Entry-path inventory (when",
+        ),
+        "critic review has no '**Entry-path inventory**' bullet",
+    ),
 ]
 
 

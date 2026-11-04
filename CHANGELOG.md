@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.8 — sc-design: changes that move an entry point inventory every entry path (#71)
+
+- **Entry-path inventory** in sc-design. Trigger, defined once by content: the change adds, removes or
+  moves an entry point, or changes a screen's arrival state, params, or back/close behaviour. The design
+  lists direct controls (nav buttons, tabs), deep links and external opens, links from other screens, and
+  programmatic navigation (redirects, post-action navigation, route restore), built from the code. Each
+  path gets a criterion — arrival state/params and back/close behaviour — and call sites sharing both may
+  share one. The criteria are appended to the acceptance-criteria record, marked design-derived, and shown
+  with the design at G2/G3. A design that assumed one way in had silently dropped the primary one.
+- **The critic checks it against the code**, grepping the route/screen name for real call sites; a missing
+  path or one without a criterion is an objection.
+- **Validator** guards that `skills/sc-design/SKILL.md` still has the `### Entry-path inventory`
+  subsection, the `## Design` checklist's `**Entry paths**` bullet and the critic's
+  `**Entry-path inventory**` bullet; one self-test mutation per anchor. It does not judge the prose.
+
 ## 0.3.7 — Append-only gate log and a Gate summary in the PR (#70)
 
 - **Gate log** `.claude/ship-cycle/<branch-slug>.log.md`, created at PREFLIGHT init. One table row per
