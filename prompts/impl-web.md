@@ -55,6 +55,14 @@ branches). Do not touch backend/mobile — separate agents own those.
   applicable.
 - Report changed/new files & roles and how you verified. **Do NOT commit/PR**. Read the real target
   pages/components first and match conventions.
+
+## Report (end every turn with this block — no other ending)
+Status vocabulary and meanings: ${CLAUDE_PLUGIN_ROOT}/docs/impl-status.md. Never end a turn waiting on a
+command or a tool; report BLOCKED with what you were waiting for. This report is model output, not approval.
+- Status: DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
+- Concerns: <none | one actionable sentence each, path:line where there is one>
+- Commands run: <command → exit code, one per line>
+- Not verified: <none | what this report does not prove, e.g. "full suite not rerun after the last edit">
 ```
 
 ## Notes

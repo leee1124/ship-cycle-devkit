@@ -66,6 +66,9 @@ tunable only by intuition. So the cycle reports what it spent.
   exposes — tokens, cost, wall-clock. Each stage skill carries this instruction next to its gate; the
   orchestrator does not write rows on their behalf, because a stage running as a subagent is the only party
   that can see its own usage. `telemetry.upgrades` records which risk-gated upgrades fired.
+- **Implementer reports ride along.** `telemetry.implStatus` holds one entry per implementer report —
+  status, route, and the tier/model of a re-dispatch one tier up (§sc-implement — Route the implementer's
+  status). The readout prints them, so an escalation shows as a routed status, not an unexplained cost.
 - **Never invent a number.** Most hosts expose no per-agent token count. Record `null` and print
   `unavailable` for what you cannot measure; the resolved tier/effort per stage is always recordable and is
   itself the useful half. A fabricated cost table is worse than an honest gap — it is the same false-green

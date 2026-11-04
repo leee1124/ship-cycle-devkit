@@ -75,7 +75,9 @@ range and the content and approval rules above (a subagent's "current session" i
 run them sequentially (§`${CLAUDE_PLUGIN_ROOT}/docs/heavy-work.md`).
 
 1. **Loops & re-reviews** — which gate failed and re-ran (`fail (loop n/3)` rows, `cleared` rows), why, and
-   whether an earlier stage could have caught it (a G6 loop on a case the G4 tests never named).
+   whether an earlier stage could have caught it (a G6 loop on a case the G4 tests never named). Read
+   `state.telemetry.implStatus` (or its cost-readout lines) for implementer stalls, re-dispatches and the
+   status that sent each.
 2. **Review effectiveness** — findings by lens; defects found later (QA, CI, the owner, after merge) that
    no lens caught and which lens owned that class; findings refuted as false positives.
 3. **Stage / route fit** — read `state.route` or the log's `route` rows and `n/a: route` rows: a skipped

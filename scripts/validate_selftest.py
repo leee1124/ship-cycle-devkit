@@ -1445,6 +1445,91 @@ CASES = [
         lambda r: mutate(r / "docs" / "runtime-adapters.md", "SHIP_CYCLE_HOOK", "THE_HOOK_VAR", count=-1),
         "('SHIP_CYCLE_HOOK' missing)",
     ),
+    (
+        "impl-status doc missing",
+        lambda r: (r / "docs" / "impl-status.md").unlink(),
+        "docs/impl-status.md: missing",
+    ),
+    (
+        "impl-status vocabulary drops NEEDS_CONTEXT",
+        lambda r: mutate(r / "docs" / "impl-status.md", "- `NEEDS_CONTEXT` — it stopped", "- it stopped"),
+        "status vocabulary is",
+    ),
+    (
+        "impl-status vocabulary drops the no-silent-end rule",
+        lambda r: mutate(r / "docs" / "impl-status.md", "**No silent end.**", "**Endings.**"),
+        "does not state 'No silent end'",
+    ),
+    (
+        "impl-status vocabulary lets a report approve",
+        lambda r: mutate(r / "docs" / "impl-status.md", "It never approves anything", "It may approve"),
+        "does not state 'never approves anything'",
+    ),
+    (
+        "a stack prompt drops a status",
+        lambda r: mutate(r / "prompts" / "impl-web.md", "BLOCKED | NEEDS_CONTEXT", "BLOCKED"),
+        "prompts/impl-web.md: report Status line lists",
+    ),
+    (
+        "a stack prompt invents a status",
+        lambda r: mutate(r / "prompts" / "impl-mobile.md", "| NEEDS_CONTEXT", "| NEEDS_CONTEXT | PARTIAL"),
+        "prompts/impl-mobile.md: report Status line lists",
+    ),
+    (
+        "a stack prompt drops the not-verified line",
+        lambda r: mutate(r / "prompts" / "impl-backend.md", "- Not verified:", "- Notes:"),
+        "report block has no '- Not verified:' line",
+    ),
+    (
+        "a stack prompt drops the concerns line",
+        lambda r: mutate(r / "prompts" / "impl-backend.md", "- Concerns:", "- Remarks:"),
+        "report block has no '- Concerns:' line",
+    ),
+    (
+        "a stack prompt loses the report block",
+        lambda r: mutate(r / "prompts" / "impl-web.md", "## Report (end every turn", "## Wrap-up (end"),
+        "template has no '## Report (end every turn ...' block",
+    ),
+    (
+        "sc-implement routing table loses the design-defect row",
+        lambda r: mutate(r / "skills" / "sc-implement" / "SKILL.md",
+                         "| `BLOCKED` (design defect) | → sc-design; counts toward the loop cap |\n", ""),
+        "routing table has no row for `BLOCKED` (design defect)",
+    ),
+    (
+        "design defect stops counting toward the loop cap",
+        lambda r: mutate(r / "skills" / "sc-implement" / "SKILL.md",
+                         "→ sc-design; counts toward the loop cap |", "→ sc-design |"),
+        "does not route via 'loop cap'",
+    ),
+    (
+        "reasoning limit names a model instead of the tierMap",
+        lambda r: mutate(r / "skills" / "sc-implement" / "SKILL.md",
+                         "re-dispatch one tier up via `tierMap`", "re-dispatch one tier up on opus"),
+        "does not route via '`tierMap`'",
+    ),
+    (
+        "sc-implement allows an unchanged re-dispatch",
+        lambda r: mutate(r / "skills" / "sc-implement" / "SKILL.md",
+                         "**Never re-dispatch unchanged.**", "**Re-dispatch freely.**"),
+        "does not state 'Never re-dispatch unchanged'",
+    ),
+    (
+        "sc-implement drops the fresh-agent handoff",
+        lambda r: mutate(r / "skills" / "sc-implement" / "SKILL.md",
+                         "dispatch a fresh one with a written handoff", "keep resuming it"),
+        "does not state 'fresh one with a written handoff'",
+    ),
+    (
+        "state shape drops telemetry.implStatus",
+        lambda r: mutate(r / "docs" / "state-file.md", '"implStatus"', '"implReports"'),
+        "telemetry shape has no implStatus entry",
+    ),
+    (
+        "sc-ship stops printing implStatus",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "`telemetry.implStatus`", "`telemetry.impl`"),
+        "skills/sc-ship/SKILL.md: does not read `telemetry.implStatus`",
+    ),
 ]
 
 

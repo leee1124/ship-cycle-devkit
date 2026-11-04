@@ -1276,6 +1276,107 @@ def check_session_hook(root: Path, f: Findings) -> None:
                 f.error(shown(doc), f"does not document the SessionStart hook ({token!r} missing)")
 
 
+IMPL_STATUS_DOC = Path("docs/impl-status.md")
+IMPL_PROMPTS = ("impl-backend.md", "impl-web.md", "impl-mobile.md")
+IMPL_STATUSES = ("DONE", "DONE_WITH_CONCERNS", "BLOCKED", "NEEDS_CONTEXT")
+IMPL_VOCAB_TOKENS = ("**Concerns**", "**Commands run**", "exit code", "**Not verified**", "No silent end",
+                     "never approves anything", "missing context", "reasoning limit", "too large",
+                     "design defect")
+IMPL_REPORT_LINES = ("- Concerns:", "- Commands run:", "- Not verified:")
+# Route column of the routing table: each status/reason row must carry these tokens.
+IMPL_ROUTES = {
+    "`DONE`": ("G5", "Not verified"),
+    "`DONE_WITH_CONCERNS`": ("fix round", "triage"),
+    "`NEEDS_CONTEXT`": ("re-dispatch",),
+    "`BLOCKED` (missing context)": ("`NEEDS_CONTEXT`",),
+    "`BLOCKED` (reasoning limit)": ("tier up", "`tierMap`", "split"),
+    "`BLOCKED` (too large)": ("split",),
+    "`BLOCKED` (design defect)": ("sc-design", "loop cap"),
+    "no report": ("resume the same implementer", "`BLOCKED` (no report)"),
+}
+IMPL_ROUTE_BULLETS = ("Never re-dispatch unchanged", "Resume early, then hand off", "`modelRouting.tierMap`",
+                      "A report approves nothing", "`state.telemetry.implStatus`",
+                      "fresh one with a written handoff")
+
+
+def check_impl_status(root: Path, f: Findings) -> None:
+    """#87: every implementer ends with one status from one vocabulary, and sc-implement routes each.
+
+    Guards the vocabulary block in docs/impl-status.md (the four statuses, concerns, commands with exit codes,
+    the not-verified line, no silent end, a report approves nothing), that each stack prompt carries the
+    report block with exactly those statuses, that sc-implement's routing table has a row per status/reason
+    with its route, the never-unchanged / resume-then-handoff / tierMap rules, and that
+    `telemetry.implStatus` is documented in the state shape and read by sc-ship and sc-retro.
+    """
+    doc = root / IMPL_STATUS_DOC
+    where = shown(IMPL_STATUS_DOC)
+    if not doc.is_file():
+        f.error(where, "missing")
+        return
+    m = re.search(r"<!-- impl-status-vocabulary -->(.*?)<!-- /impl-status-vocabulary -->", read(doc), re.S)
+    if not m:
+        f.error(where, "no <!-- impl-status-vocabulary --> block")
+        return
+    vocab_text = m.group(1)
+    vocab = re.findall(r"^- `([A-Z_]+)`", vocab_text, re.M)
+    if tuple(vocab) != IMPL_STATUSES:
+        f.error(where, f"status vocabulary is {vocab}, expected {list(IMPL_STATUSES)}")
+    flat = _flat(vocab_text)
+    for token in IMPL_VOCAB_TOKENS:
+        if token not in flat:
+            f.error(where, f"impl-status-vocabulary block does not state {token!r}")
+    for name in IMPL_PROMPTS:
+        path = root / "prompts" / name
+        pwhere = f"prompts/{name}"
+        if not path.is_file():
+            f.error(pwhere, "missing")
+            continue
+        text = read(path)
+        block = text[text.find("## Report (end every turn"):] if "## Report (end every turn" in text else ""
+        if not block:
+            f.error(pwhere, "template has no '## Report (end every turn ...' block")
+            continue
+        sm = re.search(r"^- Status: (.*)$", block, re.M)
+        listed = tuple(s.strip() for s in sm.group(1).split("|")) if sm else ()
+        if listed != IMPL_STATUSES:
+            f.error(pwhere, f"report Status line lists {list(listed)}, expected {list(IMPL_STATUSES)}")
+        for line in IMPL_REPORT_LINES:
+            if not re.search(r"^" + re.escape(line), block, re.M):
+                f.error(pwhere, f"report block has no {line!r} line")
+        if "docs/impl-status.md" not in block:
+            f.error(pwhere, "report block does not point to docs/impl-status.md")
+    impl = root / SKILLS_DIR / "sc-implement" / "SKILL.md"
+    iwhere = "skills/sc-implement/SKILL.md"
+    itext = read(impl) if impl.is_file() else ""
+    rm = re.search(r"<!-- impl-status-routing -->(.*?)<!-- /impl-status-routing -->", itext, re.S)
+    if not rm:
+        f.error(iwhere, "no <!-- impl-status-routing --> table")
+    else:
+        rows = {}
+        for line in rm.group(1).splitlines():
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            if len(cells) == 2 and not set(cells[0]) <= set("-"):
+                rows[cells[0]] = cells[1]
+        for key, tokens in IMPL_ROUTES.items():
+            if key not in rows:
+                f.error(iwhere, f"routing table has no row for {key}")
+                continue
+            for token in tokens:
+                if token not in rows[key]:
+                    f.error(iwhere, f"routing row {key} does not route via {token!r}")
+    section = _flat(_section(itext, "Route the implementer's status"))
+    for token in IMPL_ROUTE_BULLETS:
+        if token not in section:
+            f.error(iwhere, f"'## Route the implementer's status' does not state {token!r}")
+    shape = read(root / STATE_SHAPE_DOC) if (root / STATE_SHAPE_DOC).is_file() else ""
+    if '"implStatus"' not in shape:
+        f.error(shown(STATE_SHAPE_DOC), "telemetry shape has no implStatus entry")
+    for skill in ("sc-ship", "sc-retro"):
+        p = root / SKILLS_DIR / skill / "SKILL.md"
+        if p.is_file() and "telemetry.implStatus" not in read(p):
+            f.error(shown(p.relative_to(root)), "does not read `telemetry.implStatus`")
+
+
 def main(argv: list[str]) -> int:
     root = Path(argv[1]).resolve() if len(argv) > 1 else Path(__file__).resolve().parent.parent
     f = Findings()
@@ -1298,6 +1399,7 @@ def main(argv: list[str]) -> int:
     check_retro(root, f)
     check_evals(root, f)
     check_session_hook(root, f)
+    check_impl_status(root, f)
 
     for w in f.warnings:
         print(f"warning  {w}")

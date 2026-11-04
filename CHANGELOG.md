@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.3.18 — Implementer status: one report contract, routed per status (#87)
+
+- **Why.** Implementer doubts and blockers arrived as free prose at the end of a run and were lost or
+  answered with a blind retry; some runs ended with "waiting for the test run" and no report, and the
+  orchestrator only found out because nothing happened next.
+- **`docs/impl-status.md`** defines the vocabulary once — `DONE`, `DONE_WITH_CONCERNS`, `BLOCKED` (reason:
+  missing context, reasoning limit, too large, design defect), `NEEDS_CONTEXT` — plus a concerns list,
+  the commands run with their exit codes, and a **Not verified** line the orchestrator never claims. A turn
+  that ends without the block is not a report ("no silent end"), and a report is model output that never
+  approves anything.
+- **`prompts/impl-{backend,web,mobile}.md`** end their templates with the same report block.
+- **`sc-implement` — Route the implementer's status**: a routing table (missing context → re-dispatch
+  with it; reasoning limit → one tier up resolved through `modelRouting.tierMap`, else split; too large →
+  split; design defect → sc-design, counted on the loop cap of the gate that sent the round; no report →
+  resume once, then `BLOCKED`). Never re-dispatch unchanged; fix rounds 1–2 resume the same implementer,
+  then a fresh agent with a written handoff (earlier on reported context strain).
+- **Telemetry.** One `state.telemetry.implStatus` entry per report (round, stack, fresh/resumed, status,
+  reason, concerns, not-verified, route, change, tier, model); sc-ship's cost readout prints it and
+  sc-retro reads it for stalls and re-dispatches. Neither decides a gate from it.
+- **Validator.** `check_impl_status` guards the vocabulary block, each prompt's report block (exactly the
+  four statuses, concerns, commands, not-verified), the routing rows and rules, the state shape and both
+  consumers; 16 self-test mutations.
+
 ## 0.3.17 — SessionStart hook: restate an active cycle after startup, /clear and compaction (#86)
 
 - **Why.** Long cycles cross a compaction or a `/clear`, and the new context does not know a cycle is

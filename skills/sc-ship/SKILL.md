@@ -234,12 +234,13 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
 - **Emit the cost readout first — before anything in this section deletes anything**
   (§`${CLAUDE_PLUGIN_ROOT}/docs/model-routing.md` — Cost readout). Print, and write to an artifact dir **outside the worktree**, one row per stage: **resolved
   tier, model, effort** and whatever usage the host actually exposed (tokens/cost/wall-clock), plus the run
-  total and which risk-gated upgrades fired (`telemetry.upgrades`). **Record `unavailable` for anything the
-  host does not expose — never estimate a number.** Ordering is the whole point, and the branch/state
-  deletes below are not the only hazard: the cycle's state file lives in the cycle's working directory,
-  **which is the worktree itself when PREFLIGHT created one** (§ship-cycle State), so the worktree removal
-  below destroys `telemetry` exactly as the explicit delete does. A readout emitted after either one
-  reports nothing.
+  total and which risk-gated upgrades fired (`telemetry.upgrades`), plus one line per
+  `telemetry.implStatus` entry (round, stack, status, reason, route) so stalls and re-dispatches are seen.
+  **Record `unavailable` for anything the host does not expose — never estimate a number.** Ordering is
+  the whole point, and the branch/state deletes below are not the only hazard: the cycle's state file
+  lives in the cycle's working directory, **which is the worktree itself when PREFLIGHT created one**
+  (§ship-cycle State), so the worktree removal below destroys `telemetry` exactly as the explicit delete
+  does. A readout emitted after either one reports nothing.
 - **Archive the gate log before the worktree removal**, by the procedure in
   §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Gate log (Lifetime); G13's final row goes to the archive,
   not to state. A failed move is a warning: print the log's last rows into this run's readout rather than
