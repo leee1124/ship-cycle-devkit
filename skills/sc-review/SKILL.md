@@ -257,6 +257,11 @@ work that wears no impressive artifact, so it is the first thing a right-sizing 
 misjudging it is how a review either balloons the branch or loses a real defect. Record each finding's
 disposition (fixed-here / filed-as `#NN`) in the review artifact so G8 and sc-ship can both read it.
 
+**Implementer concerns are items to verify.** A `DONE_WITH_CONCERNS` concern that sc-implement recorded as
+not correctness/scope (§sc-implement — Route the implementer's status) is listed in the review brief — the
+lenses' brief, not the cold lens's, which stays spec-blind — as an item to verify. Each gets a disposition
+(fixed-here / filed-as `#NN`) in the review artifact like any finding.
+
 ## Re-review after fixes — the delta pass
 An edit after the first review — including a live-visual-loop tweak during a re-show, G9 or G11 — comes here:
 delta re-review, then G5–G7, counted against the loop cap (`${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md`).
@@ -301,6 +306,8 @@ of a cycle's review spend goes once the first pass has landed. Scope it to what 
 - **Every finding carries a recorded disposition** — *fixed here* or *filed as `#NN`* (§Triage). A findings
   list with no dispositions does not pass; sc-ship re-asserts this at G12, and an assertion that quantifies
   only over the findings *marked* filed would pass vacuously on an artifact that was never triaged.
+- **Every implementer concern handed to review has a disposition** — the `DONE_WITH_CONCERNS` items from
+  `state.telemetry.implStatus` that skipped the fix round (§Triage); one without a disposition fails G8.
 - If a finding is a **design flaw** (not an impl bug), loop back to `sc-design`, not `sc-implement`.
 - **UI nature**: the designer lens ran (a11y floor — never dropped), and the cold lens hunted
   losing-variant leftovers in the diff **without being handed** `state.visualCheck[<nature>].cleanup` — no

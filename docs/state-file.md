@@ -79,7 +79,14 @@ the mechanics that only matter when something unusual happens to its name or its
                                          "tokens": null, "cost": null },
                              "design": { "tier": "high", "model": "opus", "effort": "xhigh",
                                          "candidates": 3, "stances": ["mvp-first", "risk-first",
-                                         "performance-first"], "tokens": null, "cost": null } } } }
+                                         "performance-first"], "tokens": null, "cost": null } },
+                 "implStatus": [{ "round": 1, "brief": "backend: rate limit", "gate": "G5",
+                                  "agent": "fresh", "status": "BLOCKED", "reason": "missing context",
+                                  "concerns": ["<actionable sentence>"],
+                                  "notVerified": [{ "item": "full suite not rerun after the last edit",
+                                                    "coveredBy": "G6: <command> → 0" }],
+                                  "route": "re-dispatch with context", "change": "added the error contract",
+                                  "tier": null, "model": null }] } }
 ```
 
 `baseline.source` is `local`, `ci` or `ci-status-only`. Under a CI source `baseline.run` holds the run
