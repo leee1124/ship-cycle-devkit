@@ -112,7 +112,7 @@ is not resumed by a new goal: ask "resume or replace?" (`/resume` is the explici
 
    | tier | what it is | what it gets |
    |---|---|---|
-   | **S** | a single expression / constant / comment whose cause is already corroborated by **≥2 independent code sites**, with no runtime-behaviour ambiguity | branch, no worktree; inline self-verification; no verification fleet, except ≥1 independent refuter for a surviving Critical/High; security lens + one lens matched to the nature; conflict check; PR |
+   | **S** | a single expression / constant / comment whose cause is already corroborated by **≥2 independent code sites**, with no runtime-behaviour ambiguity | branch, no worktree; inline self-verification; no verification fleet, except ≥1 independent refuter for a surviving Critical/High; security lens + one lens matched to the nature; release smoke if `appliesTo` is touched; conflict check; PR |
    | **M** | one module, one stack | worktree only if something else earns it; 1–2 lenses/verifiers |
    | **L** | multi-file, cross-stack, security-sensitive, or a migration | the full set — every stage, full lens breadth, QA |
 
@@ -143,6 +143,8 @@ is not resumed by a new goal: ask "resume or replace?" (`/resume` is the explici
    application context, so G7b (sc-implement) runs the boot smoke on its non-inert changes. A
    context-bearing nature with no `bootCheck` gets a one-line prompt each cycle and G7b degrades to a manual
    checklist — undeclared never silently means "no boot floor".
+   It also sets **release-smoke applicability**: a changed path matching a nature's `releaseSmoke.appliesTo`
+   requires G9's release-artifact smoke (§sc-qa Release-artifact smoke).
 5. **Capture a test baseline** so "no new failures" is mechanical rather than a judgment call: run the
    nature's suite on the **base commit once** and record the pass/fail set in `state.baseline`. G6/G9 diff
    against it — a failure already there is not a regression, only a new one blocks — sparing later stages
@@ -215,10 +217,10 @@ release valve, §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Parking) — and
 | G7 | (if an artifact ships) real build succeeds | build-fixer |
 | G7b | (if the nature declares `bootCheck`) full-context **eager** boot/context-load smoke passes on a non-inert change | build-fixer (env can't load → checklist) |
 | G8 | 0 Critical/High (authz, paywall, anemic, N+1); every finding has a disposition (fixed-here / filed `#NN`); no `reviewJobs` entry still `running`/`launching`, `gitFreeze` released; UI → designer passes | → sc-implement (design flaw → sc-design) |
-| G9 | 0 new defects in integration/E2E vs `state.baseline` (ignoring `unrunnableHere`; `flaky` not exempt; under `ci-status-only` every defect blocks unless its suite is in `run.rechecked`); seams reproduced; ITs that **can** run here actually ran | → sc-implement |
+| G9 | 0 new defects in integration/E2E vs `state.baseline` (ignoring `unrunnableHere`; `flaky` not exempt; under `ci-status-only` every defect blocks unless its suite is in `run.rechecked`); seams reproduced; ITs that **can** run here actually ran; release-artifact smoke when `appliesTo` is touched (§sc-qa Release-artifact smoke) | → sc-implement |
 | G10 | docs matching the change exist | writer |
 | G11 | every claim mapped 1:1 to a test/build/QA log | rework |
-| G12 | build+test+review+QA passed — a `degrade` G9 / `checklist` G7b or G6 counts **only** when its item is on the pre-merge manual gate, and an `"n/a: <reason>"` gate counts with its reason carried to the PR body; **branch merges cleanly into** overlay `vcs.defaultBase` (merge-tree probe + host `mergeable`) | merge base + resolve, re-verify |
+| G12 | build+test+review+QA passed — a `degrade` G9 / `checklist` G7b or G6 counts **only** when its item is on the pre-merge manual gate (a `deferred` release smoke included), and an `"n/a: <reason>"` gate counts with its reason carried to the PR body; **branch merges cleanly into** overlay `vcs.defaultBase` (merge-tree probe + host `mergeable`) | merge base + resolve, re-verify |
 | G13 | merged branch deleted (local + remote); feature worktree removed if created (**linked dep stores unlinked first**, never deleted through); cycle state file deleted; base synced | — |
 
 ## Model routing (resolved at PREFLIGHT)
@@ -251,7 +253,8 @@ change as much as a Tier L one, because they are outcomes rather than ceremony.
 On **Tier S** (§Stage 0.2) brainstorm/design/review collapse into one check, heavy suites give way to
 self-tests/link checks, and model tiers and effort drop with them. The security lens stays even at
 one-lens breadth — its `securityReviewModel` pin means nothing if the lens can be dialed away. Build/test
-verification, the pre-PR review, root-cause analysis, triage and the conflict check still run.
+verification, the pre-PR review, root-cause analysis, triage and the conflict check still run — and the
+release-artifact smoke when the diff touches a nature's `releaseSmoke.appliesTo` (§sc-qa).
 
 **The bright line — dial ceremony, never an outcome.** *Ceremony* (dialable by size tier and risk): stage
 count, model tier and effort level, worktree-or-not **on a single-track change**, lens breadth,

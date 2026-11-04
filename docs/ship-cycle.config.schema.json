@@ -65,6 +65,18 @@
             "required": ["command", "reportPath", "format", "corePaths"],
             "additionalProperties": false
           },
+          "releaseSmoke": {
+            "type": "object",
+            "description": "Per nature: the release-artifact smoke gate G9 requires when the diff touches appliesTo. Full rule: sc-qa \u2014 Release-artifact smoke.",
+            "properties": {
+              "appliesTo": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Globs whose change triggers the smoke: build config, shrinker/proguard rules, native modules, signing config, dependency manifests and lockfiles." },
+              "artifact": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Command(s) that build the release-form artifact exactly as shipped: shrinking, release signing and production config on." },
+              "flows": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Named critical flows to exercise on that artifact, one evidence entry each." },
+              "device": { "type": "string", "description": "Optional. Where to run it (an emulator image, a device, a staging host)." }
+            },
+            "required": ["appliesTo", "artifact", "flows"],
+            "additionalProperties": false
+          },
           "bootCheck": {
             "type": "array",
             "items": { "type": "string" },

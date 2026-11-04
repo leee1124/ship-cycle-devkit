@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.3.6 — G9 requires a release-artifact smoke for build-config/native changes (#69)
+
+- **Overlay `changeNature[].releaseSmoke`** (`appliesTo`, `artifact`, `flows`, `device?`). Per nature,
+  beside `build`/`bootCheck`/`coverage`, because the release form, flows and device are stack-specific;
+  `appliesTo` globs match the whole diff, so a root lockfile can trigger a nature's smoke.
+- **When the diff touches `appliesTo`, G9 requires every listed flow on the release-form artifact** —
+  shrinking, release signing and production config as shipped — with evidence per flow. A dev or debug
+  build does not count. G7 only proved the artifact builds, so a shrinker-stripped generic signature that
+  crashed a third-party SDK login only in release builds passed every gate with dev-build E2E green.
+- **Evidence ties the smoke to what ran.** A `pass` entry records `tree` (must equal `gateTrees.G9`), the
+  artifact's checksum, proof the installed package is that artifact (checksum or version code), and
+  release-form indicators (not debuggable, shrinker mapping present).
+- **Deferral is admitted, not chosen.** The release-form artifact must have been built and a device start
+  attempted first. With no release key, a shrunk build on substitute signing is valid evidence for the
+  non-signing flows; only the signing-specific part is deferred. Any deferral → G9 `degrade`, one
+  pre-merge manual-gate item each, never a pass. Untouched → `"n/a"`.
+- **Tier S does not skip it**: `gates.G9` is then the smoke's outcome, the rest of QA `n/a: Tier S`.
+- **Resume reconcile clears any stale tree-dependent gate**, not only a `pass` — `degrade`, `checklist`
+  and `fail` too — and clearing G9 clears every `releaseSmoke` entry. Rule: sc-qa — Release-artifact smoke;
+  `/status` prints it.
+- The validator checks the example overlay's `releaseSmoke` against the schema through a helper shared
+  with the coverage check; two self-test cases.
+
 ## 0.3.5 — `parked` stage and a resume reconcile (#68)
 
 - **`stage: "parked"`** with `parked: { reason, resumeStage, at, holds }`, from any non-terminal stage on
