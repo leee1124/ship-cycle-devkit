@@ -65,7 +65,7 @@ command or a tool; report BLOCKED with what you were waiting for. This report is
 - Concerns: <none | one actionable sentence each, path:line where there is one>
 - Commands run: <command → exit code, one per line>
 - Not verified: <none | what this report does not prove, e.g. "full suite not rerun after the last edit">
-- Hypotheses: <omit | red-gate fix briefs: cause · evidence · change · result · tree, one per hypothesis>
+- Hypotheses: <omit | red-gate fix briefs, one per hypothesis: cause · evidence · change · result · tree>
 ```
 <!-- /impl-report-block -->
 

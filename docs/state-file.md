@@ -92,7 +92,8 @@ the mechanics that only matter when something unusual happens to its name or its
               "hypothesis": "<one cause>", "evidence": "<path:line or command → output>",
               "change": "<the one minimal change>", "result": "rejected",
               "tree": "<tree id the re-run ran on>",
-              "revert": "git apply -R pre.patch · tree back to <pre-change tree id>", "at": "<iso>" }],
+              "revert": "git apply -R <scratch>/change.patch · tree back to <pre-change tree id>",
+              "at": "<iso>" }],
   "telemetry": { "upgrades": ["auth → security lens: high→top"],
                  "stages": { "review": { "tier": "top", "model": "opus", "effort": "high",
                                          "tokens": null, "cost": null },
@@ -320,8 +321,8 @@ looks — a gate passes only when its stage produces the evidence. Continue from
 points at.
 
 **Debug entries survive the reconcile.** `debug` is never cleared or trimmed by a resume, whatever it
-clears: a rejected hypothesis stays rejected, so the next session or agent does not retry it, and the count
-toward three rejections carries over. Entries are written from a finished report only, so none is ever
+clears: the rejected entries survive a restart, so no disproved cause is retried by the next session or
+agent. Entries are written from a finished report only, so none is ever
 pending; a round that died without reporting left no entry, and its hypothesis is simply untested.
 
 **A clear does not count against `loops`.** The cap bounds attempts that *failed*; a clear means the

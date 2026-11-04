@@ -2253,8 +2253,8 @@ CASES = [
     (
         "revert not checked against the pre-change tree",
         lambda r: mutate(r / "docs" / "red-gate.md",
-                         "the tree identity must equal the pre-change\n   tree", "check"),
-        "does not state 'the tree identity must equal the pre-change tree'",
+                         "the tree identity equals the pre-change tree", "check"),
+        "does not state 'the tree identity equals the pre-change tree'",
     ),
     (
         "red differently opens a new group",
@@ -2293,8 +2293,54 @@ CASES = [
     ),
     (
         "debug entry loses its revert",
-        lambda r: mutate(r / "docs" / "state-file.md", '"revert": "git apply -R pre.patch', '"undo": "x'),
+        lambda r: mutate(r / "docs" / "state-file.md",
+                         '"revert": "git apply -R <scratch>/change.patch', '"undo": "x'),
         "debug entry lacks 'revert'",
+    ),
+    (
+        "revert diffs before the change",
+        lambda r: mutate(r / "docs" / "red-gate.md",
+                         "`base=$(git stash create)`", "`git diff -- <files> > pre.patch`"),
+        "states '> pre.patch'",
+    ),
+    (
+        "revert runs git stash",
+        lambda r: mutate(r / "docs" / "red-gate.md", "never run `git stash` itself", "run `git stash`"),
+        "does not state 'never run `git stash` itself'",
+    ),
+    (
+        "revert patch is not the change itself",
+        lambda r: mutate(r / "docs" / "red-gate.md", "patch the change itself", "patch the worktree"),
+        "does not state '**After the change**, patch the change itself'",
+    ),
+    (
+        "revert drops untracked copies",
+        lambda r: mutate(r / "docs" / "red-gate.md", "copy every untracked file", "skip untracked files"),
+        "does not state 'copy every untracked file'",
+    ),
+    (
+        "loop-2 count within one round",
+        lambda r: mutate(r / "docs" / "red-gate.md",
+                         "across\n     all rounds, not within one", "within\n     the round"),
+        "does not state 'across all rounds, not within one'",
+    ),
+    (
+        "restart wording counts toward a cap",
+        lambda r: mutate(r / "docs" / "red-gate.md",
+                         "the rejected entries survive a restart, so no disproved cause is retried",
+                         "the three-rejection count survives a restart"),
+        "states 'three-rejection count survives'",
+    ),
+    (
+        "Hypotheses item format diverges",
+        lambda r: mutate(r / "docs" / "red-gate.md",
+                         "`cause · evidence · change · result · tree`", "`cause: evidence`"),
+        "does not state '`cause · evidence · change · result · tree`'",
+    ),
+    (
+        "N not applied per tree",
+        lambda r: mutate(r / "docs" / "red-gate.md", "applied per tree", "overall"),
+        "does not state 'applied per tree'",
     ),
 ]
 

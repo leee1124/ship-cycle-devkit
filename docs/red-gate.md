@@ -32,7 +32,8 @@ restatement of the symptom.
    code, tree, error) **is** this step: the fixer re-runs it once to confirm on its own tree, no more.
    **"Could not reproduce" is not fixed.** The red stands: `gates.<G>` keeps its `fail`, and the gate-log
    row reads `fail` with evidence `undetermined: not reproduced in <N> runs` — the log has no
-   `undetermined` value (§core 2's third state lives in the evidence, never as a pass). It leaves by one
+   `undetermined` value (§core 2's third state lives in the evidence, never as a pass). `<N>` is the count
+   fixed before the first run (§Flaky and order-dependent failures), applied per tree. It leaves by one
    of three exits, never by a rerun that happens to go green (never retry until green to pass a gate):
    - **(a) Classify and fix.** A case that failed and then passed with no change is classified per
      §Flaky and order-dependent failures, and the cause of the flake is fixed under this protocol.
@@ -62,11 +63,22 @@ restatement of the symptom.
    gone for the stated reason), `rejected` or `undetermined` (the run errored). **Red differently is
    `rejected`** on the original failure: the failure stays the same group until its original error is
    gone, and only then does a new error open a new one.
-   **Revert safely.** Before the change, snapshot it — record the tree identity and
-   `git diff -- <files> > pre.patch`, or the hunk itself — and undo a rejected change with
-   `git apply -R` on exactly that change. Never `git checkout`, `git reset` or `git stash` files other
-   agents or the earlier rounds also touch. After the revert, the tree identity must equal the pre-change
-   tree; record the revert in the entry. Changes never pile up.
+   **Revert safely — undo this change, not the work around it.** The worktree already holds uncommitted
+   work (the implementation, earlier rounds), so a diff taken *before* the change captures that work, and
+   reverting it reverts the wrong thing. Instead:
+   - **Before the change**, record the tree identity and the pre-change state:
+     `base=$(git stash create)` (it writes a commit and prints its sha without touching the worktree or
+     the stash list — never run `git stash` itself; empty output means nothing tracked changed, so use
+     `HEAD`), and copy every untracked file the change will touch to a scratch dir outside the worktree
+     (`stash create` omits untracked files).
+   - **After the change**, patch the change itself: `git diff "$base" -- <files> > <scratch>/change.patch`
+     for tracked files. Keep the patch outside the worktree — a file in it changes the tree identity.
+   - **To undo**, `git apply -R <scratch>/change.patch`; if that fails, and always for an untracked file,
+     restore the pre-change copies (a `--no-index` diff of a copy names the scratch path and does not
+     apply back); delete a file the change created. Never `git checkout`, `git reset` or `git stash`
+     files other agents or the earlier rounds also touch.
+   - **Then check** that the tree identity equals the pre-change tree, and record the revert in the entry.
+     Changes never pile up.
 6. **Record every attempt** as one `state.debug` entry (§The record), confirmed or not, before the next.
 7. **Stop guessing before the third blind try.** The counting rides on #87 and adds nothing to it: each
    fix round that ends with its hypotheses rejected is already a fix-round re-dispatch counted against
@@ -77,7 +89,8 @@ restatement of the symptom.
      names a missing fact (then `NEEDS_CONTEXT`) or the environment (then the orchestrator parks and asks
      the user). Routed by the design-defect row to sc-design; it is the round's "further failure", +1 to
      `loops[G]` only because it happened inside the round.
-   - **At loop 2 with two rejected hypotheses**, prefer sc-design over a third guess.
+   - **At loop 2 with two rejected hypotheses** — counted as this failure's `rejected` entries across
+     all rounds, not within one — prefer sc-design over a third guess.
    - **When the rounds already reached the cap**, the one cap rule decides: stop, park and ask; the user
      decides, with the failure's `state.debug` entries handed over as the evidence.
    This is **not a second cap**: it changes the route, it never stops the cycle by itself, and the one cap
@@ -99,7 +112,7 @@ not a pass, and the full command reruns before the gate is recorded.
   "hypothesis": "the bucket refill reads the wall clock, not the injected Clock",
   "evidence": "src/main/java/RateLimiter.java:41", "change": "use the injected Clock in refill()",
   "result": "rejected", "tree": "<tree id the re-run ran on>",
-  "revert": "git apply -R pre.patch · tree back to <pre-change tree id>", "at": "<iso>" }
+  "revert": "git apply -R <scratch>/change.patch · tree back to <pre-change tree id>", "at": "<iso>" }
 ```
 
 - `failure` names the failure so entries group: the failing case id, or for a build the error code plus
@@ -111,15 +124,16 @@ not a pass, and the full command reruns before the gate is recorded.
   change.
 - **Who writes it.** A red-gate fix brief carries this protocol and the failure's existing entries, and
   requires the report block's `- Hypotheses:` field (§`${CLAUDE_PLUGIN_ROOT}/docs/impl-status.md`), one
-  item per hypothesis: `<cause> · evidence: <cite> · change: <change> · result: <result> · tree: <id>`.
+  item per hypothesis, fields in this order: `cause · evidence · change · result · tree` (the block's
+  placeholder, word for word).
   The field is optional in every other brief. The orchestrator copies each item into `state.debug`. A
   fix-round report missing it is re-asked once as a context fetch (outside `loops[G]`), never routed as
   `BLOCKED` (no report): the rest of the report is a report.
 - **Consumers.** sc-implement passes the rejected entries for a failure into every later fix brief for it
   (do not retry); the resume reconcile keeps them (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Resume
-  reconcile), so a resumed session or a fresh agent does not retry a disproved cause and the
-  three-rejection count survives a restart; sc-ship's cost readout prints one line per failure; sc-retro
-  reads them for loops. None decides a gate.
+  reconcile), so the rejected entries survive a restart, so no disproved cause is retried by a resumed
+  session or a fresh agent; sc-ship's cost readout prints one line per failure; sc-retro reads them for
+  loops. None decides a gate.
 <!-- /red-gate-record -->
 
 ## Flaky and order-dependent failures

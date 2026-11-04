@@ -1629,10 +1629,15 @@ RED_BLOCK_TOKENS = {
                           "cited against that entry's `tree`", "is new evidence",
                           "**One minimal change, then re-run.**", "one change, not a bundle",
                           "**Red differently is `rejected`** on the original failure",
-                          "only then does a new error open a new one", "**Revert safely.**",
-                          "`git diff -- <files> > pre.patch`", "`git apply -R`",
+                          "only then does a new error open a new one", "**Revert safely",
+                          "undo this change, not the work around it", "`base=$(git stash create)`",
+                          "never run `git stash` itself", "so use `HEAD`", "copy every untracked file",
+                          "**After the change**, patch the change itself",
+                          "`git diff \"$base\" -- <files> > <scratch>/change.patch`",
+                          "Keep the patch outside the worktree", "`git apply -R <scratch>/change.patch`",
+                          "restore the pre-change copies",
                           "Never `git checkout`, `git reset` or `git stash`",
-                          "the tree identity must equal the pre-change tree", "record the revert",
+                          "the tree identity equals the pre-change tree", "record the revert",
                           "**Record every attempt**", "The counting rides on #87 and adds nothing to it",
                           "already a fix-round re-dispatch counted against `loops[G]`",
                           "hypotheses tested inside one round are not loops",
@@ -1640,7 +1645,10 @@ RED_BLOCK_TOKENS = {
                           "`BLOCKED` (design defect)", "`NEEDS_CONTEXT`", "parks and asks the user",
                           "Route the implementer's status", "the round's \"further failure\"",
                           "only because it happened inside the round",
-                          "**At loop 2 with two rejected hypotheses**, prefer sc-design over a third guess",
+                          "**At loop 2 with two rejected hypotheses**", "across all rounds, not within one",
+                          "prefer sc-design over a third guess",
+                          "`<N>` is the count fixed before the first run",
+                          "applied per tree",
                           "**When the rounds already reached the cap**", "handed over as the evidence",
                           "**not a second cap**", "never stops the cycle by itself",
                           "the one cap rule stays the orchestrator's", "the user decides",
@@ -1650,10 +1658,12 @@ RED_BLOCK_TOKENS = {
                         "a new group opens only once the original error is gone", "`round`",
                         "the round, not a loop", "`revert`", "`result` is `confirmed`, `rejected` or "
                         "`undetermined`", "`- Hypotheses:` field", "docs/impl-status.md",
-                        "optional in every other brief",
+                        "optional in every other brief", "`cause · evidence · change · result · tree`",
+                        "word for word",
                         "re-asked once as a context fetch (outside `loops[G]`)",
                         "never routed as `BLOCKED` (no report)", "(do not retry)",
-                        "the resume reconcile keeps them", "the three-rejection count survives a restart",
+                        "the resume reconcile keeps them",
+                        "the rejected entries survive a restart, so no disproved cause is retried",
                         "cost readout", "sc-retro", "None decides a gate"),
     "red-gate-flaky": ("**Retry to classify, never to hide.**", "count fixed before the first one",
                        "a gate never passes on the best of N runs", "**order-dependent**", "**flaky**",
@@ -1666,7 +1676,8 @@ RED_BLOCK_TOKENS = {
 # Wording that would make the protocol a second cap or let a retry pass a gate.
 RED_FORBIDDEN = ("its own loop cap", "may pass on the best of", "rerun until it passes",
                  "could not reproduce counts as fixed", "lines after the report block",
-                 "is routed as `BLOCKED` (no report)", "its re-run is repeated")
+                 "is routed as `BLOCKED` (no report)", "its re-run is repeated", "> pre.patch",
+                 "three-rejection count survives")
 RED_DEBUG_KEYS = ("gate", "failure", "round", "repro", "hypothesis", "evidence", "change", "result", "tree",
                   "revert")
 RED_FAILURE_GATES = ("G5", "G6", "G7", "G7b", "G9")
@@ -1748,7 +1759,8 @@ def check_red_gate(root: Path, f: Findings) -> None:
     idoc = root / IMPL_STATUS_DOC
     ivocab = _flat(read(idoc)) if idoc.is_file() else ""
     for token in ("**Hypotheses** — optional, and required only in a red-gate fix brief", "docs/red-gate.md",
-                  "re-asked once as a context fetch, never treated as no report"):
+                  "re-asked once as a context fetch, never treated as no report",
+                  "one per hypothesis: cause · evidence · change · result · tree>"):
         if token not in ivocab:
             f.error(shown(IMPL_STATUS_DOC), f"does not state {token!r} for the Hypotheses field")
     shape_path = root / STATE_SHAPE_DOC
