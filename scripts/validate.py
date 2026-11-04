@@ -38,7 +38,10 @@ ANY_BUNDLED_REF_RE = re.compile(
     r"(?<!\$\{CLAUDE_PLUGIN_ROOT\}/)(?<![\w./-])(?:" + BUNDLED_DIRS_RE + r")/[A-Za-z0-9._/-]+\.md"
 )
 STATE_FIELD_RE = re.compile(r"(?<![\w.-])state\.([A-Za-z][A-Za-z0-9_]*)")
-GATE_SET_RE = re.compile(r"gates\.((?:G\d+[a-z]?)(?:/G\d+[a-z]?)*)")
+# An *assignment* (`gates.G10 = pass`, `gates.G7b: checklist`, compound `gates.G5/G6 = <r>`): prose that
+# merely names a gate ("`gates.G10` is unset") does not prove a stage records it (#75). Quotes/backticks
+# may sit between the id and the operator; `::` is not an assignment.
+GATE_SET_RE = re.compile(r"gates\.((?:G\d+[a-z]?)(?:/G\d+[a-z]?)*)[`\"']?\s*(?:=(?!=)|:(?!:))")
 GATE_TABLE_ROW_RE = re.compile(r"^\|\s*((?:G\d+[a-z]?)(?:[/–-]G\d+[a-z]?)*)\s*\|", re.M)
 FRONTMATTER_RE = re.compile(r"\A---\n(.*?)\n---\n", re.S)
 CHANGELOG_VERSION_RE = re.compile(r"^##\s+(\d+\.\d+\.\d+)", re.M)
