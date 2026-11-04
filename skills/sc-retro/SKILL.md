@@ -77,7 +77,8 @@ run them sequentially (§`${CLAUDE_PLUGIN_ROOT}/docs/heavy-work.md`).
 1. **Loops & re-reviews** — which gate failed and re-ran (`fail (loop n/3)` rows, `cleared` rows), why, and
    whether an earlier stage could have caught it (a G6 loop on a case the G4 tests never named). Read
    `state.telemetry.implStatus` (or its cost-readout lines) for implementer stalls, re-dispatches and the
-   status that sent each.
+   status that sent each. Read `state.debug` (or its cost-readout lines) for each red gate's hypotheses:
+   a cause tested twice, a fix made before the failure was reproduced, a flake rerun until green.
 2. **Review effectiveness** — findings by lens; defects found later (QA, CI, the owner, after merge) that
    no lens caught and which lens owned that class; findings refuted as false positives. Read
    `state.waveReviews` (or its cost-readout lines): a defect G8 found that a wave check read past, and

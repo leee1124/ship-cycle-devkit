@@ -292,16 +292,21 @@ release valve, §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Parking) — and
 | G1 | acceptance criteria stated verifiably + **route plan**, user-agreed together | re-brainstorm |
 | G2/G3 | interfaces specified + 0 unresolved critic objections | re-design |
 | G4 | failing tests exist for the change's logic (Red evidence) — or, for layout/copy/config, the execution-based verification is named instead (§core 3) | reject |
-| G5 | build succeeds + new tests pass (Green) | build-fixer |
-| G6 | no failures **new vs `state.baseline`** (`unrunnableHere` suites are neither pass nor regression; `baseline.flaky` cases are not exempt; under `ci-status-only` every failure blocks unless its suite is in `run.rechecked`); core coverage from the **report** clears its floor, or `"n/a: no coverage config"`; ci-deferred coverage → `checklist` (§sc-implement G6) | debugger → sc-implement (undetermined → fix the coverage run) |
-| G7 | (if an artifact ships) real build succeeds | build-fixer |
-| G7b | (if the nature declares `bootCheck`) full-context **eager** boot/context-load smoke passes on a non-inert change | build-fixer (env can't load → checklist) |
+| G5 | build succeeds + new tests pass (Green) | build-fixer, red-gate protocol |
+| G6 | no failures **new vs `state.baseline`** (`unrunnableHere` suites are neither pass nor regression; `baseline.flaky` cases are not exempt; under `ci-status-only` every failure blocks unless its suite is in `run.rechecked`); core coverage from the **report** clears its floor, or `"n/a: no coverage config"`; ci-deferred coverage → `checklist` (§sc-implement G6) | debugger → sc-implement, red-gate protocol (undetermined → fix the coverage run) |
+| G7 | (if an artifact ships) real build succeeds | build-fixer, red-gate protocol |
+| G7b | (if the nature declares `bootCheck`) full-context **eager** boot/context-load smoke passes on a non-inert change | build-fixer, red-gate protocol (env can't load → checklist) |
 | G8 | 0 Critical/High (authz, paywall, anemic, N+1); every finding has a disposition (fixed-here / filed `#NN`); no `reviewJobs` entry still `running`/`launching`, `gitFreeze` released; UI → designer passes | → sc-implement (design flaw → sc-design) |
-| G9 | 0 new defects in integration/E2E vs `state.baseline` (ignoring `unrunnableHere`; `flaky` not exempt; under `ci-status-only` every defect blocks unless its suite is in `run.rechecked`); seams reproduced; ITs that **can** run here actually ran; release-artifact smoke when `appliesTo` is touched (§sc-qa Release-artifact smoke) | → sc-implement |
+| G9 | 0 new defects in integration/E2E vs `state.baseline` (ignoring `unrunnableHere`; `flaky` not exempt; under `ci-status-only` every defect blocks unless its suite is in `run.rechecked`); seams reproduced; ITs that **can** run here actually ran; release-artifact smoke when `appliesTo` is touched (§sc-qa Release-artifact smoke) | → sc-implement, red-gate protocol |
 | G10 | docs matching the change exist | writer |
 | G11 | every claim mapped 1:1 to a test/build/QA log; a UI nature's looks → `state.visualCheck`: appearance only; not stale; `ownerPresent` true (owner-confirmed on a profile; otherwise the pre-merge manual gate) | rework |
 | G12 | build+test+review+QA passed, and every matched overlay `releaseChecklist` item ran green or (`manual`) is on the pre-merge manual gate — a `degrade` G9 / `checklist` G7b or G6 counts **only** when its item is on the pre-merge manual gate (a `deferred` release smoke included), and an `"n/a: <reason>"` gate counts with its reason carried to the PR body (not a whole-stage G2/G3, G4 or G9 `n/a` whose route entry is `run`, unless it is a config `n/a`); **branch merges cleanly into** overlay `vcs.defaultBase` (merge-tree probe + host `mergeable`); PR body's **Gate summary** matches a fresh render from state + log, re-checked right before merge | merge base + resolve, re-verify |
 | G13 | merged branch deleted (local + remote); feature worktree removed if created (**linked dep stores unlinked first**, never deleted through); cycle state file deleted; gate log archived, not deleted; base synced | — |
+
+**Red-gate protocol** — every build-fixer or debugger the "On failure" column sends reproduces first, then
+tests one evidenced hypothesis per minimal change and records each in `state.debug`; three rejected on one
+failure route as `BLOCKED` (design defect) under the one cap rule
+(§`${CLAUDE_PLUGIN_ROOT}/docs/red-gate.md`).
 
 ## Model routing (resolved at PREFLIGHT)
 

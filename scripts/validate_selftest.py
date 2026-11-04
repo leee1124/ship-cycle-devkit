@@ -127,6 +127,18 @@ def mutate(path: Path, old: str, new: str, count: int = 1) -> None:
     path.write_text(text.replace(old, new, count), encoding="utf-8")
 
 
+def swap_red_steps(root: Path) -> None:
+    """Move the hypothesis step above the read-the-error step in docs/red-gate.md."""
+    path = root / "docs" / "red-gate.md"
+    text = path.read_text(encoding="utf-8")
+    read_at = text.index("2. **Read the actual error.**")
+    hyp_at = text.index("4. **One hypothesis, with evidence.**")
+    path.write_text(text.replace("**Read the actual error.**", "@@R@@", 1)
+                    .replace("**One hypothesis, with evidence.**", "**Read the actual error.**", 1)
+                    .replace("@@R@@", "**One hypothesis, with evidence.**", 1), encoding="utf-8")
+    assert read_at < hyp_at
+
+
 def swap_wave_passes(root: Path) -> None:
     """Move the Spec alignment step above the Cold pass in docs/wave-check.md."""
     path = root / "docs" / "wave-check.md"
@@ -2013,6 +2025,168 @@ CASES = [
         "multi-stack later barriers unstated",
         lambda r: mutate(r / "docs" / "wave-check.md", "Later stack barriers:", "Also:"),
         "does not state 'Later stack barriers'",
+    ),
+    # The red-gate protocol (#89).
+    (
+        "red-gate doc missing",
+        lambda r: (r / "docs" / "red-gate.md").unlink(),
+        "docs/red-gate.md: missing",
+    ),
+    (
+        "red gate fixes before reproducing",
+        lambda r: mutate(r / "docs" / "red-gate.md",
+                         "**Reproduce first, with the real command.**", "**Fix it.**"),
+        "does not state '**Reproduce first, with the real command.**'",
+    ),
+    (
+        "could-not-reproduce counts as fixed",
+        lambda r: mutate(r / "docs" / "red-gate.md",
+                         "**\"Could not reproduce\" is not fixed.**", "**Could not reproduce is fine.**"),
+        "does not state '**\"Could not reproduce\" is not fixed.**'",
+    ),
+    (
+        "repro exit code read from a pipe",
+        lambda r: mutate(r / "docs" / "red-gate.md", "its own exit code", "the exit code"),
+        "red-gate-protocol block does not state 'its own exit code'",
+    ),
+    (
+        "repro runs escape the lock",
+        lambda r: mutate(r / "docs" / "red-gate.md",
+                         "under overlay `env.heavyLock` with a\n   bounded wait", "freely"),
+        "red-gate-protocol block does not state '`env.heavyLock`'",
+    ),
+    (
+        "hypothesis without evidence",
+        lambda r: mutate(r / "docs" / "red-gate.md", "(§`${CLAUDE_PLUGIN_ROOT}/docs/claim-evidence.md`)", ""),
+        "red-gate-protocol block does not state 'docs/claim-evidence.md'",
+    ),
+    (
+        "rejected hypothesis retried",
+        lambda r: mutate(r / "docs" / "red-gate.md",
+                         "not tried again unless new evidence", "tried again unless new evidence"),
+        "does not state 'not tried again unless new evidence'",
+    ),
+    (
+        "several changes at once",
+        lambda r: mutate(r / "docs" / "red-gate.md", "one change,\n   not a bundle", "a few changes"),
+        "does not state 'one change, not a bundle'",
+    ),
+    (
+        "three rejections become a second cap",
+        lambda r: mutate(r / "docs" / "red-gate.md",
+                         "This is **not a\n   second cap**", "This has its own loop cap"),
+        "states 'its own loop cap'",
+    ),
+    (
+        "three rejections not routed as design defect",
+        lambda r: mutate(r / "docs" / "red-gate.md",
+                         "reports\n   `BLOCKED` (design defect)", "reports\n   failure"),
+        "red-gate-protocol block does not state '`BLOCKED` (design defect)'",
+    ),
+    (
+        "three rejections not counted",
+        lambda r: mutate(r / "docs" / "red-gate.md", "counts toward `loops[G]` once", "is free"),
+        "does not state 'counts toward `loops[G]` once'",
+    ),
+    (
+        "protocol hypothesises before reading the error",
+        lambda r: swap_red_steps(r),
+        "red-gate-protocol does not reproduce, read, compare, hypothesise, change in order",
+    ),
+    (
+        "flaky retried until green",
+        lambda r: mutate(r / "docs" / "red-gate.md",
+                         "**Retry to classify, never to hide.**", "**Retry until it is green.**"),
+        "does not state '**Retry to classify, never to hide.**'",
+    ),
+    (
+        "gate passes on best of N",
+        lambda r: mutate(r / "docs" / "red-gate.md",
+                         "a gate never passes on the best\nof N runs",
+                         "a gate may pass on the best of N runs"),
+        "states 'may pass on the best of'",
+    ),
+    (
+        "polluter bisection unix-only",
+        lambda r: mutate(r / "docs" / "red-gate.md", "so it works on Linux and Windows alike", "with find"),
+        "does not state 'Linux and Windows'",
+    ),
+    (
+        "sleep instead of condition",
+        lambda r: mutate(r / "docs" / "red-gate.md",
+                         "**Wait for the condition, not for time.**", "**Add a sleep.**"),
+        "does not state '**Wait for the condition, not for time.**'",
+    ),
+    (
+        "sc-implement loses the red-gate section",
+        lambda r: mutate(r / "skills" / "sc-implement" / "SKILL.md", "## When a gate goes red", "## Red"),
+        "'## When a gate goes red' does not state",
+    ),
+    (
+        "sc-implement fix briefs drop the record",
+        lambda r: mutate(r / "skills" / "sc-implement" / "SKILL.md",
+                         'rejected ones marked "do not retry"', ""),
+        "does not state '\"do not retry\"'",
+    ),
+    (
+        "G6 debugger without the protocol",
+        lambda r: mutate(r / "skills" / "sc-implement" / "SKILL.md",
+                         "debugger under §When a gate goes red", "debugger"),
+        "G6 does not attach its debugger under §When a gate goes red",
+    ),
+    (
+        "sc-qa flaky flow counted as passed",
+        lambda r: mutate(r / "skills" / "sc-qa" / "SKILL.md", "is `undetermined`, not passed", "passed"),
+        "skills/sc-qa/SKILL.md: '## When a gate goes red' does not state '`undetermined`, not passed'",
+    ),
+    (
+        "gate table G6 drops the protocol",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md",
+                         "debugger → sc-implement, red-gate protocol", "debugger → sc-implement"),
+        "G6 'On failure' cell does not name the red-gate protocol",
+    ),
+    (
+        "gate table G9 drops the protocol",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md",
+                         "| → sc-implement, red-gate protocol |", "| → sc-implement |"),
+        "G9 'On failure' cell does not name the red-gate protocol",
+    ),
+    (
+        "gate table red-gate note loses the cap rule",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "under the one cap rule\n(§", "\n(§"),
+        "gate table has no red-gate note",
+    ),
+    (
+        "debug entry loses its tree",
+        lambda r: mutate(r / "docs" / "state-file.md",
+                         '\n              "tree": "<tree id the re-run ran on>", "at"',
+                         '\n              "at"'),
+        "debug entry lacks 'tree'",
+    ),
+    (
+        "debug entry loses its repro exit",
+        lambda r: mutate(r / "docs" / "state-file.md",
+                         '"repro": { "command": "<the gate\'s real command>", "exit": 1 }',
+                         '"repro": { "command": "x" }'),
+        "debug.repro lacks command/exit",
+    ),
+    (
+        "reconcile drops debug entries",
+        lambda r: mutate(r / "docs" / "state-file.md",
+                         "**Debug entries survive the reconcile.**", "**Debug entries.**"),
+        "resume reconcile does not keep `debug` entries",
+    ),
+    (
+        "sc-ship readout stops printing debug",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md",
+                         "one line per failure in `state.debug`", "one line per failure"),
+        "skills/sc-ship/SKILL.md: does not read `state.debug`",
+    ),
+    (
+        "sc-retro stops reading debug",
+        lambda r: mutate(r / "skills" / "sc-retro" / "SKILL.md",
+                         "Read `state.debug` (or", "Read the debug log (or"),
+        "skills/sc-retro/SKILL.md: does not read `state.debug`",
     ),
 ]
 

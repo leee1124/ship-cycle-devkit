@@ -149,16 +149,29 @@ labelled, uncommitted prototypes on the running app — the chosen one is produc
   `owner-confirmed`, in the owner's own words, and only with `state.route.ownerPresent === true`; a subagent
   writes `agent-captured` at most. A route plan may name this loop (§ship-cycle Route plan).
 
+## When a gate goes red
+A red G5, G6, G7 or G7b (and a red wave barrier) sends a build-fixer or debugger, and that agent follows
+the red-gate protocol in `${CLAUDE_PLUGIN_ROOT}/docs/red-gate.md`: reproduce with the real command first
+(command, exit code, tree — "could not reproduce" is `undetermined`, never fixed), read the actual error,
+compare against a working example, then one hypothesis with evidence and one minimal change per re-run.
+- **The brief carries the record.** Pass the failure's `state.debug` entries into every fix brief for it,
+  rejected ones marked "do not retry", and copy the report's hypothesis lines back into `state.debug`.
+- **Three rejected hypotheses on one failure** are reported as `BLOCKED` (design defect) and routed by the
+  table above — counted once toward `loops[G]`, never a second cap; at the cap the user decides.
+- Repro runs and bisections are heavy: under `env.heavyLock`, with bounded waits
+  (§`${CLAUDE_PLUGIN_ROOT}/docs/heavy-work.md`). Never rerun until green to pass a gate.
+
 ## Verify (this stage owns build + tests, separate from review)
 - **G5**: build succeeds and the **new tests pass** (Green) — or, where G4 recorded an execution-based
   verification instead, that verification ran and its output was read. Run the nature's build/test commands
   and read the output (§core 2).
 - **G6**: no failures **new vs `state.baseline`** (the base-branch reds captured at PREFLIGHT don't
   block — don't make each implementer re-derive "mine or pre-existing?" by stash-and-compare; diff the
-  run against `state.baseline.failing`), and core coverage clears its threshold (next bullet). On a genuinely new failure, attach a
-  debugger and loop. `baseline.flaky` cases are not exempt. Under **`ci-status-only`** every
-  failure blocks unless its suite is in `baseline.run.rechecked`. A failure you believe is pre-existing or
-  environment-only is settled by rechecking that suite on the base commit — never the working tree — per
+  run against `state.baseline.failing`), and core coverage clears its threshold (next bullet). On a
+  genuinely new failure, attach a debugger under §When a gate goes red and loop. `baseline.flaky` cases
+  are not exempt. Under **`ci-status-only`** every failure blocks unless its suite is in
+  `baseline.run.rechecked`. A failure you believe is pre-existing or environment-only is settled by
+  rechecking that suite on the base commit — never the working tree — per
   `${CLAUDE_PLUGIN_ROOT}/docs/test-baseline.md`, not by argument. Suites in
   **`state.baseline.unrunnableHere`** — ones this environment cannot start,
   probed and recorded at PREFLIGHT — are diffed **around**: not a regression, and not coverage either

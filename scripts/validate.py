@@ -1604,6 +1604,142 @@ def check_wave_check(root: Path, f: Findings) -> None:
         f.error("skills/sc-ship/SKILL.md", "cost readout does not show refuted-but-carried items as such")
 
 
+RED_DOC = Path("docs/red-gate.md")
+# Each marker block in docs/red-gate.md and the tokens it must state (#89).
+RED_BLOCK_TOKENS = {
+    "red-gate-trigger": ("G5, G6, G7 or G7b", "red wave barrier", "genuine `fail` at G9",
+                         "every later round on the same failure", "An undetermined check is not red",
+                         "§sc-brainstorm — Root-cause analysis", "never a restatement of the symptom"),
+    "red-gate-protocol": ("**Reproduce first, with the real command.**", "its own exit code",
+                          "tree identity", "`env.heavyLock`", "bounded wait", "docs/heavy-work.md",
+                          "**\"Could not reproduce\" is not fixed.**", "`undetermined`",
+                          "is not exempt", "docs/test-baseline.md", "Never retry until green to pass a gate",
+                          "**Read the actual error.**", "**Compare against a working example.**",
+                          "never the working tree", "**One hypothesis, with evidence.**",
+                          "docs/claim-evidence.md", "**Read `state.debug` first:**",
+                          "not tried again unless new evidence", "**One minimal change, then re-run.**",
+                          "one change, not a bundle", "reverted before the next hypothesis",
+                          "**Record every attempt**", "**Three rejected hypotheses on the same failure",
+                          "`BLOCKED` (design defect)", "`NEEDS_CONTEXT`", "parks and asks the user",
+                          "Route the implementer's status", "counts toward `loops[G]` once",
+                          "**not a second cap**", "never stops the cycle by itself",
+                          "the one cap rule stays the orchestrator's", "the user decides",
+                          "a `confirmed` entry is a claim, not a pass"),
+    "red-gate-record": ("`state.debug` is append-only", "one entry per hypothesis tested", "`failure`",
+                        "same `gate` and `failure`", "`round`", "`result` is `confirmed`, `rejected` or "
+                        "`undetermined`", "- Hypothesis:", "`BLOCKED` (no report)", "(do not retry)",
+                        "the resume reconcile keeps them", "the three-rejection count survives a restart",
+                        "cost readout", "sc-retro", "None decides a gate"),
+    "red-gate-flaky": ("**Retry to classify, never to hide.**", "count fixed before the first one",
+                       "a gate never passes on the best of N runs", "**order-dependent**", "**flaky**",
+                       "not in `baseline.flaky` is a finding", "**Find the polluter by bisection.**",
+                       "log2(n)", "runner's own selection and ordering flags", "Linux and Windows",
+                       "`env.heavyLock`", "**Wait for the condition, not for time.**",
+                       "Lengthening a sleep is not a fix", "**Isolate shared state.**",
+                       "Fix the polluter, not the victim"),
+}
+# Wording that would make the protocol a second cap or let a retry pass a gate.
+RED_FORBIDDEN = ("its own loop cap", "may pass on the best of", "rerun until it passes",
+                 "could not reproduce counts as fixed")
+RED_DEBUG_KEYS = ("gate", "failure", "round", "repro", "hypothesis", "evidence", "change", "result", "tree")
+RED_FAILURE_GATES = ("G5", "G6", "G7", "G7b", "G9")
+RED_SKILL_TOKENS = {
+    "sc-implement": ("When a gate goes red", ("docs/red-gate.md", "reproduce with the real command first",
+                                              "`undetermined`, never fixed", "one hypothesis with evidence",
+                                              "`state.debug`", "\"do not retry\"",
+                                              "`BLOCKED` (design defect)", "never a second cap",
+                                              "the user decides", "`env.heavyLock`",
+                                              "Never rerun until green")),
+    "sc-qa": ("When a gate goes red", ("docs/red-gate.md", "real command, exit code and tree",
+                                       "`undetermined`, not passed", "never rerun until green",
+                                       "`state.debug`", "`BLOCKED`\n(design defect)", "`loops[G9]`")),
+}
+
+
+def check_red_gate(root: Path, f: Findings) -> None:
+    """#89: a red gate is reproduced first and fixed one evidenced hypothesis at a time, with a record.
+
+    Guards the protocol doc's trigger, protocol, record and flaky blocks (stated once, there; reproduce
+    before the first hypothesis); that sc-implement and sc-qa point to it, every failure-routed gate row in
+    the orchestrator's table names it, three rejections route as the design-defect row under the one cap
+    rule; and that `state.debug` is in the shape with its keys, survives the reconcile and is read by the
+    cost readout and sc-retro.
+    """
+    doc = root / RED_DOC
+    where = shown(RED_DOC)
+    if not doc.is_file():
+        f.error(where, "missing")
+        return
+    text = read(doc)
+    for marker, tokens in RED_BLOCK_TOKENS.items():
+        m = re.search(rf"<!-- {marker} -->(.*?)<!-- /{marker} -->", text, re.S)
+        if not m:
+            f.error(where, f"no <!-- {marker} --> block")
+            continue
+        body = _flat(m.group(1))
+        for token in tokens:
+            if token not in body:
+                f.error(where, f"{marker} block does not state {token!r}")
+    pm = re.search(r"<!-- red-gate-protocol -->(.*?)<!-- /red-gate-protocol -->", text, re.S)
+    body = pm.group(1) if pm else ""
+    order = ("**Reproduce first", "**Read the actual error.**", "**Compare against a working example.**",
+             "**One hypothesis, with evidence.**", "**One minimal change, then re-run.**")
+    found = [body.find(t) for t in order]
+    if all(i >= 0 for i in found) and found != sorted(found):
+        f.error(where, "red-gate-protocol does not reproduce, read, compare, hypothesise, change in order")
+    for token in RED_FORBIDDEN:
+        if token in _flat(text):
+            f.error(where, f"states {token!r} — the protocol changes a route, never a cap or a pass")
+    for skill, (heading, tokens) in RED_SKILL_TOKENS.items():
+        path = root / SKILLS_DIR / skill / "SKILL.md"
+        swhere = f"skills/{skill}/SKILL.md"
+        raw = _section(read(path), heading) if path.is_file() else ""
+        sec = _flat(raw)
+        for token in tokens:
+            if _flat(token) not in sec:
+                f.error(swhere, f"'## {heading}' does not state {_flat(token)!r}")
+    impl = root / SKILLS_DIR / "sc-implement" / "SKILL.md"
+    if impl.is_file() and "debugger under §When a gate goes red" not in _flat(read(impl)):
+        f.error("skills/sc-implement/SKILL.md", "G6 does not attach its debugger under §When a gate goes red")
+    orch = root / SKILLS_DIR / "ship-cycle" / "SKILL.md"
+    otext = read(orch) if orch.is_file() else ""
+    for gate in RED_FAILURE_GATES:
+        row = re.search(rf"^\| {re.escape(gate)} \|.*\|([^|]*)\|\s*$", otext, re.M)
+        if not row or "red-gate protocol" not in row.group(1):
+            f.error("skills/ship-cycle/SKILL.md", f"gate table's {gate} 'On failure' cell does not name the "
+                                                  "red-gate protocol")
+    note = re.search(r"\*\*Red-gate protocol\*\*(.*?)(?=\n\n)", otext, re.S)
+    if not note or "docs/red-gate.md" not in note.group(1) or "the one cap rule" not in _flat(note.group(1)):
+        f.error("skills/ship-cycle/SKILL.md", "gate table has no red-gate note pointing to docs/red-gate.md "
+                                              "under the one cap rule")
+    shape_path = root / STATE_SHAPE_DOC
+    shape_text = read(shape_path) if shape_path.is_file() else ""
+    blocks = re.findall(r"```json\n(.*?)\n```", shape_text, re.S)
+    try:
+        shape = json.loads(blocks[0]) if blocks else {}
+    except json.JSONDecodeError:
+        shape = {}  # reported by state_shape_fields
+    entries = shape.get("debug")
+    if not isinstance(entries, list) or not entries or not isinstance(entries[0], dict):
+        f.error(shown(STATE_SHAPE_DOC), "state shape has no debug entry")
+    else:
+        for key in RED_DEBUG_KEYS:
+            if key not in entries[0]:
+                f.error(shown(STATE_SHAPE_DOC), f"debug entry lacks '{key}'")
+        repro = entries[0].get("repro")
+        if not isinstance(repro, dict) or not all(k in repro for k in ("command", "exit")):
+            f.error(shown(STATE_SHAPE_DOC), "debug.repro lacks command/exit")
+    if "**Debug entries survive the reconcile.**" not in shape_text:
+        f.error(shown(STATE_SHAPE_DOC), "resume reconcile does not keep `debug` entries")
+    for skill in ("sc-ship", "sc-retro"):
+        p = root / SKILLS_DIR / skill / "SKILL.md"
+        if p.is_file() and "state.debug" not in read(p):
+            f.error(shown(p.relative_to(root)), "does not read `state.debug`")
+    mr = root / "docs" / "model-routing.md"
+    if mr.is_file() and "docs/red-gate.md" not in _flat(_section(read(mr), "Cost readout")):
+        f.error("docs/model-routing.md", "cost readout does not carry the red-gate debug lines")
+
+
 def main(argv: list[str]) -> int:
     root = Path(argv[1]).resolve() if len(argv) > 1 else Path(__file__).resolve().parent.parent
     f = Findings()
@@ -1628,6 +1764,7 @@ def main(argv: list[str]) -> int:
     check_session_hook(root, f)
     check_impl_status(root, f)
     check_wave_check(root, f)
+    check_red_gate(root, f)
 
     for w in f.warnings:
         print(f"warning  {w}")

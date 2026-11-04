@@ -246,6 +246,7 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   `telemetry.implStatus` entry (round, brief, status, reason, route) so stalls and re-dispatches are seen,
   one line per `state.waveReviews` entry (wave, model, findings by severity, refuted-but-carried
   Critical/High (`refutedCarried`) shown as such, routedTo, unresolved count, superseded),
+  one line per failure in `state.debug` (gate, failure, hypotheses tested and rejected, the last result),
   and the open `notVerified` items (no `coveredBy`) from G11.
   **Record `unavailable` for anything the host does not expose — never estimate a number.** Ordering is
   the whole point, and the branch/state deletes below are not the only hazard: the cycle's state file

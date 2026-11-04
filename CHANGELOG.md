@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.3.20 — When a gate goes red: reproduce, one hypothesis at a time, keep the record (#89)
+
+- **Why.** Loop-cap exhaustion was usually blind retrying: a fix made before the failure was reproduced, a
+  flake rerun until green, a resumed session retrying a change the last one had disproved. The gate
+  table's on-failure route said only "debugger → sc-implement".
+- **`docs/red-gate.md`** states the protocol once, for a red G5/G6/G7/G7b, a red wave barrier and a genuine
+  G9 `fail`:
+  - **Reproduce first** with the gate's real command — its own exit code and the tree identity; heavy runs
+    and bisections under `env.heavyLock` with bounded waits. "Could not reproduce" is `undetermined`, not
+    fixed; a flip with no change is classified, never exempt, and never rerun until green.
+  - **Read the actual error** (the first failure, from the runner's report), **compare against a working
+    example** (the base commit, the last passing tree, a passing sibling).
+  - **One hypothesis with evidence** (the claim-evidence rule), **one minimal change**, re-run; a rejected
+    change is reverted before the next.
+  - **Three rejected hypotheses on the same failure** stop the guessing: reported as `BLOCKED` (design
+    defect) — or `NEEDS_CONTEXT` / park and ask when the evidence names a missing fact or the environment —
+    and routed by sc-implement's table, counted once toward `loops[G]` like any design defect (#87). Not a
+    second cap: the one cap rule stays the orchestrator's.
+  - **Flaky and order-dependent failures**: retry to classify (a count fixed up front), never to hide; a
+    gate never passes on the best of N. Polluter bisection with the runner's own selection flags (portable,
+    no script), waits for the condition instead of sleeps, isolated shared state, a guard at the boundary.
+- **State.** `state.debug[]`, one entry per hypothesis (gate, failure, round, repro command + exit,
+  hypothesis, evidence, change, result, tree). Fix briefs carry a failure's rejected entries ("do not
+  retry") and return one `- Hypothesis:` line each; the resume reconcile keeps them so a resumed session
+  neither retries a disproved cause nor resets the count; sc-ship's cost readout prints one line per
+  failure and sc-retro reads them. It sets no gate.
+- **Pointers.** sc-implement and sc-qa gain "When a gate goes red"; G6's debugger attaches under it; the
+  orchestrator's gate table names the protocol in the G5, G6, G7, G7b and G9 "On failure" cells with a
+  note under the table; model-routing's cost readout carries the lines.
+- **Validator.** `check_red_gate` guards the four doc blocks (including the reproduce → read → compare →
+  hypothesis → change order and forbidden second-cap / best-of-N wording), the sc-implement and sc-qa
+  sections, the gate-table cells and note, the state shape, the reconcile sentence and the consumers;
+  28 self-test mutations.
+
 ## 0.3.19 — Wave check: one cheap read at each wave barrier, carried into G8 (#88)
 
 - **Why.** On waved work a design-level defect in wave 1 — a wrong interface, boundary or shared contract —

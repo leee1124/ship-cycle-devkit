@@ -213,7 +213,16 @@ The entry lives in `state.releaseSmoke`, one per nature (shape: `${CLAUDE_PLUGIN
   `sc-implement` with a debugger that cannot conjure a database, and do **not** write `pass` because the
   gate had no other value to take. Carry its reason to the pre-merge manual gate, where G12 honors it
   (§sc-ship G12). A gate with no truthful value is how false-green gets written by an honest agent. On a
-  genuine `fail`, loop to `sc-implement` with a debugger attached.
+  genuine `fail`, loop to `sc-implement` with a debugger attached (§When a gate goes red).
+
+## When a gate goes red
+A genuine G9 `fail` is fixed under the red-gate protocol (`${CLAUDE_PLUGIN_ROOT}/docs/red-gate.md`), run
+by the debugger sc-implement dispatches. QA's part is the reproduction: hand over the failing flow or
+suite with its real command, exit code and tree, the actual error and the evidence path — not a summary.
+A flow that failed once and not on a rerun is `undetermined`, not passed: classify it as flaky or
+order-dependent per that doc, and never rerun until green. Each tested hypothesis lands in `state.debug`,
+so a later G9 round does not retry a disproved cause; three rejected hypotheses route as `BLOCKED`
+(design defect), counted once toward `loops[G9]`.
 
 ## Model routing
 qa-tester + verifier run at the **mid** tier.
