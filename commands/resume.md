@@ -26,13 +26,12 @@ Otherwise, resume via the `ship-cycle` skill's PREFLIGHT resume path:
 
 1. Re-read the state; confirm the recorded `branch` (and `worktreePath`, if set) still exist and are
    checked out. If the branch/worktree is gone, say so and stop — don't guess.
-   If `stage` is `parked`, print `parked.reason`, `parked.resumeStage` and how long it has been parked;
-   the stage to continue from starts as `resumeStage`.
-2. **Run the resume reconcile** (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Resume reconcile) before
-   anything else: print its mismatches and the stage it picks, append the entry to `reconcile`, then clear
-   `parked` to `null`. The reconcile may only move the stage earlier or clear a `pass` — never record one.
-3. Continue from the **stage the reconcile picked** (the recorded `stage`, or `parked.resumeStage`, when it
-   found no mismatch) forward through the remaining gates, honoring the
+   If `stage` is `parked`, print `parked.reason`, `parked.resumeStage` and how long it has been parked.
+2. **Run the resume reconcile** (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Resume reconcile): print
+   its output, append it to `reconcile`, set `stage` to its `continueFrom`, then clear `parked` to `null`.
+   Inference only lowers — never a recorded `pass`.
+3. Continue from **`continueFrom`** — the recorded stage (`parked.resumeStage` for a parked file, else
+   `stage`) unless the reconcile lowered it — forward through the remaining gates, honoring the
    recorded `models`, `effort`, `nature`, `risk`, `size`, `baseline` (**including its `unrunnableHere`
    quarantine, which is read-only on resume** — resuming is not an occasion to re-derive it; §ship-cycle
    Stage 0.5), and per-gate `loops` (respect the orchestrator's loop cap — parking and resuming never reset them). Keep **appending** to
@@ -47,9 +46,11 @@ Otherwise, resume via the `ship-cycle` skill's PREFLIGHT resume path:
    the stances whose `docPath` is missing. Restarting all N discards finished work and re-spends the
    multiplier this mode exists to justify; the criteria were fixed before the fan-out and are not re-opened
    on resume.
-6. **If `reviewJobs` holds a `running` entry, resume by polling it — never by relaunching.** Run that
+6. **If `reviewJobs` holds a `running` or `launching` entry** (held jobs are among them — `parked.holds`
+   only named them, so clearing it loses nothing; a `launching` one with no id follows sc-review's orphan rule), **resume by polling it — never by relaunching.** Run that
    reviewer's declared `status` command against the recorded `id`; a relaunch abandons a job that may be
    half an hour in and starts the clock again. If the job is gone on the host side (the process died with
    the previous session), mark it `failed` with that reason and re-launch deliberately, counting it against
-   G8's loop cap. Jobs named in `parked.holds.reviewJobs` are polled the same way. Honor `gitFreeze` on resume exactly as mid-run: if it is `active`, do not move the branch
+   G8's loop cap.
+   Honor `gitFreeze` on resume exactly as mid-run: if it is `active`, do not move the branch
    until it is released — and if it is active with **no** `running` job, release it and say so.

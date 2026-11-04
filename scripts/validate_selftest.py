@@ -210,6 +210,25 @@ CASES = [
         "stage vocabulary is missing 'parked'",
     ),
     (
+        "bogus resumeStage in a json block",
+        lambda r: mutate(
+            r / "docs" / "state-file.md",
+            '"resumeStage": "sc-brainstorm"',
+            '"resumeStage": "sc-waiting"',
+        ),
+        "stage 'sc-waiting' is not in the stage vocabulary",
+    ),
+    (
+        "stage vocabulary drops a pipeline stage",
+        lambda r: mutate(r / "docs" / "state-file.md", "`sc-review`, `sc-qa`, `sc-ship`", "`sc-review`, `sc-ship`"),
+        "stage vocabulary is missing 'sc-qa'",
+    ),
+    (
+        "stage vocabulary anchor removed",
+        lambda r: mutate(r / "docs" / "state-file.md", "<!-- stage-vocabulary -->", "<!-- stage list -->"),
+        "no <!-- stage-vocabulary --> block found",
+    ),
+    (
         "example overlay coverage format outside the schema enum",
         lambda r: mutate(
             r / "docs" / "ship-cycle.config.example.json",
@@ -226,6 +245,19 @@ CASES = [
             "",
         ),
         "missing required field 'reportPath'",
+    ),
+]
+
+
+# Mutations the validator must NOT flag: prose and non-JSON fences are not state.
+PASSING_CASES = [
+    (
+        "prose 'the stage = `G4`' and a bash fence are not stage literals",
+        lambda r: mutate(
+            r / "skills" / "sc-qa" / "SKILL.md",
+            "## Model routing",
+            'When the stage = `G4`, stop.\n\n```bash\nstage="whatever"\n```\n\n## Model routing',
+        ),
     ),
 ]
 
@@ -249,10 +281,21 @@ def main() -> int:
             else:
                 print(f"ok   {name}")
 
+    for name, mutation in PASSING_CASES:
+        with tempfile.TemporaryDirectory(prefix="scdk self test ") as tmp:
+            root = fresh_copy(Path(tmp) / "repo copy")
+            mutation(root)
+            code, out = run_validator(root)
+            if code != 0:
+                failures.append(f"[{name}] validator flagged a repo that should pass:\n{out}")
+            else:
+                print(f"ok   {name}")
+
     if failures:
         print("\n".join(f"FAIL {f}" for f in failures))
         return 1
-    print(f"\nok - {len(CASES)} checks each fail on a broken repo and pass on the real one")
+    print(f"\nok - {len(CASES)} checks each fail on a broken repo and pass on the real one;"
+          f" {len(PASSING_CASES)} must-pass mutation(s) pass")
     return 0
 
 

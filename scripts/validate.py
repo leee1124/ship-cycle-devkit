@@ -44,8 +44,15 @@ FRONTMATTER_RE = re.compile(r"\A---\n(.*?)\n---\n", re.S)
 CHANGELOG_VERSION_RE = re.compile(r"^##\s+(\d+\.\d+\.\d+)", re.M)
 SEMVER_RE = re.compile(r"\A\d+\.\d+\.\d+\Z")
 STAGE_VOCAB_RE = re.compile(r"<!-- stage-vocabulary -->(.*?)<!-- /stage-vocabulary -->", re.S)
-# A stage literal in prose or JSON: `"stage": "x"`, `stage: "x"`, `stage = "x"`, `` `stage` = `x` ``.
-STAGE_LITERAL_RE = re.compile(r"""[`"']?\bstage[`"']?\s*[:=]\s*[`"']([A-Za-z][A-Za-z0-9_-]*)[`"']""")
+STAGE_KEYS = r"(?:stage|resumeStage|recordedStage|continueFrom)"
+STAGE_VALUE = r"([A-Za-z][A-Za-z0-9_-]*)"
+# Stage literals are read only where they are unambiguously state: a JSON key inside a ```json block, or a
+# key written inside an inline code span. Prose ("the stage = `G4`") and non-JSON fences are not state.
+FENCE_RE = re.compile(r"^```([^\n`]*)\n(.*?)^```", re.S | re.M)
+JSON_STAGE_RE = re.compile(r'"' + STAGE_KEYS + r'"\s*:\s*"' + STAGE_VALUE + r'"')
+INLINE_CODE_RE = re.compile(r"`([^`\n]+)`")
+INLINE_STAGE_RE = re.compile(r"(?<![\w.])" + STAGE_KEYS + r"\s*[:=]\s*[\"']" + STAGE_VALUE + r"[\"']")
+KEY_SPAN_STAGE_RE = re.compile(r"`(?:state\.|parked\.)?" + STAGE_KEYS + r"`\s*[:=]\s*`" + STAGE_VALUE + r"`")
 # Non-skill stage values every reader branches on; the seven stage skills come from the pipeline table.
 REQUIRED_NON_SKILL_STAGES = ("parked", "complete", "failed", "cancelled")
 
@@ -215,9 +222,23 @@ def check_stage_vocabulary(root: Path, f: Findings) -> None:
     for stage in sorted((pipeline | set(REQUIRED_NON_SKILL_STAGES)) - vocab):
         f.error(shown(STATE_SHAPE_DOC), f"stage vocabulary is missing '{stage}'")
     for md in markdown_files(root):
-        for value in STAGE_LITERAL_RE.findall(read(md)):
+        for value in stage_literals(read(md)):
             if value not in vocab:
                 f.error(shown(md.relative_to(root)), f"stage '{value}' is not in the stage vocabulary")
+
+
+def stage_literals(text: str) -> list[str]:
+    """Stage values written as state: in ```json fences, and in inline code outside any fence."""
+    values: list[str] = []
+    for lang, body in FENCE_RE.findall(text):
+        if lang.strip().lower() == "json":
+            values += JSON_STAGE_RE.findall(body)
+    prose = FENCE_RE.sub("", text)
+    values += KEY_SPAN_STAGE_RE.findall(prose)
+    for span in INLINE_CODE_RE.findall(prose):
+        values += INLINE_STAGE_RE.findall(span)
+        values += JSON_STAGE_RE.findall(span)
+    return values
 
 
 def check_manifests_and_versions(root: Path, f: Findings) -> None:

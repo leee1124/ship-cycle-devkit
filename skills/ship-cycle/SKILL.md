@@ -95,12 +95,11 @@ for that transformation's difficulty.
 
 (`§Stage 0.N` elsewhere in the kit means PREFLIGHT list item N.)
 
-**Resuming** (a mid-pipeline or `parked` state file for this branch, §State): skip init and run the **resume
-reconcile** first — compare the worktree (uncommitted/untracked files, commits since the base, test files,
-the evidence behind each recorded `pass`) with `stage`/`gates`, treat any stage whose subagents died with
-the session as not done, print the mismatches, append them to `state.reconcile`, and continue from the
-stage it picks. Inference only lowers: it may move `stage` earlier or clear a `pass`, never record one.
-Rules and output: `${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Resume reconcile.
+**Resuming** (a mid-pipeline state file for this branch): skip init and run the **resume reconcile**
+first; it prints its mismatches, appends to `state.reconcile`, and picks the stage to continue from.
+Inference only lowers — it may move the stage earlier or clear a `pass`, never record one. A **parked** file
+is not resumed by a new goal: ask "resume or replace?" (`/resume` is the explicit resume). Rules:
+`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Resume reconcile, Resume and selection.
 
 1. **Branch guard**: if on a protected branch (overlay `vcs.protectedBranches`), create `feature/*`|`fix/*`.
    A detached HEAD (empty `git branch --show-current`) has no cycle key — refuse and ask for a named
@@ -193,14 +192,15 @@ reconcile and legacy migration are in
 Write it at every transition; read this cycle's file at PREFLIGHT to **resume** and to enforce **its** loop
 cap, rather than counting loops in your head.
 
-**Park on request, from any stage** — `stage = "parked"` with `parked = {reason, resumeStage, at, holds}`.
-A running review job or an active freeze may survive parking only if `parked.holds` records it; a held
-freeze stays binding while parked (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Parking).
+**Park on request, from any stage** — `stage = "parked"` with `parked = {reason, resumeStage, at, holds}`;
+never with a live-tree freeze, and never with a live job or freeze that `holds` does not name
+(§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Parking).
 
 **One exception to per-cycle isolation: `gitFreeze` describes a repo-wide hazard.** `git worktree add /
 remove / prune` and an `index.lock` recovery reach outside the cycle that runs them, and `prune` is
 repo-scoped. Before any of those, scan **every** `.claude/ship-cycle/*.json` in this working directory for
-an active `gitFreeze` or a `running` `reviewJobs` entry — parked cycles included — and treat another cycle's freeze as binding
+an active `gitFreeze` or a `running` `reviewJobs` entry — parked cycles included (a parked freeze has one
+release valve, §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Parking) — and treat another cycle's freeze as binding
 (§sc-review — Git-write freeze).
 
 ## Gate criteria

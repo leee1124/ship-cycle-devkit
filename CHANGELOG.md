@@ -4,17 +4,19 @@
 
 - **`stage: "parked"`** with `parked: { reason, resumeStage, at, holds }`, from any non-terminal stage on
   request. Re-prioritising mid-cycle had no state, so the operator tracked it by hand.
-- **Parking settles or records what is live**: a `running` review job or an active `gitFreeze` survives
-  parking only if `parked.holds` names it, and a held freeze stays binding while parked. Parking records no
-  gate and **does not reset `loops`**.
-- **Resume reconcile** (`/resume` and PREFLIGHT's resume path) compares the worktree — uncommitted/untracked
-  files, commits since the base, test files, the evidence behind each recorded `pass`, subagents that died
-  with the session — with `stage`/`gates`, prints the mismatches and appends them to `state.reconcile`.
-  Inference only lowers: it may move `stage` earlier or clear a `pass`, never record one.
-- `/status` shows parked cycles (reason, resume stage, age, holds) and the last reconcile; `/ship` refuses a
-  parked cycle.
-- **Stage vocabulary** is one list in `docs/state-file.md`; the validator rejects a `stage` literal outside
-  it and a vocabulary missing a pipeline stage or `parked`. Two self-test cases.
+- **Parking never strands a reader.** A live-tree (`snapshot: false`) freeze blocks parking; live snapshot
+  jobs and an active freeze survive only if `holds` names them, and another cycle may release a parked
+  freeze once its held jobs are terminal or past `maxWaitMinutes` (`gitFreeze.releasedBy`). Parking
+  records no gate and does not reset `loops`.
+- **Resume reconcile** on `/resume` and PREFLIGHT resume, appended to `state.reconcile`. Inference only
+  lowers: it may move the stage earlier or clear a `pass`, never record one; a clear does not count against
+  `loops`. Evidence table: `docs/state-file.md` — Resume reconcile.
+- **`state.gateShas`**: G5–G9 record the `HEAD` they judged, so a pass on an older tree is cleared.
+- A new goal on a parked branch asks "resume or replace?". `/status` lists every cycle's stage and parked
+  details; `/ship` refuses a parked cycle.
+- **Validator: stage vocabulary.** One list in `docs/state-file.md`; `stage`/`resumeStage`/`recordedStage`/
+  `continueFrom` literals outside it are errors (JSON fences and inline code only, not prose). Five
+  failing self-test cases and one must-pass case.
 
 ## 0.3.4 — G6 coverage has a measurement path (#67)
 

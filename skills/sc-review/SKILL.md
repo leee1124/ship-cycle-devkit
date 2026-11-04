@@ -277,7 +277,8 @@ of a cycle's review spend goes once the first pass has landed. Scope it to what 
   list with no dispositions does not pass; sc-ship re-asserts this at G12, and an assertion that quantifies
   only over the findings *marked* filed would pass vacuously on an artifact that was never triaged.
 - If a finding is a **design flaw** (not an impl bug), loop back to `sc-design`, not `sc-implement`.
-- Set `gates.G8` and loop count in state (respect the orchestrator's loop cap).
+- Set `gates.G8`, `state.gateShas.G8` (the reviewed `HEAD`) and loop count in state (respect the
+  orchestrator's loop cap).
 
 ## Model routing
 security/quality/algorithm review run at the **high** tier; upgrade the matching lens to **top** for

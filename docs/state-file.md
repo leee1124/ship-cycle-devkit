@@ -8,6 +8,7 @@ the mechanics that only matter when something unusual happens to its name or its
 ```json
 { "goal": "...", "branch": "...", "worktreePath": "...", "stage": "sc-design",
   "gates": { "G1": "pass", "G2": "pass", "G4": "n/a: copy change, verified by execution" },
+  "gateShas": { "G5": "<head sha the build/tests ran on>" },
   "loops": { "G8": 1 },
   "nature": ["backend"], "risk": ["auth"], "size": "L",
   "sizeEvidence": ["src/a.py:41", "src/b.py:88"],
@@ -40,7 +41,7 @@ the mechanics that only matter when something unusual happens to its name or its
                "grafts": [{ "from": "mvp-first", "what": "<the piece>", "why": "<one line>" }],
                "converged": false },
   "gitFreeze": { "active": false, "branch": null, "since": null, "releasedAt": null, "reason": null,
-                 "releaseOn": "snapshot" },
+                 "releaseOn": "snapshot", "releasedBy": null },
   "parked": { "reason": "waiting on product for the rate-limit numbers", "resumeStage": "sc-brainstorm",
               "at": "<iso>", "holds": { "reviewJobs": [], "gitFreeze": false } },
   "reconcile": [{ "at": "<iso>", "recordedStage": "sc-implement", "continueFrom": "sc-tdd",
@@ -60,6 +61,11 @@ its suite is in `run.rechecked`, and `failing` holds entries only for rechecked 
 bare case id (captured at PREFLIGHT) or `{ "case", "capturedAt": "<stage>" }` (added by a recheck);
 `flaky` cases are never exempt — a recheck replaces a suite's `failing` entries, it does not exempt `flaky`.
 Shape and rules: `${CLAUDE_PLUGIN_ROOT}/docs/test-baseline.md`.
+
+`gateShas[G]` is the `HEAD` sha a tree-dependent gate (G5, G6, G7, G7b, G8, G9) was judged on, written with
+its `pass` (or `checklist`/`degrade`) by the stage that sets it. A pass without a sha cannot be shown to cover
+the tree that ships, so the reconcile treats it as evidence gone. `gitFreeze.releasedBy` names who released
+the freeze: `"self"`, or the branch of another cycle that released it (§Parking).
 
 `parked` is `null` unless `stage` is `parked` (§Parking). `reconcile` is append-only, one entry per resume
 (§Resume reconcile).
@@ -95,7 +101,8 @@ gitignored run-state, and the PR plus git history hold the real record.
 
 ## Stage values
 
-`stage` is exactly one of these; the validator rejects any other `stage` literal in the kit.
+`stage` is exactly one of these; the validator rejects any other value written as `stage`, `resumeStage`,
+`recordedStage` or `continueFrom` in the kit.
 
 <!-- stage-vocabulary -->
 `sc-brainstorm`, `sc-design`, `sc-tdd`, `sc-implement`, `sc-review`, `sc-qa`, `sc-ship`, `parked`,
@@ -110,8 +117,9 @@ and `cancelled` are terminal.
 Read `.claude/ship-cycle/<current-branch-slug>.json`:
 
 - a mid-pipeline `stage` → resume that cycle (reconcile first, §Resume reconcile);
-- `parked` → resume only on request (`/resume`, or the user saying so). A new goal on a parked branch asks
-  "resume or replace?" — never a silent overwrite, because the file is the only record of where it paused;
+- `parked` → **ask "resume or replace?"** — PREFLIGHT with a new goal never resumes it silently and never
+  overwrites it silently, because the file is the only record of where the cycle paused. `/resume` is the
+  explicit "resume";
 - `complete` / `failed` / `cancelled` / absent → a fresh cycle for this branch (init a new file).
 
 ## Parking
@@ -120,42 +128,56 @@ Users re-prioritise mid-cycle — sc-brainstorm waiting on answers is the common
 for "paused on purpose" the operator tracks it by hand. Park from **any** non-terminal stage, on the user's
 request:
 
-1. **Settle what can be settled.** Let in-process stage subagents finish or stop them: they die with the
-   session anyway, and a stopped one's output is not a result (§Resume reconcile). Poll each `running`
-   `reviewJobs` entry once; release a stale `gitFreeze` (§sc-review — Git-write freeze).
-2. **Record what is still live.** A cycle must not park with a `running` job or an `active` freeze unless
-   `parked.holds` names them (`holds.reviewJobs: [<id>]`, `holds.gitFreeze: true`). An unrecorded hold is
-   how a parked branch gets moved under a reader for days. A held freeze stays binding while parked —
-   for this cycle and for every other cycle's freeze scan.
-3. Write `parked = { reason, resumeStage: <the stage being left>, at, holds }`, then `stage = "parked"`.
+1. **Stop in-process work.** Let stage subagents finish or stop them; they die with the session anyway, and
+   a stopped one's output is not a result (§Resume reconcile).
+2. **Settle review jobs.** Poll each `running` or `launching` `reviewJobs` entry once (a `launching` one with
+   no id is resolved as sc-review's orphan rule says). A **live-tree** job (`snapshot: false`) holds the
+   freeze for as long as it runs, and a parked branch may sit for days — so **refuse to park** while one is
+   active: supersede or cancel it, or re-launch it on a snapshot and release the freeze, first. A
+   snapshot-mode job reads a copy, not the branch, so it may stay running and be held.
+3. **Record what is still live.** Name every still-`running`/`launching` job in `parked.holds.reviewJobs`,
+   and set `holds.gitFreeze: true` if the freeze is still `active` (it can only be a snapshot-mode freeze
+   mid-capture; a stale one is released here). A cycle must not park with a live job or an active freeze
+   that `holds` does not name — an unrecorded hold is invisible to every other cycle's freeze scan.
+4. Write `parked = { reason, resumeStage: <the stage being left>, at, holds }`, then `stage = "parked"`.
 
-Parking is not a gate outcome: it records nothing in `gates`, and it **does not reset `loops`** — a
-pause is not a fresh attempt, so the cap survives it. Resuming clears `parked` to `null` and continues from
-the reconcile's stage, which is never later than `resumeStage`.
+A held freeze stays binding while parked, for this cycle and for every other cycle's freeze scan — with one
+release valve, because nobody may be around to release it: **another cycle may release a parked cycle's
+freeze** once every held job is terminal or older than overlay `maxWaitMinutes`. It sets `releasedAt` and
+`releasedBy: <its own branch>` in the parked file and touches nothing else there.
+
+Parking is not a gate outcome: it records nothing in `gates`, and it **does not reset `loops`** — a pause is
+not a fresh attempt, so the cap survives it.
 
 ## Resume reconcile
 
 When a session ends, in-process subagents die and the state file outlives them, so the file can claim more
-or less than the worktree shows. `/resume` and PREFLIGHT's resume path run this before continuing; it
-compares worktree evidence with `stage`/`gates`:
+or less than the worktree shows. `/resume` and PREFLIGHT's resume path run this before continuing.
+
+The **recorded stage** is `parked.resumeStage` when `stage` is `parked`, else `stage`. The reconcile
+compares worktree evidence with it and with `gates`:
 
 | evidence | mismatch it reports | effect |
 |---|---|---|
-| uncommitted or untracked files (`git status --porcelain`) | changes before `sc-tdd`; changes after a recorded G5–G9 `pass` (the verified tree is not this one) | report; clear an invalidated pass, continue at its owner |
-| commits since the base (`git log <base>..HEAD`) | code committed while `stage` is before `sc-tdd`; G4/G5 `pass` with no change at all | report; lower if a pass lost its evidence |
+| a tree-dependent `pass` (G5–G9) whose `gateShas[G]` is missing or unreachable, or where `git rev-list <sha>..HEAD` is non-empty | the gate judged a different tree | clear the gate; continue at its owner |
+| uncommitted or untracked files (`git status --porcelain`) | changes before `sc-tdd`; changes on top of a tree-dependent pass | report; clear that pass, continue at its owner |
+| commits since the base (`git log <base>..HEAD`) | code committed while the recorded stage is before `sc-tdd`; a G4/G5 `pass` with no change at all | report; clear a pass that lost its evidence |
 | test files in the diff vs the base | **tests exist but G4 not recorded** | continue at `sc-tdd`, which confirms Red (against the base if code is already there) before recording G4 |
-| a recorded `pass` whose evidence is gone — a missing artifact path, coverage report or test file, a history rewritten past the verified sha | the gate and what vanished | clear that gate to `—`; continue at its owner |
-| subagents running when the session died — the stage `stage`/`resumeStage` names, `bakeOff` candidates without a `docPath`, `reviewJobs` still `running` | their output is lost: partial files are evidence to inspect, not results | their stage is not done; a `running` review job is polled, never relaunched (`/resume` step 6) |
+| a recorded `pass` whose other evidence is gone — a missing artifact path, coverage report or test file | the gate and what vanished | clear the gate; continue at its owner |
+| a gate recorded `pass` for a stage **after** the recorded stage (G8 `pass` while it reads `sc-tdd`) | a pass the pipeline could not have produced yet | clear the gate |
+| subagents running when the session died — the recorded stage, `bakeOff` candidates without a `docPath`, `reviewJobs` still `running`/`launching` | their output is lost: partial files are evidence to inspect, not results | their stage is not done; a review job is polled, never relaunched (`/resume` step 6) |
 
-**Inference only ever lowers.** The reconcile may move `stage` earlier and clear a `pass` to `—`; it never
-records a `pass`, and never moves `stage` later than recorded, however finished the worktree looks — a gate
-passes only when its stage produces the evidence. Continue from the earliest stage any row points at.
-A clear is not a failure, so it does not count against `loops`.
+**Inference only ever lowers.** The reconcile may move the stage earlier and clear a `pass` (to `—`); it
+never records a `pass` and never continues later than the recorded stage, however finished the worktree
+looks — a gate passes only when its stage produces the evidence. Continue from the earliest stage any row
+points at.
 
-Output, printed and appended to `reconcile`: the recorded stage, the stage it continues from, each mismatch
-with its evidence (`path`, sha, missing file), and the gates it cleared — or `no mismatches`.
+**A clear does not count against `loops`.** The cap bounds attempts that *failed*; a clear means the
+evidence for a past attempt is gone, not that the work failed — counting it would let a crashed session
+spend a cycle's retries.
 
-Sequential cycles simply leave the finished file behind; it is deleted at G13 along with the branch.
+Output, printed and appended to `reconcile`: `recordedStage`, `continueFrom`, each mismatch with its
+evidence (path, sha, missing file), and the gates it `cleared` — or `no mismatches`.
 
 ## Migration (PREFLIGHT-only, one-time)
 
