@@ -73,6 +73,8 @@ restatement of the symptom.
      (`stash create` omits untracked files).
    - **After the change**, patch the change itself: `git diff "$base" -- <files> > <scratch>/change.patch`
      for tracked files. Keep the patch outside the worktree — a file in it changes the tree identity.
+     Run the diff and the undo from the repo root (`git -C "$(git rev-parse --show-toplevel)" …`): from a
+     subdirectory, `git apply` silently skips paths outside it and exits 0.
    - **To undo**, `git apply -R <scratch>/change.patch`; if that fails, and always for an untracked file,
      restore the pre-change copies (a `--no-index` diff of a copy names the scratch path and does not
      apply back); delete a file the change created. Never `git checkout`, `git reset` or `git stash`
