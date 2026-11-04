@@ -60,6 +60,22 @@
     }
   ],
 
+  "releaseChecklist": [
+    {
+      "id": "mobile-version-bump",
+      "when": { "changeNature": ["mobile"], "release": true },
+      "check": "node scripts/check-version-bump.js apps/mobile",
+      "evidence": "exit 0: versionCode/versionName are above the last released values"
+    },
+    {
+      "id": "oauth-release-key-hash",
+      "when": { "paths": ["apps/mobile/android/**/*.gradle", "apps/mobile/eas.json"], "release": true },
+      "check": "Register the release signing key hash with the OAuth provider console",
+      "evidence": "reviewer confirms in the PR: console shows the release key hash",
+      "manual": true
+    }
+  ],
+
   "i18n": {
     "configPath": ".claude/i18n-parity.config.json"
   },

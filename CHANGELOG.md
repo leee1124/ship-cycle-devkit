@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.3.10 — Overlay `releaseChecklist` for store-distributed apps (#73)
+
+- **New optional overlay field** `releaseChecklist: [{ id, when, check, evidence, manual? }]`, top-level
+  because a release step (version bump, signing-key registration with a third-party SDK, release notes,
+  backend-first deploy order, symbol-map upload) often spans natures. `when` selects by `changeNature`
+  names, `paths` globs and/or `release: true` (PR base is the release branch); keys given must all match.
+  Distinct from `releaseSmoke` (G9: does the release artifact run) — this is release bookkeeping.
+- **sc-ship runs it before G12's gate.** Machine items run and log one G12 row each; a failure is a G12
+  `fail`, never waived. `manual: true` items go on the PR body's pre-merge manual gate and count for G12
+  only when listed, like a `degrade` G9. A matched item neither run nor listed fails G12. Undeclared
+  field = no-op.
+- **Validator** guards that the schema documents the field (item keys, `when` keys, `manual`), that the
+  example overlay's items are well-formed with unique ids, that sc-ship's rule is tied to the pre-merge
+  manual gate, and that the G12 row references `releaseChecklist`; five self-test mutations. It does not
+  judge the prose.
+
 ## 0.3.9 — Load-bearing factual claims in design and review reports carry evidence (#72)
 
 - **Rule, stated once** in `docs/claim-evidence.md`. A *load-bearing claim* is a factual claim a decision,

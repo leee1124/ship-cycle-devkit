@@ -120,9 +120,24 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   deferral can't slip in as a silent pass. For an unrunnable-here item the observable check is the **CI
   job that must show that suite executed (count > 0) and green on this branch's head commit** — a link a
   reviewer can click, not a claim they have to trust; name the suite and its recorded `reason` beside it.
+  Matched `releaseChecklist` items with `manual: true` go here too (see Release checklist above).
   A `gates.G9: degrade` goes here too, with its reason — and each deferred flow or part of a
   `state.releaseSmoke` entry as its own item, to be run on the release-form artifact (§sc-qa
   Release-artifact smoke). If none were recorded, say so.
+- **Release checklist (overlay `releaseChecklist`) — run it right before G12's gate.** Release steps
+  tracked in someone's head get skipped on the one PR that needs them (version bump, signing-key
+  registration, release notes, backend-first deploy order, symbol-map upload). Select the items whose
+  `when` matches: every key given must hold — `changeNature` names the diff touches, `paths` globs any
+  changed path matches, `release: true` the PR base is the release branch. Not releaseSmoke (G9: does the
+  release artifact run); this is bookkeeping. Absent field or no match = no-op.
+  - **Machine item** (no `manual`): run `check`, judge by `evidence`, append one **G12** gate-log row per
+    item (`releaseChecklist.<id>`, `pass`/`fail`, the exit status or file as evidence pointer). A failed
+    item is a G12 `fail` and loops back; it is never waived, only fixed or removed from the overlay by
+    its owner.
+  - **Manual item** (`manual: true`): never run by the agent; list it under **"Pre-merge manual gate"**
+    with its `id`, `check` and the `evidence` that closes it, and log `deferred: <id>`. G12 counts it as
+    satisfied **only** when listed, like a `degrade` G9.
+  - A matched item the PR neither ran nor listed fails G12 (a silent skip is the failure this exists to stop).
 - **Verify the closing token actually landed (don't trust that you wrote it).** After opening the PR,
   **re-fetch the created body** and assert it contains the exact intended token for **every** tracked issue
   in `state`: `Closes #NN` when that issue is fully done, `Refs #NN` when partial. A bare mention (`#NN`,
@@ -143,7 +158,9 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   passing. A finding triaged as out-of-scope and then never filed is not deferred, it is **dropped** — the
   same silent leak as a missing `Closes` token.
 - If `vcs.tracker` defines a board, move the item **In Progress → Done** as work completes.
-- Gate: build + test + review + QA all passed — a `gates.G9: degrade` or a `gates.G7b`/`gates.G6: checklist` counts as
+- Gate: build + test + review + QA all passed, every matched overlay `releaseChecklist` machine item passed
+  and every manual one is listed on the pre-merge manual gate — a `gates.G9: degrade` or a
+  `gates.G7b`/`gates.G6: checklist` counts as
   satisfied **only** when its item is on the pre-merge manual gate above, with its reason, and a gate
   recorded as `"n/a: <reason>"` for a stage that plainly had nothing to do (§ship-cycle — Pipeline) counts
   as satisfied with its reason carried to the PR body (verbatim up to the cell cap) — **the branch
