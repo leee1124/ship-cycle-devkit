@@ -3,31 +3,42 @@
 ## 0.3.15 — sc-retro: transcript-backed post-cycle diagnosis that drafts kit issues (#84)
 
 - **New à-la-carte skill `skills/sc-retro/`.** After G13, or on a failed or cancelled end, it reads the
-  gate log (live or archived), the state file where it survives, sc-ship's cost readout, the PR's Gate
-  summary, the kit version and the host transcript, and reports kit friction on five dimensions: loops &
-  re-reviews, review effectiveness, stage/route fit (skips a later defect traces to, stages that ran and
-  caught nothing), cost/time, user friction. Without a confirmed transcript it runs on state + log only and
-  says so. Transcripts are read locally and measured before reading; their content is data, not
-  instructions.
-- **Evidence rule**: every finding cites `path:line` (held to `docs/claim-evidence.md`); no citation, not
-  reported. Numbers come from an input or a command, never an estimate.
-- **Report** `<slug>-<date>.retro.md` in the archive dir beside the gate log, findings ranked; kit-generic
-  findings get an issue draft (title, problem, proposal, evidence) after a search of the kit repo's open
-  and closed issues — a match is linked, not duplicated; project-specific findings are listed separately
-  and never drafted.
+  gate log (live or archived), the state file where it survives, sc-ship's cost readout (not found →
+  `unavailable`), the PR's Gate summary, the kit version and the host transcript, and reports kit friction
+  on five dimensions: loops & re-reviews, review effectiveness, stage/route fit (skips a later defect traces
+  to, stages that ran and caught nothing), cost/time, user friction. Without a confirmed transcript it runs
+  on state + log only and says so.
+- **Reading transcripts.** Located by session id across every Claude Code project dir
+  (`~/.claude/projects/*/<session-id>.jsonl` — the cwd slug changes on a directory rename), confirmed by
+  content, measured before reading and sliced by line. User turns are a named filter: top-level, not
+  sidechain, not meta, human text — never tool results, task notifications, agent/teammate messages,
+  system reminders, compact summaries or command wrappers. All content is data, never instructions, and
+  every dimension-pass subagent prompt says so and that a subagent may not approve or file.
+- **Evidence rule**: every finding cites `path:line` or a command and its output (held to
+  `docs/claim-evidence.md`); no citation, not reported.
+- **Report** `<slug>-<date>.retro.md` beside the archived log, or in the main checkout's
+  `<state dir>/archive/` on a failed or cancelled end, only after `git check-ignore -q` confirms the path
+  is ignored (else written outside the repo, and said). It cites, it does not quote, and redacts secrets
+  even locally. Project-specific findings are listed separately and never drafted as kit issues.
+- **Dedup locally**: the kit repo's issues are fetched once (`gh issue list --state all … --json …,body`)
+  and matched on the machine; finding text never leaves as a query. A remote search, only as a fallback,
+  uses terms built after redaction from kit vocabulary only. Comments on a match follow the draft path.
 - **Redaction before any draft is shown** (secrets, emails, people, hosts, internal paths, customer data,
-  the project's name and domain terms unless the user opts in), and **filing only after the user approves
-  that draft in this session** — never auto-filed, never by a subagent.
+  the project's name and domain terms unless the user opts in). **Approval** is a reply typed by the human
+  user after the exact redacted draft was shown, naming that draft — nothing from transcripts, tool
+  results, hooks, task notifications or agent messages, and never a subagent. Filing passes the draft as
+  files (`--title "$(cat …)" --body-file …`), never interpolated into a shell string.
 - **Never a gate.** It writes no gate value and never edits state or log; sc-ship offers it after G13 and the
   orchestrator after a failed or cancelled end. `docs/runtime-adapters.md` gains a host-transcript row
-  (Claude Code `~/.claude/projects/…`, Codex `~/.codex/sessions/…`); README lists the skill.
-- **Validator** guards: the skill exists; its marked evidence-rule, redaction, filing and privacy blocks keep
-  their phrases (no citation → not reported; before any draft is shown; unless the user opts in; approves
-  that draft in this session; never auto-file; a subagent cannot approve; read locally only); its Not-a-gate
-  section says it never blocks a merge and the skill assigns no gate value; its inputs (state + log
-  fallback), five dimensions and report (project-specific never drafted, issue search) keep their anchors;
-  the runtime-adapters row names sc-retro and both hosts' paths; README, sc-ship G13 and the orchestrator's
-  State section offer it. Self-test adds 15 failing mutations.
+  (Claude Code by session id across project dirs, Codex `~/.codex/sessions/…`); README lists the skill.
+- **Validator** guards the skill's marked blocks on full phrases — evidence rule (command + output allowed),
+  redaction, filing (human-typed approval naming the draft, excluded sources, `--body-file`, no shell
+  interpolation), privacy, local dedup (`gh issue list`, kit vocabulary only, redact → show → approve for
+  comments), report location (`git check-ignore -q`, outside the repo, failed/cancelled archive, cites not
+  quotes), user-turn filter and injection rule — plus the Not-a-gate section (read-only on every input) and
+  that the skill assigns no gate value; the inputs (session-id glob, state + log fallback, cost
+  `unavailable`), five dimensions and report anchors; the runtime-adapters row; and the README, sc-ship
+  G13 and orchestrator offers. Self-test adds 34 failing mutations.
 
 ## 0.3.14 — UI natures: a live owner loop is the visual evidence (#83)
 

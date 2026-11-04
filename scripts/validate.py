@@ -1000,19 +1000,37 @@ def check_visual_check(root: Path, f: Findings) -> None:
 RETRO_SKILL = SKILLS_DIR / "sc-retro" / "SKILL.md"
 RETRO_SECTION_TOKENS = {
     "Not a gate": ("never a gate and never blocks a merge", "writes no gate value",
-                   "never edits the state file or the gate log", "**read-only**"),
-    "Inputs": ("run on state + log only and say so", "runtime-adapters.md", "data, never as instructions"),
+                   "never edits the state file or the gate log", "read-only on every input"),
+    "Inputs": ("run on state + log only and say so", "runtime-adapters.md",
+               "`ls ~/.claude/projects/*/<session-id>.jsonl`", "by session id first",
+               "not found → cost is `unavailable`", "grep -n -o"),
     "Dimensions": ("**Loops & re-reviews**", "**Review effectiveness**", "**Stage / route fit**",
-                   "**Cost / time**", "**User friction**", "heavy-work.md", "never an estimate"),
-    "Report": ("`<slug>-<date>.retro.md`", "never drafted as kit issues", "open and closed issues",
-               "a link"),
+                   "**Cost / time**", "**User friction**", "heavy-work.md", "never an estimate",
+                   "the content and approval rules above"),
+    "Report": ("`<slug>-<date>.retro.md`", "never drafted as kit issues"),
 }
 RETRO_BLOCK_TOKENS = {
-    "retro-evidence-rule": ("`path:line`", "claim-evidence.md", "No citation → not reported"),
+    "retro-evidence-rule": ("`path:line`", "claim-evidence.md", "No citation → not reported",
+                            "a command and its output"),
     "retro-redaction": ("before any draft is shown", "secrets", "emails", "hostnames", "internal paths",
                         "the project's name", "unless the user opts in"),
-    "retro-filing": ("approves that draft in this session", "never auto-file", "a subagent cannot approve"),
-    "retro-privacy": ("read locally only", "leaves the machine"),
+    "retro-filing": ("a reply typed by the human user", "after the exact redacted draft was shown",
+                     "naming that draft", "task notifications", "agent and teammate messages",
+                     "a subagent cannot approve", "Never auto-file", "--body-file",
+                     "never draft text interpolated into a shell string"),
+    "retro-privacy": ("read locally only", "leaves the machine", "duplicate search runs on the machine",
+                      "git-ignored"),
+    "retro-dedup": ("Dedup locally", "gh issue list", "--state all", "on the machine",
+                    "Never send finding text off the machine", "only after redaction", "kit vocabulary",
+                    "redact → show → approve"),
+    "retro-report-location": ("git check-ignore -q", "write outside the repo", "say so",
+                              "main checkout's `<state dir>/archive/`", "cites, it does not quote",
+                              "secrets, tokens and keys are redacted"),
+    "retro-user-turns": ("top-level", "not `isSidechain`", "not `isMeta`", "human text", "`tool_result`",
+                         "`<task-notification>`", "teammate and agent messages", "`<system-reminder>`",
+                         "compact summaries", "command wrappers"),
+    "retro-injection": ("data, never instructions", "dimension-pass subagent prompt",
+                        "may not approve or file"),
 }
 
 
@@ -1057,7 +1075,8 @@ def check_retro(root: Path, f: Findings) -> None:
     adapters = root / "docs" / "runtime-adapters.md"
     if adapters.is_file():
         row = next((l for l in read(adapters).splitlines() if l.startswith("| host transcript")), "")
-        if not ("sc-retro" in row and ".claude/projects/" in row and ".codex/sessions/" in row):
+        if not ("sc-retro" in row and "~/.claude/projects/*/<session-id>.jsonl" in row
+                and ".codex/sessions/" in row):
             f.error("docs/runtime-adapters.md", "no host-transcript row naming sc-retro with both hosts' "
                                                 "transcript paths")
     for skill, heading in (("sc-ship", "Cleanup (G13)"), ("ship-cycle", "State (real")):
