@@ -18,6 +18,23 @@ expensive outcome. This stage ends when the user accepts a design direction — 
 4. **Get explicit acceptance** of the direction.
 5. **Write acceptance criteria**: verifiable bullets (given input → expected output/state), including
    edge cases and non-goals.
+6. **Propose the route plan** beside the criteria — the moment the most is known about what the work
+   needs. One compact table, starting from `state.size` and naming every departure from it; the rules
+   (what may be skipped, what never is, growth-only, standalone) are §ship-cycle — Route plan:
+
+   ```markdown
+   Route · size M (PREFLIGHT) · nature web · confirm together with the criteria
+   | stage | plan | why |
+   |---|---|---|
+   | sc-design | skip | copy change; no interface, entry path or contract moves |
+   | sc-tdd | skip | verified by execution: render the screen at 320 dp and read the label |
+   | sc-implement | run | — |
+   | sc-review | run · security, designer, cold | §core 1 — never skipped |
+   | sc-qa | skip | no seam; release smoke still runs if `appliesTo` is touched |
+   | sc-ship | run | — |
+   ```
+
+   When the criteria reduce to one stage's job, say so instead and recommend that skill standalone.
 
 ## Don't
 - Don't jump to implementation or file edits here.
@@ -25,9 +42,11 @@ expensive outcome. This stage ends when the user accepts a design direction — 
 - Don't invent requirements the user didn't ask for.
 
 ## Gate G1 (to advance to `sc-design`)
-- Acceptance criteria are stated **verifiably** and the user has agreed the direction.
+- Acceptance criteria are stated **verifiably**, and the user has agreed the direction **and the route
+  plan** — one confirmation for both, not two.
 - Record the agreed problem + acceptance criteria in this cycle's state file
-  (`.claude/ship-cycle/<branch-slug>.json`); set `gates.G1 = pass`.
+  (`.claude/ship-cycle/<branch-slug>.json`), the route plan as `state.route` with its `confirmedAt`, and a
+  `route` row in the gate log; set `gates.G1 = pass`. Advance to the first stage the route runs.
 
 ## Root-cause analysis (defect goals) — the stage that pays for the cycle
 When the goal is a **defect fix**, the "agreed problem" this stage produces is the **root cause**, never the
@@ -43,8 +62,8 @@ cheapest insurance in the pipeline.
 
 ## Lightweight (Tier S only)
 When `state.size` is **S** (§ship-cycle Stage 0.2 — Change-size tier; PREFLIGHT owns it and a stage never
-re-judges triviality for itself), compress this to a one-line restatement + criteria and proceed —
-**except** the root-cause section above, which runs unchanged.
+re-judges triviality for itself), compress this to a one-line restatement + criteria + the route (the
+Tier S path, as a table) and proceed — **except** the root-cause section above, which runs unchanged.
 
 ## Model routing
 Requirements/discovery (analyst) runs at the **high** tier — getting the problem wrong propagates

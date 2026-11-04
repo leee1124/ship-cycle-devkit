@@ -54,6 +54,10 @@ Otherwise parse the JSON and print a compact, scannable status report:
 - **Gate table** — for **G1–G13**, show the value in `gates`: `pass` / `fail` / `—` (not yet reached) /
   a three-way value (`degrade`, `checklist`, `skip`) / `"n/a: <reason>"` (a stage deliberately skipped —
   print the reason, and never fold it in with `fail`).
+- **Route plan** from `route`, when present: one line per stage — `run` or `skip` with its reason — then
+  the lenses, the QA form and `confirmedAt`. Absent (a cycle started before 0.3.13, or G1 not yet passed):
+  say so; the tier then decides as before. Flag a gate that is `n/a` while its stage's route entry is
+  `run` — a skip the confirmed route did not plan.
 - **Loop counts** per gate from `loops`; the loop cap is 3 per gate — flag any gate that has hit the cap.
 - **Resolved model routing** from `models` (per stage) and **effort** from `effort`.
 - **Change nature** (`nature`), **risk** (`risk`), and **size tier** (`size` — S/M/L).

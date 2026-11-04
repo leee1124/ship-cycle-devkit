@@ -37,8 +37,9 @@ Otherwise, resume via the `ship-cycle` skill's PREFLIGHT resume path:
    Inference only lowers — never a recorded `pass`.
 3. Continue from **`continueFrom`** — the recorded stage (`parked.resumeStage` for a parked file, else
    `stage`) unless the reconcile lowered it — forward through the remaining gates, honoring the
-   recorded `models`, `effort`, `nature`, `risk`, `size`, `baseline` (**including its `unrunnableHere`
-   quarantine, which is read-only on resume** — resuming is not an occasion to re-derive it; §ship-cycle
+   recorded `models`, `effort`, `nature`, `risk`, `size`, `route` (read-only and growth-only on resume; when
+   absent, stages decide from the tier as before — never reconstruct one), `baseline`
+   (**including its `unrunnableHere` quarantine, which is read-only on resume** — resuming is not an occasion to re-derive it; §ship-cycle
    Stage 0.5), and per-gate `loops` (respect the orchestrator's loop cap — parking and resuming never reset them). Keep **appending** to
    `telemetry` rather than restarting it — a resumed run's cost readout must cover the whole run, not just
    the part after the resume. If `size` is absent (a run

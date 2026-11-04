@@ -494,6 +494,62 @@ CASES = [
         ),
         "output & severity discipline has no '**Claim evidence**' bullet",
     ),
+    (
+        "route plan: sc-brainstorm G1 no longer records it",
+        lambda r: mutate(
+            r / "skills" / "sc-brainstorm" / "SKILL.md",
+            "the route plan as `state.route` with its `confirmedAt`",
+            "the plan with its `confirmedAt`",
+        ),
+        "Gate G1 section does not record the route plan",
+    ),
+    (
+        "route plan: G1 gate row stops requiring it",
+        lambda r: mutate(
+            r / "skills" / "ship-cycle" / "SKILL.md",
+            "acceptance criteria stated verifiably + **route plan**, user-agreed together",
+            "acceptance criteria stated verifiably + user-agreed",
+        ),
+        "G1 row of the gate table does not require the route plan",
+    ),
+    (
+        "route plan: the orchestrator section is gone",
+        lambda r: mutate(
+            r / "skills" / "ship-cycle" / "SKILL.md",
+            "## Route plan — which stages run, decided at G1",
+            "## Stage choice",
+        ),
+        "no '## Route plan' section",
+    ),
+    (
+        "route plan: the rule loses growth-only",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "never removed", "sometimes removed"),
+        "Route plan section does not state 'never removed'",
+    ),
+    (
+        "route plan: sc-qa re-derives its skip instead of reading state.route",
+        lambda r: mutate(
+            r / "skills" / "sc-qa" / "SKILL.md", "state.route", "the plan", count=-1
+        ),
+        "skills/sc-qa/SKILL.md: does not read state.route",
+    ),
+    (
+        "route plan: the documented shape lets review be skipped",
+        lambda r: mutate(
+            r / "docs" / "state-file.md", '"sc-review": "run"', '"sc-review": "skip: small diff"'
+        ),
+        "route.stages['sc-review'] must always be 'run'",
+    ),
+    (
+        "route plan: a stage value that is neither run nor skip",
+        lambda r: mutate(r / "docs" / "state-file.md", '"sc-design": "run"', '"sc-design": "maybe"'),
+        "route.stages['sc-design'] is not 'run' or 'skip: <reason>'",
+    ),
+    (
+        "route plan: /status does not show it",
+        lambda r: mutate(r / "commands" / "status.md", "`route`", "the plan", count=-1),
+        "does not show the route plan",
+    ),
 ]
 
 

@@ -14,6 +14,10 @@ bump or most UI tweaks are verified by running the thing, and a red-then-green u
 little. Name the execution-based verification instead — it is what G4 accepts in place of Red evidence. When
 it is genuinely unclear which case you are in, write the test: it costs little and settles it.
 
+**Route first.** When `state.route.stages['sc-tdd']` is `skip: <reason>`, the reason names the
+execution-based verification: run it at G4 as below (`gates.G4 = "n/a: route — <reason>"`) rather than
+deciding afresh (§ship-cycle — Route plan).
+
 ## Do
 1. For each acceptance criterion, write a test that encodes it: **Given/When/Then**, descriptive name.
 2. Choose the test type by **change nature** (from the overlay `changeNature[].tests` for this diff) —

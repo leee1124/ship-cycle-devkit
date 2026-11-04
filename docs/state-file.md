@@ -11,6 +11,10 @@ the mechanics that only matter when something unusual happens to its name or its
   "gateTrees": { "G5": "<tree id of the worktree the build/tests ran on>" },
   "loops": { "G8": 1 },
   "nature": ["backend"], "risk": ["auth"], "size": "L",
+  "route": { "confirmedAt": "<iso>",
+             "stages": { "sc-design": "run", "sc-tdd": "skip: copy change, verified by execution",
+                         "sc-implement": "run", "sc-review": "run", "sc-qa": "run", "sc-ship": "run" },
+             "lenses": ["security", "quality", "cold"], "qa": "full bring-up + seam checks" },
   "sizeEvidence": ["src/a.py:41", "src/b.py:88"],
   "baseline": { "capturedOn": "<base-sha>", "source": "local",
                 "run": null,
@@ -108,6 +112,12 @@ exits 0, with the docs globs from overlay `changeNature`'s docs rule, anchored a
 `README.md`, `CHANGELOG.md` and `docs/` only — a bare `*.md` would also excuse edits to markdown that *is*
 code, such as skill files). Any other difference clears the gate. Ignored, untracked files (`.env`, build
 output) are outside the id by design: changing only those does not invalidate a gate.
+
+`route` is the plan confirmed at G1 (§ship-cycle — Route plan): one entry per stage after sc-brainstorm,
+`"run"` or `"skip: <reason>"`; `sc-implement`, `sc-review` and `sc-ship` are always `"run"`. A skip becomes
+`gates.<G> = "n/a: route — <reason>"` when the stage is reached; `lenses` and `qa` are what sc-review and
+sc-qa run. It only grows: entries turn from `skip` to `run` and lenses are added, never the reverse.
+Absent on a cycle started before 0.3.13 — stages then decide from the tier as before.
 
 `parked` is `null` unless `stage` is `parked` (§Parking). `reconcile` is append-only, one entry per resume
 (§Resume reconcile).
@@ -220,6 +230,7 @@ compares worktree evidence with it and with `gates`:
 | subagents running when the session died — the recorded stage, `bakeOff` candidates without a `docPath`, `reviewJobs` still `running`/`launching` | their output is lost: partial files are evidence to inspect, not results | their stage is not done; a review job is polled, never relaunched (`/resume` step 6) |
 
 **Inference only ever lowers.** The reconcile may move the stage earlier and clear a `pass` (to `—`); it
+never turns a `route` entry from `run` to `skip` (a missing `route` stays missing, §Shape); it
 never records a `pass` and never continues later than the recorded stage, however finished the worktree
 looks — a gate passes only when its stage produces the evidence. Continue from the earliest stage any row
 points at.
@@ -269,7 +280,8 @@ header; every transition after that appends **one row**:
 - **gate** — the gate id as the gate table writes it (`G7b`, `G2/G3`), or `—` for a stage change.
 - **result** — exactly the value written to `gates` (`pass`, `fail`, `degrade`, `checklist`, `skip`,
   `n/a: <reason>` with the reason verbatim), plus `(loop n/3)` on a `fail`; for a stage change `enter`,
-  `parked`, `resume` or the terminal value; `cleared` for a reconcile clear; `deferred: <part>` for each
+  `parked`, `resume` or the terminal value; `route` (gate `—`) when the route plan is confirmed or grows
+  (evidence: the added stages or lenses); `cleared` for a reconcile clear; `deferred: <part>` for each
   manual-gate deferral as it is recorded.
 - **evidence** — a short pointer, never the evidence itself: a path, a test id, a tree id prefix, a job id,
   a CI link; `—` when there is none.

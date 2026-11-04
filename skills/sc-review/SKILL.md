@@ -5,7 +5,8 @@ description: Stage 5 of ship-cycle. Multi-lens parallel code review — security
 
 # sc-review — multi-lens code review (Stage 5)
 
-**No PR without a passing review (§core 1).** Run the lenses (from overlay `changeNature[].reviews`)
+**No PR without a passing review (§core 1).** Run the lenses (`state.route.lenses` when the route plan set
+them, else overlay `changeNature[].reviews`; never below the Tier S floor — §ship-cycle Route plan)
 as **separate agents in parallel** — each is blind to the others, so they catch different failure modes.
 
 ## Every review checks (cross-cutting, all lenses)
