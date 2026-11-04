@@ -78,6 +78,30 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
 - **Coverage line, per nature, from `state.coverage`**: `percent` against `floor`, or the n/a string
   verbatim, so "never measured" cannot read as "covered". **Refuse to proceed** on any `undetermined`
   entry unless it is `undetermined (ci-deferred)` and listed on the pre-merge manual gate below.
+- **Gate summary, rendered from the gate log** (`<state dir>/<branch-slug>.log.md` — `.claude/ship-cycle/`
+  on Claude Code; §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Gate log). The body carries a
+  **"Gate summary"** table, one row per gate G1–G13: the **latest** logged result and its evidence pointer,
+  verbatim — an `n/a: <reason>` keeps its reason, a `degrade`/`checklist`/`deferred` keeps its manual-gate
+  pointer — plus the loop count from `state.loops` and a `cleared` count when the reconcile cleared it.
+  Log cells are copied as they are — the writer already escaped them; only a cell sourced from
+  `state.gates` gets the cell-escaping rule here (§Gate log — Format), and "verbatim" means up to its
+  200-character cap. G12 reads
+  `pending (this PR)` and G13 `after merge` at render time. The state file is authoritative: where a gate's
+  latest log row disagrees with `state.gates`, print the state value and mark the row `log≠state`; a gate
+  with a value in `state.gates` but **no log row** renders from the state marked `(no log row)`. With no
+  log at all (a pre-0.3.7 cycle), every row is such a row; say so in the table's caption. Example:
+
+  ```markdown
+  ### Gate summary
+  | gate | result | evidence | loops |
+  |---|---|---|---|
+  | G1 | pass | criteria.md | 0 |
+  | G2/G3 | n/a: config bump, nothing to design | — | 0 |
+  | G6 | pass | coverage 84.2% ≥ floor 78.1 | 1 |
+  | G9 | degrade | release smoke: signing deferred → Pre-merge manual gate | 0 |
+  | G12 | pending (this PR) | — | 0 |
+  | G13 | after merge | — | 0 |
+  ```
 - If `state.bakeOff` exists, the body records **which stance won and why**, and `converged: true` when the
   candidates agreed — cycle state is deleted at G13, so the PR body is the only place the next person
   choosing for this shape of change can still read it.
@@ -122,15 +146,19 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
 - Gate: build + test + review + QA all passed — a `gates.G9: degrade` or a `gates.G7b`/`gates.G6: checklist` counts as
   satisfied **only** when its item is on the pre-merge manual gate above, with its reason, and a gate
   recorded as `"n/a: <reason>"` for a stage that plainly had nothing to do (§ship-cycle — Pipeline) counts
-  as satisfied with its reason carried to the PR body — **the branch
+  as satisfied with its reason carried to the PR body (verbatim up to the cell cap) — **the branch
   merges cleanly into the base**, the opened PR
   body carries the correct `Closes`/`Refs` token for every tracked issue (re-fetched and asserted, not
-  assumed), and every deferred finding is filed and referenced.
+  assumed), its Gate summary matches a fresh render from state + log, and every deferred finding is filed
+  and referenced.
   Set `gates.G12 = pass` in state once all of the above hold and **before** merging; a failed condition
   records a bare `gates.G12 = fail` (the condition goes in the loop-back report) and loops back per the gate
   table. **A recorded `pass` does not survive time:** right before the merge — always, and especially on a
   resumed run — re-run the merge-cleanliness probe and re-fetch the `Closes`/`Refs` tokens; if either no
-  longer holds, G12 is `fail` again.
+  longer holds, G12 is `fail` again. In the same re-check, **re-render the Gate summary** from state + log
+  as they are now and, if the body's no longer matches that fresh render, **patch the body** before
+  merging — a summary rendered when the PR opened goes stale as soon as a later gate, loop or clear
+  lands.
 
 ## Cleanup (G13)
 - **Check `state.gitFreeze.active` and `state.reviewJobs` before you delete anything.** Teardown removes a
@@ -148,6 +176,10 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   **which is the worktree itself when PREFLIGHT created one** (§ship-cycle State), so the worktree removal
   below destroys `telemetry` exactly as the explicit delete does. A readout emitted after either one
   reports nothing.
+- **Archive the gate log before the worktree removal**, by the procedure in
+  §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Gate log (Lifetime); G13's final row goes to the archive,
+  not to state. A failed move is a warning: print the log's last rows into this run's readout rather than
+  lose them.
 - After merge: delete the branch **local + remote** (constitution #9); never delete protected branches.
 - **Remove the feature worktree — sweep for links, then let git delete.** Teardown is the one step in the
   cycle that can destroy state **outside** the worktree, so this order is binding:
@@ -186,7 +218,7 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
 - Sync the base branch.
 - **Gate**: once the cost readout has been emitted (first — not a pass condition, but it must already have
   happened by the time anything here deletes), the branch is deleted, the worktree removed (if one was
-  created), and the base synced, set `gates.G13 = pass` in state — the run's terminal gate. Cleanup is
+  created), the gate log archived, and the base synced, set `gates.G13 = pass` in state — the run's terminal gate. Cleanup is
   best-effort: a locked
   worktree/directory is a **warning, not a blocker**, so record the warning and still mark G13 `pass`.
 

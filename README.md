@@ -87,7 +87,8 @@ working directory; they resolve the branch with `git branch --show-current`, whi
 
 - `/ship-cycle-devkit:status` — print the current stage, gate table (G1–G13), loop counts, **size tier**,
   resolved model **and effort** routing, the **cost so far**, in-flight **review jobs** and any **git-write
-  freeze**, **parked** cycles, and the worktree. Read-only.
+  freeze**, **parked** cycles, the worktree, and the last rows of the append-only **gate log**
+  (`.claude/ship-cycle/<branch-slug>.log.md`, archived at G13 and summarized in the PR body). Read-only.
 - `/ship-cycle-devkit:resume` — resume an interrupted or `parked` run: reconcile the worktree with the
   state file first, then continue from the stage it picks (doesn't restart completed stages).
 - `/ship-cycle-devkit:ship` — jump to the ship stage when the required upstream gates (G1–G9) are green;

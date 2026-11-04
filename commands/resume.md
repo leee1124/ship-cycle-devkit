@@ -27,8 +27,13 @@ Otherwise, resume via the `ship-cycle` skill's PREFLIGHT resume path:
 1. Re-read the state; confirm the recorded `branch` (and `worktreePath`, if set) still exist and are
    checked out. If the branch/worktree is gone, say so and stop — don't guess.
    If `stage` is `parked`, print `parked.reason`, `parked.resumeStage` and how long it has been parked.
+   Read the gate log `<branch-slug>.log.md` beside the state file if it exists and use its last rows to
+   **explain** what happened before the interruption (which gate failed last, what was cleared, why it was
+   parked). It is history only: the state file decides the stage, gates and loops, and a log row is never
+   evidence for a `pass` (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Gate log).
 2. **Run the resume reconcile** (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Resume reconcile): print
-   its output, append it to `reconcile`, set `stage` to its `continueFrom`, then clear `parked` to `null`.
+   its output, append it to `reconcile`, set `stage` to its `continueFrom`, then clear `parked` to `null`,
+   and append the `resume` and `cleared` rows to the gate log.
    Inference only lowers — never a recorded `pass`.
 3. Continue from **`continueFrom`** — the recorded stage (`parked.resumeStage` for a parked file, else
    `stage`) unless the reconcile lowered it — forward through the remaining gates, honoring the

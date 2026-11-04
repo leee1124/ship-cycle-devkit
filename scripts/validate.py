@@ -55,6 +55,20 @@ INLINE_STAGE_RE = re.compile(r"(?<![\w.])" + STAGE_KEYS + r"\s*[:=]\s*[\"']" + S
 KEY_SPAN_STAGE_RE = re.compile(r"`(?:state\.|parked\.)?" + STAGE_KEYS + r"`\s*[:=]\s*`" + STAGE_VALUE + r"`")
 # Non-skill stage values every reader branches on; the seven stage skills come from the pipeline table.
 REQUIRED_NON_SKILL_STAGES = ("parked", "complete", "failed", "cancelled")
+SHIP_SKILL = Path("skills/sc-ship/SKILL.md")
+GATE_LOG_HEADING = "## Gate log"
+GATE_SUMMARY_PHRASE = "Gate summary"
+G12_FRESH_RENDER_PHRASE = "fresh render from state + log"
+# The log lives in the host's state dir: `.claude/ship-cycle/` (Claude), `.codex/ship-cycle/` (Codex), or the
+# generic `<state dir>/` placeholder.
+GATE_LOG_PATH_RE = re.compile(
+    r"(?:\.claude/ship-cycle/|\.codex/ship-cycle/|<state dir>/)<branch-slug>\.log\.md"
+)
+GATE_LOG_ESCAPING_RE = re.compile(
+    r"<!-- gate-log-cell-escaping -->(.*?)<!-- /gate-log-cell-escaping -->", re.S
+)
+GATE_LOG_ESCAPING_TOKENS = ("`|` → `\\|`", "newline", "200 characters", "applied exactly once")
+G12_ROW_RE = re.compile(r"^\|\s*G12\s*\|(.*)$", re.M)
 
 CLAUDE_REQUIRED = ("name", "version", "description", "skills")
 CODEX_REQUIRED = ("name", "version", "description", "author", "interface")
@@ -239,6 +253,47 @@ def stage_literals(text: str) -> list[str]:
         values += INLINE_STAGE_RE.findall(span)
         values += JSON_STAGE_RE.findall(span)
     return values
+
+
+def check_gate_summary(root: Path, f: Findings) -> None:
+    """The gate log is documented, and sc-ship's PR template renders a Gate summary from it.
+
+    #70: stage/gate passage lived only in the state file G13 deletes, so nothing after the merge showed the
+    cycle was followed. The rule is prose, so the cheap mechanical part is that both halves still exist.
+    """
+    doc = root / STATE_SHAPE_DOC
+    if doc.is_file():
+        doc_text = read(doc)
+        if GATE_LOG_HEADING not in doc_text:
+            f.error(shown(STATE_SHAPE_DOC), f"no '{GATE_LOG_HEADING}' section documenting the gate log")
+        # One escaping rule for every cell: an unescaped `|` or newline in free text breaks the table.
+        m = GATE_LOG_ESCAPING_RE.search(doc_text)
+        if not m:
+            f.error(shown(STATE_SHAPE_DOC), "no <!-- gate-log-cell-escaping --> rule for gate-log cells")
+        else:
+            for token in GATE_LOG_ESCAPING_TOKENS:
+                if token not in m.group(1):
+                    f.error(shown(STATE_SHAPE_DOC), f"gate-log cell-escaping rule does not state {token!r}")
+    orchestrator = root / SKILLS_DIR / "ship-cycle" / "SKILL.md"
+    if orchestrator.is_file():
+        # The summary is rendered at PR open and goes stale; G12 is where it is re-checked before merge.
+        row = G12_ROW_RE.search(read(orchestrator))
+        if not row or GATE_SUMMARY_PHRASE not in row.group(1):
+            f.error(shown(orchestrator.relative_to(root)),
+                    f"G12 row of the gate table does not require the {GATE_SUMMARY_PHRASE}")
+        elif G12_FRESH_RENDER_PHRASE not in row.group(1):
+            # "Matches the log" lets a stale, log-copied summary pass; it must match a re-render.
+            f.error(shown(orchestrator.relative_to(root)),
+                    f"G12 row does not require the summary to match a {G12_FRESH_RENDER_PHRASE}")
+    ship = root / SHIP_SKILL
+    if not ship.is_file():
+        f.error(shown(SHIP_SKILL), "missing")
+        return
+    text = read(ship)
+    if GATE_SUMMARY_PHRASE not in text:
+        f.error(shown(SHIP_SKILL), f"PR template does not include the '{GATE_SUMMARY_PHRASE}'")
+    if not GATE_LOG_PATH_RE.search(text):
+        f.error(shown(SHIP_SKILL), "does not name the gate log it renders the summary from")
 
 
 def check_manifests_and_versions(root: Path, f: Findings) -> None:
@@ -432,6 +487,7 @@ def main(argv: list[str]) -> int:
     check_gate_coverage(root, f)
     check_stage_vocabulary(root, f)
     check_manifests_and_versions(root, f)
+    check_gate_summary(root, f)
     check_skill_frontmatter(root, f)
     check_example_coverage(root, f)
     check_example_release_smoke(root, f)
