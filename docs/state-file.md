@@ -72,26 +72,32 @@ cycle that released it (§Parking).
 ### Tree identity
 
 Stage everything — tracked, modified and untracked, minus ignored files and this run's state — into a
-throwaway index and write it as a tree. The real index is never touched:
+throwaway index and write it as a tree. The real index is never touched, and the pathspecs are anchored at
+the repo root so the id does not depend on the current directory:
 
 ```bash
 idx="$(mktemp -d)/index"
 GIT_INDEX_FILE="$idx" git read-tree HEAD &&
-GIT_INDEX_FILE="$idx" git add -A -- . ':(exclude).claude/ship-cycle' &&
+GIT_INDEX_FILE="$idx" git add -A -- ':/' &&
+GIT_INDEX_FILE="$idx" git rm -r -q --cached --ignore-unmatch -- ':(top).claude/ship-cycle' &&
 GIT_INDEX_FILE="$idx" git write-tree      # → the tree id
 rm -rf "$(dirname "$idx")"
 ```
 
-The writer and the reconcile run exactly this, so equal ids mean an equal worktree. Committing does not
-change the id — a clean worktree's tree is `HEAD^{tree}` — so sc-ship's commits keep every recorded tree
-valid. The one allowed difference is the docs sc-ship adds at G10: a recorded tree still holds when
+The state dir is dropped with `rm --cached` rather than an `:(exclude)` pathspec: when it is gitignored, an
+exclude naming it makes `git add` exit 1 and the chain yields no id. Treat an empty id as a failed check, never
+as a match. The writer and the reconcile run exactly this, so equal ids mean an equal worktree. Committing does
+not change the id (with the state dir untracked, a clean worktree's id is `HEAD^{tree}`), so sc-ship's
+commits keep every recorded tree valid. The one allowed difference is the docs sc-ship adds at G10: a recorded tree still holds when
 
 ```bash
-git diff --quiet <recorded tree> <current tree> -- . <one ':(exclude)<glob>' per docs glob>
+git diff --quiet <recorded tree> <current tree> -- ':/' <one ':(exclude,top)<glob>' per docs glob>
 ```
 
-exits 0, with the docs globs from overlay `changeNature`'s docs rule (no overlay: `*.md` and `docs/`).
-Any other difference clears the gate.
+exits 0, with the docs globs from overlay `changeNature`'s docs rule, anchored at the root (no overlay:
+`README.md`, `CHANGELOG.md` and `docs/` only — a bare `*.md` would also excuse edits to markdown that *is*
+code, such as skill files). Any other difference clears the gate. Ignored, untracked files (`.env`, build
+output) are outside the id by design: changing only those does not invalidate a gate.
 
 `parked` is `null` unless `stage` is `parked` (§Parking). `reconcile` is append-only, one entry per resume
 (§Resume reconcile).
