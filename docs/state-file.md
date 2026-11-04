@@ -83,7 +83,8 @@ the mechanics that only matter when something unusual happens to its name or its
                  "implStatus": [{ "round": 1, "brief": "backend: rate limit", "gate": "G5",
                                   "agent": "fresh", "status": "BLOCKED", "reason": "missing context",
                                   "concerns": ["<actionable sentence>"],
-                                  "notVerified": ["full suite not rerun after the last edit"],
+                                  "notVerified": [{ "item": "full suite not rerun after the last edit",
+                                                    "coveredBy": "G6: <command> → 0" }],
                                   "route": "re-dispatch with context", "change": "added the error contract",
                                   "tier": null, "model": null }] } }
 ```

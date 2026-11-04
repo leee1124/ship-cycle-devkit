@@ -23,21 +23,27 @@
   - Too large → split.
   - Design defect → sc-design.
   - No report → resume once, then treat it as missing context once, then stop.
-  - Every re-dispatch is changed and counts on `loops[<gate that sent the round>]`.
-  - An unobtainable fact, an unsplittable top-tier brief, an undeterminable block or the cap → stop, park,
-    ask the user. At the cap on a design defect the user decides.
+  - Every re-dispatch is changed. Failure-driven ones (reasoning limit, too large, design defect, no
+    report, fix rounds) count on `loops[<gate that sent the round>]` once per gate loop-back, and a split
+    counts once for its parent. Context fetches (`NEEDS_CONTEXT`, missing context) have their own
+    per-brief cap of 3.
+  - An unobtainable fact, an unsplittable top-tier brief, an undeterminable block or either cap → stop,
+    park, ask the user. The orchestrator's loop-cap sentence is the one cap rule (stop, park, the user
+    decides — `sc-design` included); sc-implement points to it.
   - Same-tier rounds 1–2 resume the same implementer, and a tier-up is always a fresh agent with a
     written handoff.
 - **Review and ship read it.** Concerns that skipped the fix round are listed in the sc-review brief as
-  items to verify, each gets a disposition, and G8 requires them. sc-ship G11 runs or downgrades every
-  open `notVerified` item a claim depends on (heavy runs under `env.heavyLock`) and the cost readout
-  prints them.
+  items to verify, each gets a disposition, and G8 requires them. `notVerified` items are
+  `{item, coveredBy}`; sc-ship G11 treats a `null` `coveredBy` as open, runs or downgrades every open item
+  a claim depends on (heavy runs under `env.heavyLock`), lists the rest on G12's pre-merge manual gate with
+  a covering command as the check, and the cost readout prints them.
 - **Telemetry.** One `state.telemetry.implStatus` entry per report (round, brief, gate, fresh/resumed,
   status, reason, concerns, not-verified, route, change, and tier/model only when they changed); sc-ship's
   readout prints it and sc-retro reads it. Neither decides a gate from it.
 - **Validator.** `check_impl_status` guards the vocabulary, the prompt block's equality with the doc's,
   the routing rows and rules (including the forbidden "a resume passes the routed model"), the sc-review
-  and sc-ship hooks, the state shape and the consumers; 31 self-test mutations.
+  and sc-ship hooks, the loop-cap wording, `coveredBy`, the state shape and the consumers; 40 self-test
+  mutations.
 
 ## 0.3.17 — SessionStart hook: restate an active cycle after startup, /clear and compaction (#86)
 

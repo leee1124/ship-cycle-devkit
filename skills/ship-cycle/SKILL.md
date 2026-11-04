@@ -76,9 +76,11 @@ This is the default map, not a required path. Which stages run is decided once, 
 logic to test first. A skipped stage records `gates.<G> = "n/a: <one-line reason>"`, a decision rather than
 a drift, and distinguishable from a stage never reached. For every stage that does run, **its gate must
 pass before the next stage starts; on failure, loop back per the gate table's "On failure" column.**
-**Loop cap: 3 per gate** (tracked in *this cycle's* state file, not in your head) — beyond that, return to
-`sc-design` and notify the user (a route-skipped `sc-design` grows to `run`, §Route plan). Parking and
-resuming do not reset it (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Parking).
+**Loop cap: 3 per gate** (tracked in *this cycle's* state file, not in your head) — beyond that, stop:
+park the cycle and ask the user, who decides the next step, `sc-design` included (a route-skipped
+`sc-design` then grows to `run`, §Route plan). This is the one cap rule; sc-implement's routes follow it
+(§sc-implement — Route the implementer's status). Parking and resuming do not reset it
+(§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Parking).
 
 Between every stage, artifacts pass through the state-file handoff rule below.
 
@@ -113,12 +115,13 @@ re-deriving its own skip.
   of sc-implement, not a stage, so it is never skipped as one; the designer lens and its a11y floor join the
   lens floor for a UI nature and no route or Tier S drops them.
 - **Growth only.** Once confirmed, a stage or lens can be added, never removed. Growth comes from: scope or
-  nature growing (§Stage 0.4); a loop-back to sc-design — a loop cap or a G8 design flaw — which grows
-  `sc-design` to `run` and tells the user; sc-tdd finding a contract in a routed skip. Re-show the user only
-  the added rows, write them to `state.route`, log a `route` row. **A basis rise** — `state.size` above
-  `basis.size`, a risk tag not in `basis.risk`, or a nature not in `basis.nature` — invalidates every skip:
-  re-show those rows; each turns `run` unless the user re-confirms it against the new basis (which then
-  updates `basis`). Every stage's "Route first" check makes this comparison before honouring a skip.
+  nature growing (§Stage 0.4); a loop-back to sc-design — the user's choice at a loop cap, or a G8 design
+  flaw — which grows `sc-design` to `run` and tells the user; sc-tdd finding a contract in a routed skip.
+  Re-show the user only the added rows, write them to `state.route`, log a `route` row. **A basis rise**
+  — `state.size` above `basis.size`, a risk tag not in `basis.risk`, or a nature not in `basis.nature` —
+  invalidates every skip: re-show those rows; each turns `run` unless the user re-confirms it against the
+  new basis (which then updates `basis`). Every stage's "Route first" check makes this comparison before
+  honouring a skip.
 - **Growing a stage already passed.** When a grown stage's gate holds `n/a: route — …`, clear it to `—`
   with a `cleared` log row, move `stage` back to that stage, and let later gates clear as their evidence
   goes: G5–G9 by §Tree identity when the re-run changes the tree; G4 when a re-run design changes the

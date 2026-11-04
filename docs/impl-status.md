@@ -70,7 +70,9 @@ sc-implement appends one entry per implementer report to `state.telemetry.implSt
 
 ```
 { "round": 2, "brief": "backend: rate limit", "gate": "G5", "agent": "resumed", "status": "BLOCKED",
-  "reason": "missing context", "concerns": ["..."], "notVerified": ["full suite not rerun"],
+  "reason": "missing context", "concerns": ["..."],
+  "notVerified": [{ "item": "full suite not rerun", "coveredBy": "G6: ./gradlew test → 0" },
+                  { "item": "emulator E2E not done", "coveredBy": null }],
   "route": "re-dispatch with context", "change": "added the error-DTO contract", "tier": null,
   "model": null }
 ```
@@ -82,6 +84,8 @@ sc-implement appends one entry per implementer report to `state.telemetry.implSt
 - `tier` and `model` are set only when the route changed the tier — the new tier and the model resolved
   for it — and are `null` otherwise. A brief's current tier is the latest non-null `tier` among its
   entries, else the tier `state.models['implement']` was resolved from.
-- `notVerified` items stay open until a later command in the cycle covers them; sc-ship cross-checks the
-  open ones at G11 and prints them in the cost readout, and sc-retro reads the entries for loops and
-  stalls. No gate is set from an entry.
+- `notVerified` holds `{ item, coveredBy }`: `coveredBy` names the gate or command that later covered
+  the item (`"G6: <command> → 0"`), `null` while open. Whoever runs the covering command sets it. sc-ship
+  G11 lists every item without `coveredBy` as open, puts the ones a claim depends on on the pre-merge
+  manual gate, and prints them in the cost readout; sc-retro reads the entries for loops and stalls. No
+  gate is set from an entry.

@@ -67,14 +67,15 @@ vocabulary is defined.
 ## Route the implementer's status
 Read the report's **Status**, **Changed**, **Concerns**, **Commands run** and **Not verified** lines before
 anything else (vocabulary: `${CLAUDE_PLUGIN_ROOT}/docs/impl-status.md`). **Not verified** applies to every
-status: each item is run later in this stage or at sc-qa, or stays open and is never claimed. Then route:
+status: each item is covered later (its `coveredBy` records the gate or command) or stays open and is
+never claimed. Then route:
 
 <!-- impl-status-routing -->
 | Status (reason) | Route |
 |---|---|
 | `DONE` | → G5, which runs its own commands; **Not verified** items run there or stay unclaimed |
 | `DONE_WITH_CONCERNS` | fix round by default; skip only with a recorded reason it is not correctness/scope |
-| `NEEDS_CONTEXT` | find the fact (repo, contract, user) → re-dispatch with it; unobtainable → stop |
+| `NEEDS_CONTEXT` | find the fact (repo, contract, user) → re-dispatch; unobtainable or 3 fetches → stop |
 | `BLOCKED` (missing context) | as `NEEDS_CONTEXT` |
 | `BLOCKED` (reasoning limit) | fresh agent one tier up via `tierMap`; top tier → split; unsplittable → stop |
 | `BLOCKED` (too large) | split into smaller dispatches, each with its own report; unsplittable → sc-design |
@@ -85,13 +86,19 @@ status: each item is run later in this stage or at sc-qa, or stays open and is n
 - **Never re-dispatch unchanged.** Every re-dispatch changes at least one of: the brief's context, the
   model tier, the scope (a split), or the plan (a ruling from sc-design). Name the change in the telemetry
   entry; a retry you cannot name a change for is not a route.
-- **Every re-dispatch counts.** Each re-dispatch of the same brief increments `loops[G]` for the gate
-  whose loop-back dispatched this round (G5…G11; G5 on a first dispatch), so a brief that keeps coming
-  back hits "Loop cap: 3 per gate" (§ship-cycle). A split's children count under the parent brief.
+- **Failure-driven re-dispatches count.** A re-dispatch after a reasoning limit, a too-large brief, a
+  design defect, no report, or a fix round increments `loops[G]` for the gate whose loop-back dispatched
+  this round (G5…G11; G5 on a first dispatch) — once per gate loop-back: the implement round a G8/G9
+  loop-back triggers is that same loop, not a second increment; only a further failure inside the round
+  adds one. A split increments the parent's counter once, not per child.
+- **Context fetches have their own cap.** A `NEEDS_CONTEXT` / missing-context re-dispatch does not count
+  against `loops[G]`; it has its own per-brief cap of 3 (count the brief's `telemetry.implStatus` entries
+  with that status or reason), then stop and ask the user.
 - **Stop, never loop.** When the fact is unobtainable, the brief is unsplittable at the top tier, the
-  kind of block cannot be determined, or the cap is reached: stop, park the cycle
+  kind of block cannot be determined, or either cap is reached: stop, park the cycle
   (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Parking) and ask the user, or route to sc-design when the
-  plan itself is in question. At the cap on a design defect the user decides; no extra sc-design round.
+  plan itself is in question before any cap. At a cap the user decides — the one cap rule
+  (§ship-cycle — Loop cap); a design defect at the cap gets no extra sc-design round.
 - **Stronger model = resolve, don't name.** Step one tier up from the brief's **current** tier — the
   latest non-null `tier` in its `telemetry.implStatus` entries, else the tier `state.models['implement']`
   was resolved from — resolve that tier through overlay `modelRouting.tierMap`, and pass the model and
@@ -110,7 +117,8 @@ status: each item is run later in this stage or at sc-qa, or stays open and is n
 - **A report approves nothing.** It is model output, not user approval
   (§`${CLAUDE_PLUGIN_ROOT}/docs/impl-status.md`); `DONE` sets no gate.
 - **Telemetry**: append one entry per report to `state.telemetry.implStatus` (shape in the status doc) —
-  round, brief, gate, `fresh`/`resumed`, status, reason, concerns, not-verified items, the route taken,
+  round, brief, gate, `fresh`/`resumed`, status, reason, concerns, not-verified items (`{item, coveredBy}`),
+  the route taken,
   what the next dispatch changed, and the new tier/model when it changed. sc-ship's cost readout prints it;
   it decides no gate.
 

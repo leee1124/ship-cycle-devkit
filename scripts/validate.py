@@ -1288,14 +1288,17 @@ IMPL_REPORT_LINES = ("- Changed:", "- Concerns:", "- Commands run:", "- Not veri
 IMPL_ROUTES = {
     "`DONE`": ("G5", "own commands", "Not verified"),
     "`DONE_WITH_CONCERNS`": ("fix round by default", "recorded reason", "correctness/scope"),
-    "`NEEDS_CONTEXT`": ("re-dispatch", "unobtainable → stop"),
+    "`NEEDS_CONTEXT`": ("re-dispatch", "unobtainable or 3 fetches → stop"),
     "`BLOCKED` (missing context)": ("`NEEDS_CONTEXT`",),
     "`BLOCKED` (reasoning limit)": ("fresh agent", "tier up", "`tierMap`", "split", "unsplittable → stop"),
     "`BLOCKED` (too large)": ("split",),
     "`BLOCKED` (design defect)": ("sc-design", "loop cap", "user decides"),
     "`BLOCKED` (no report)": ("resume once", "fresh", "missing context once", "then stop"),
 }
-IMPL_ROUTE_BULLETS = ("Never re-dispatch unchanged", "Every re-dispatch counts", "G5…G11", "Stop, never loop",
+IMPL_ROUTE_BULLETS = ("Never re-dispatch unchanged", "Failure-driven re-dispatches count", "G5…G11",
+                      "once per gate loop-back", "increments the parent's counter once",
+                      "does not count against",
+                      "own per-brief cap of 3", "Stop, never loop", "the one cap rule",
                       "park the cycle", "latest non-null `tier`", "`modelRouting.tierMap`",
                       "A tier-up re-dispatch is always a fresh agent", "same tier only",
                       "fresh one with a written handoff", "sc-review brief", "`env.heavyLock`",
@@ -1305,7 +1308,12 @@ IMPL_ROUTE_BULLETS = ("Never re-dispatch unchanged", "Every re-dispatch counts",
 IMPL_ROUTE_FORBIDDEN = ("resume passes the routed model",)
 IMPL_REVIEW_TOKENS = {"Triage": ("Implementer concerns are items to verify", "spec-blind"),
                       "Gate G8": ("implementer concern",)}
-IMPL_SHIP_TOKENS = ("Open implementer `notVerified` items", "`env.heavyLock`", "pre-merge manual gate")
+IMPL_SHIP_TOKENS = ("Open implementer `notVerified` items", "`coveredBy` is `null`", "`env.heavyLock`",
+                    "pre-merge manual gate")
+IMPL_SHIP_PR_TOKEN = "open `implStatus.notVerified` item a claim depends on"
+# The loop cap is stated once, in the orchestrator, and sc-implement points to it (#87 delta M2).
+IMPL_CAP_TOKENS = ("stop:", "ask the user", "the one cap rule", "Route the implementer's status")
+IMPL_CAP_FORBIDDEN = "return to\n`sc-design` and notify the user"
 
 def check_impl_status(root: Path, f: Findings) -> None:
     """#87: every implementer ends with one status from one vocabulary, and sc-implement routes each.
@@ -1404,9 +1412,22 @@ def check_impl_status(root: Path, f: Findings) -> None:
     for token in IMPL_SHIP_TOKENS:
         if token not in sec:
             f.error("skills/sc-ship/SKILL.md", f"'## Verify (G11)' does not state {token!r}")
+    if ship.is_file() and IMPL_SHIP_PR_TOKEN not in _flat(_section(read(ship), "PR (G12)")):
+        f.error("skills/sc-ship/SKILL.md", f"'## PR (G12)' manual gate does not list {IMPL_SHIP_PR_TOKEN!r}")
+    orch = root / SKILLS_DIR / "ship-cycle" / "SKILL.md"
+    otext = read(orch) if orch.is_file() else ""
+    cm = re.search(r"\*\*Loop cap: \d+ per gate\*\*(.*?)(?=\n\n)", otext, re.S)
+    cap = _flat(cm.group(1)) if cm else ""
+    for token in IMPL_CAP_TOKENS:
+        if token not in cap:
+            f.error("skills/ship-cycle/SKILL.md", f"loop-cap sentence does not state {token!r}")
+    if IMPL_CAP_FORBIDDEN in otext:
+        f.error("skills/ship-cycle/SKILL.md", "loop cap still returns to sc-design on its own")
     shape = read(root / STATE_SHAPE_DOC) if (root / STATE_SHAPE_DOC).is_file() else ""
     if '"implStatus"' not in shape:
         f.error(shown(STATE_SHAPE_DOC), "telemetry shape has no implStatus entry")
+    if '"coveredBy"' not in shape or '"coveredBy"' not in read(doc):
+        f.error(shown(STATE_SHAPE_DOC), "implStatus.notVerified entries have no coveredBy")
     for skill in ("sc-ship", "sc-retro"):
         p = root / SKILLS_DIR / skill / "SKILL.md"
         if p.is_file() and "telemetry.implStatus" not in read(p):

@@ -1589,13 +1589,13 @@ CASES = [
         "does not state 'A tier-up re-dispatch is always a fresh agent'",
     ),
     (
-        "re-dispatches stop counting toward the cap",
+        "failure-driven re-dispatches stop counting toward the cap",
         lambda r: mutate(
             r / "skills" / "sc-implement" / "SKILL.md",
-            "**Every re-dispatch counts.**",
+            "**Failure-driven re-dispatches count.**",
             "**Re-dispatches.**",
         ),
-        "does not state 'Every re-dispatch counts'",
+        "does not state 'Failure-driven re-dispatches count'",
     ),
     (
         "sc-implement drops the terminal stop route",
@@ -1654,6 +1654,61 @@ CASES = [
         lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "**Open implementer `notVerified` items.**",
                          "**Implementer notes.**"),
         "'## Verify (G11)' does not state 'Open implementer `notVerified` items'",
+    ),
+    (
+        "a loop-back's implement round counts twice",
+        lambda r: mutate(r / "skills" / "sc-implement" / "SKILL.md", "once per gate loop-back", "every time"),
+        "does not state 'once per gate loop-back'",
+    ),
+    (
+        "a split counts once per child",
+        lambda r: mutate(r / "skills" / "sc-implement" / "SKILL.md",
+                         "A split increments the parent's counter once, not per child.",
+                         "Each child of a split counts."),
+        "does not state \"increments the parent's counter once\"",
+    ),
+    (
+        "context fetches lose their own cap",
+        lambda r: mutate(r / "skills" / "sc-implement" / "SKILL.md", "own per-brief cap of 3", "no cap"),
+        "does not state 'own per-brief cap of 3'",
+    ),
+    (
+        "NEEDS_CONTEXT row loses the fetch cap",
+        lambda r: mutate(r / "skills" / "sc-implement" / "SKILL.md", "unobtainable or 3 fetches → stop",
+                         "unobtainable → stop"),
+        "does not route via 'unobtainable or 3 fetches → stop'",
+    ),
+    (
+        "orchestrator loop cap returns to sc-design on its own again",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md",
+                         "beyond that, stop:\npark the cycle and ask the user, who decides the next step, "
+                         "`sc-design` included",
+                         "beyond that, return to\n`sc-design` and notify the user"),
+        "loop cap still returns to sc-design on its own",
+    ),
+    (
+        "orchestrator loop cap stops pointing to sc-implement",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md",
+                         "(§sc-implement — Route the implementer's status)", "(§sc-implement)"),
+        "loop-cap sentence does not state \"Route the implementer's status\"",
+    ),
+    (
+        "G12 manual gate omits open notVerified items",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md",
+                         "every open `implStatus.notVerified` item a claim depends on",
+                         "every open implementer item"),
+        "manual gate does not list",
+    ),
+    (
+        "notVerified entries lose coveredBy",
+        lambda r: mutate(r / "docs" / "state-file.md", '"coveredBy"', '"by"'),
+        "implStatus.notVerified entries have no coveredBy",
+    ),
+    (
+        "G11 stops treating null coveredBy as open",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "`coveredBy` is `null`",
+                         "`coveredBy` is unset"),
+        "does not state '`coveredBy` is `null`'",
     ),
 ]
 

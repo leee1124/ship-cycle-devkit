@@ -57,10 +57,11 @@ This makes verification strength auditable and stops a review-only fallback from
 live pass. `review-only` is a legitimate outcome, not a failure — but it must be **named as such**.
 
 **Open implementer `notVerified` items.** Before mapping, list every `state.telemetry.implStatus`
-`notVerified` item no later command in the cycle covered. Each one that a PR claim or the evidence map
+`notVerified` item whose `coveredBy` is `null` — it is open. Each one that a PR claim or the evidence map
 depends on is run now (a full suite, build or E2E under overlay `env.heavyLock`,
 §`${CLAUDE_PLUGIN_ROOT}/docs/heavy-work.md`) or the claim is downgraded and the item goes on the pre-merge
-manual gate; none may back a `live` or `test` label unrun. The cost readout prints the list.
+manual gate; none may back a `live` or `test` label unrun. An item run now gets its `coveredBy`. The cost
+readout prints the open list.
 
 When every criterion is mapped, set `gates.G11 = pass` in state, so `/status` and resume can tell "claims
 mapped" from "just entered sc-ship". While an unproven criterion loops back, leave G11 unset; record a bare
@@ -143,7 +144,8 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   (ci-deferred)` `state.coverage` entry (the `ciReport` job + artifact whose coverage must clear the threshold), or a declared external
   review that ended `timeout`/`failed` (name the reviewer, the job id, **and the elapsed wait
   `startedAt → endedAt`**, so a review that was never actually waited for is visible as such — §sc-review)
-  — list them in the
+  — and every open `implStatus.notVerified` item a claim depends on (§Verify (G11)), with the command that
+  covers it and its expected exit code as the observable check — list them in the
   PR body under an explicit **"Pre-merge manual gate"** heading (one observable check per item), so a
   deferral can't slip in as a silent pass. For an unrunnable-here item the observable check is the **CI
   job that must show that suite executed (count > 0) and green on this branch's head commit** — a link a
@@ -242,7 +244,7 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   tier, model, effort** and whatever usage the host actually exposed (tokens/cost/wall-clock), plus the run
   total and which risk-gated upgrades fired (`telemetry.upgrades`), plus one line per
   `telemetry.implStatus` entry (round, brief, status, reason, route) so stalls and re-dispatches are seen,
-  and the open `notVerified` items from G11.
+  and the open `notVerified` items (no `coveredBy`) from G11.
   **Record `unavailable` for anything the host does not expose — never estimate a number.** Ordering is
   the whole point, and the branch/state deletes below are not the only hazard: the cycle's state file
   lives in the cycle's working directory, **which is the worktree itself when PREFLIGHT created one**
