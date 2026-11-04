@@ -10,7 +10,8 @@ Tier S floor (security + one lens matched to the nature + cold on a non-trivial 
 risk-matched lens (`state.risk`) ∪ the overlay `changeNature[].reviews` of every nature in the current
 `state.nature` — a nature added mid-cycle brings its lenses (§ship-cycle — Route plan). With no route, drop
 the first term. Run them as **separate agents in parallel** — each is blind to the others, so they catch
-different failure modes.
+different failure modes. For a UI nature the `designer` lens joins the floor — its accessibility checklist
+is an outcome, never dialed away by Tier S or a route (`${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md`).
 
 ## Every review checks (cross-cutting, all lenses)
 - **Plan alignment**: does the implementation actually satisfy the **acceptance criteria** from
@@ -55,9 +56,11 @@ different failure modes.
     animation that ignores reduced motion;
   - **emoji-as-icon** where a vector icon system exists.
   When the overlay declares a `design` source of truth, check the change against it — did it reuse, or
-  reinvent? (A backstop: sc-design ran the reuse check first.) The lens runs once, on the result the
-  owner settled in the live visual loop, not per tweak. With a `visualCheck.designTool`, run its
-  `critique` / `detect` / `audit` read-only — never `init`, `document` or a hook install inside a cycle.
+  reinvent? (A backstop: sc-design ran the reuse check first.) The lens runs once, on the result the owner
+  settled in the live visual loop, not per tweak. For a UI nature the a11y floor is an outcome, not ceremony:
+  this lens (or at least its accessibility checklist) is never dropped — Tier S or route. With a
+  `visualCheck.designTool`, run its `critique` / `detect` / `audit` read-only — never `init`, `document` or a
+  hook install inside a cycle.
 - **cold / spec-blind** (adversarial — always run one on a non-trivial change): this lens gets **only the
   diff** — NOT the design doc, canonical spec, or acceptance criteria — and is told to *assume nothing the
   author claims* and find what's wrong from first principles, hunting hardest in the real-world states above
@@ -255,6 +258,8 @@ misjudging it is how a review either balloons the branch or loses a real defect.
 disposition (fixed-here / filed-as `#NN`) in the review artifact so G8 and sc-ship can both read it.
 
 ## Re-review after fixes — the delta pass
+An edit after the first review — including a live-visual-loop tweak during a re-show, G9 or G11 — comes here:
+delta re-review, then G5–G7, counted against the loop cap (`${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md`).
 A re-review of fixes for findings you already have is **not a second full review**. Re-running every lens
 over the whole branch re-pays the first review's cost to re-read code nobody changed, and it is where most
 of a cycle's review spend goes once the first pass has landed. Scope it to what moved:
@@ -297,6 +302,9 @@ of a cycle's review spend goes once the first pass has landed. Scope it to what 
   list with no dispositions does not pass; sc-ship re-asserts this at G12, and an assertion that quantifies
   only over the findings *marked* filed would pass vacuously on an artifact that was never triaged.
 - If a finding is a **design flaw** (not an impl bug), loop back to `sc-design`, not `sc-implement`.
+- **UI nature**: the designer lens ran (a11y floor — never dropped), and the cold lens verified
+  `state.visualCheck[<nature>].cleanup` against the diff — no variant label, no file only a losing
+  prototype used.
 - Set `gates.G8 = pass` (or `fail` on a loop-back), `state.gateTrees.G8` (the reviewed tree identity,
   §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Tree identity) and loop count in state (respect the
   orchestrator's loop cap).

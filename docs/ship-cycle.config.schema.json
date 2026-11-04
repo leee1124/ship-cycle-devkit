@@ -86,8 +86,8 @@
               "open": { "type": "string", "description": "How to open the dev client on the target: an emulator/device launch command or a browser URL." },
               "devBuild": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Command(s) that build and install the dev/debug client connected to the dev server; a release-form build cannot hot reload. Heavy work (docs/heavy-work.md)." },
               "profiles": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Target device profiles the owner judges on, the owner's own first: resolution, density, font scale (include the largest), theme." },
-              "restore": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Command(s) that put back device settings changed to reach a profile (wm size/density, font scale)." },
-              "capture": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Optional. Screenshot command for an unattended run (agent capture across every profile) or the PR record." },
+              "restore": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Command(s) that put back the prior device values the loop recorded in state before changing them (wm size/density, font scale); also run on abort." },
+              "capture": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Optional. Screenshot command for an unattended run (agent capture across every profile) or the PR record; writes to the state or scratch dir, never inside the repo, under a slugified profile name." },
               "diff": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Optional. Screenshot-diff harness against the base branch; run only when declared." },
               "designTool": { "type": "string", "description": "Optional. An installed design skill hooked into UI stages (e.g. impeccable); never required \u2014 adapter table in docs/visual-check.md." }
             },

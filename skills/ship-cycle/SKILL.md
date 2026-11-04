@@ -107,8 +107,10 @@ re-deriving its own skip.
   nature in the current `state.nature` (§sc-review). **QA form** names what sc-qa runs — full bring-up +
   seams, seams only, release smoke only.
 - **UI natures**: the route may name the **live visual loop** inside `sc-implement` (the owner settles the
-  looks on the running app; `${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md`) and whether an owner will be
-  present — it is part of sc-implement, not a stage, so it is never skipped as one.
+  looks on the running app; `${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md`) and records whether the owner will
+  be present as `state.route.ownerPresent` (`false` ⇒ no `owner-confirmed` visual check). The loop is part
+  of sc-implement, not a stage, so it is never skipped as one; the designer lens and its a11y floor join the
+  lens floor for a UI nature and no route or Tier S drops them.
 - **Growth only.** Once confirmed, a stage or lens can be added, never removed. Growth comes from: scope or
   nature growing (§Stage 0.4); a loop-back to sc-design — a loop cap or a G8 design flaw — which grows
   `sc-design` to `run` and tells the user; sc-tdd finding a contract in a routed skip. Re-show the user only
@@ -327,8 +329,9 @@ test-harness form. *Outcomes* (never dialed, for a typo fix and
 an auth change alike): the six in §core; the fail-closed floors (security/data/contract); root-cause
 analysis before any defect fix; the pre-PR conflict check (G12); and the git-write freeze while an
 out-of-process reviewer reads the branch (§sc-review — a badly-timed `commit`/`checkout` can hang the reader
-for an hour, and Tier S does not exempt you from waiting). When unsure which side something is on, it is an
-outcome.
+for an hour, and Tier S does not exempt you from waiting); and, for a UI nature, the accessibility floor —
+the designer lens or at least its a11y checklist (§`${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md`). When
+unsure which side something is on, it is an outcome.
 
 Root-cause analysis, triage and the conflict check are the cheapest stages and the first a right-sizing
 pass reaches for. They are also where the cycle earns its keep: they stop you implementing a misdiagnosed

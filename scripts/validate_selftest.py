@@ -668,17 +668,17 @@ CASES = [
     (
         "live loop drops the dev-build-not-release rule",
         lambda r: mutate(r / "docs" / "visual-check.md", "release-form", "release", count=-1),
-        "visual-loop-rule block does not state 'release-form'",
+        "does not state 'a release-form build installed on the device cannot reload'",
     ),
     (
         "live loop drops labelled prototypes",
         lambda r: mutate(r / "docs" / "visual-check.md", "`variant A`", "`option`", count=-1),
-        "visual-loop-rule block does not state 'variant A'",
+        "does not state 'labelled `variant A`'",
     ),
     (
         "visual evidence drops the unattended fallback",
         lambda r: mutate(r / "docs" / "visual-check.md", "agent-captured", "captured", count=-1),
-        "visual-evidence-rule block does not state 'agent-captured'",
+        "does not state '**`review-only (agent-captured)`**'",
     ),
     (
         "a11y floor drops reduced motion",
@@ -708,10 +708,10 @@ CASES = [
         "live loop re-enters review per tweak",
         lambda r: mutate(
             r / "skills" / "sc-implement" / "SKILL.md",
-            "iterate without re-entering",
-            "iterate and re-enter",
+            "**before the first sc-review only**",
+            "**always**",
         ),
-        "does not state 'without re-entering sc-review'",
+        "does not state 'before the first sc-review only'",
     ),
     (
         "sc-design loses the early reuse check",
@@ -739,7 +739,7 @@ CASES = [
             "every `state.visualCheck` entry that is not",
             "every visual entry that is not",
         ),
-        "'## PR (G12)' does not state 'state.visualCheck'",
+        "'## PR (G12)' does not state 'every `state.visualCheck` entry",
     ),
     (
         "G11 row drops visualCheck",
@@ -754,6 +754,132 @@ CASES = [
         "route plan stops naming the live visual loop",
         lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "**live visual loop**", "**loop**"),
         "'## Route plan' does not state 'live visual loop'",
+    ),
+    (
+        'stale rule drops the tree comparison',
+        lambda r: mutate(
+            r / "docs" / "visual-check.md",
+            'its `tree` equals the final tree',
+            'it looks recent',
+        ),
+        "does not state 'its `tree` equals the final tree'",
+    ),
+    (
+        'sc-ship G11 stops checking the confirmation tree',
+        lambda r: mutate(
+            r / "skills" / "sc-ship" / "SKILL.md",
+            '`visualCheck.tree` equals the final tree',
+            'the confirmation is recent',
+        ),
+        "does not state '`visualCheck.tree` equals the final tree'",
+    ),
+    (
+        "loop drops the owner's own words",
+        lambda r: mutate(
+            r / "docs" / "visual-check.md",
+            "in the owner's own words in this run",
+            'when it looks settled',
+        ),
+        'does not state "in the owner\'s own words in this run"',
+    ),
+    (
+        'subagent may write owner-confirmed',
+        lambda r: mutate(
+            r / "docs" / "visual-check.md",
+            '`agent-captured` at most.',
+            'anything.',
+        ),
+        "writer rule does not state 'a subagent writes `agent-captured` at most'",
+    ),
+    (
+        'state shape drops route.ownerPresent',
+        lambda r: mutate(
+            r / "docs" / "state-file.md",
+            '"ownerPresent": true',
+            '"ownerSeen": true',
+        ),
+        "route lacks 'ownerPresent'",
+    ),
+    (
+        'sc-ship G11 accepts owner-confirmed without the owner',
+        lambda r: mutate(
+            r / "skills" / "sc-ship" / "SKILL.md",
+            '`state.route.ownerPresent` is `false`',
+            'the owner is busy',
+        ),
+        "does not state '`state.route.ownerPresent` is `false`'",
+    ),
+    (
+        'tweaks may change behaviour',
+        lambda r: mutate(
+            r / "docs" / "visual-check.md",
+            'change goes back to',
+            'change is fine, see',
+        ),
+        "does not state 'goes back to sc-tdd (Red first)'",
+    ),
+    (
+        'owner confirmation backs behaviour claims',
+        lambda r: mutate(
+            r / "docs" / "visual-check.md",
+            'backs appearance claims only',
+            'backs every claim',
+        ),
+        "does not state 'backs appearance claims only'",
+    ),
+    (
+        'state shape drops the prototype cleanup record',
+        lambda r: mutate(
+            r / "docs" / "state-file.md",
+            '"cleanup": {',
+            '"tidy": {',
+        ),
+        "visualCheck entry lacks 'cleanup'",
+    ),
+    (
+        'G8 stops verifying prototype cleanup',
+        lambda r: mutate(
+            r / "skills" / "sc-review" / "SKILL.md",
+            '`state.visualCheck[<nature>].cleanup` against the diff',
+            'the diff',
+        ),
+        "'## Gate G8' does not state 'state.visualCheck[<nature>].cleanup'",
+    ),
+    (
+        'restore loses the abort path',
+        lambda r: mutate(
+            r / "docs" / "visual-check.md",
+            'and on abort',
+            'eventually',
+        ),
+        "does not state 'and on abort'",
+    ),
+    (
+        'a11y floor becomes dialable',
+        lambda r: mutate(
+            r / "docs" / "visual-check.md",
+            'not on the Tier S path, not by a route plan',
+            'unless trivial',
+        ),
+        "does not state 'not on the Tier S path, not by a route plan'",
+    ),
+    (
+        'Tier S bright line drops the accessibility floor',
+        lambda r: mutate(
+            r / "skills" / "ship-cycle" / "SKILL.md",
+            'the accessibility floor —',
+            'polish —',
+        ),
+        "'## Tier S path' does not state 'the accessibility floor'",
+    ),
+    (
+        'runtime adapters drop the design-tool row',
+        lambda r: mutate(
+            r / "docs" / "runtime-adapters.md",
+            '| design-tool adapter (`visualCheck.designTool`)',
+            '| design tool',
+        ),
+        'no design-tool adapter row',
     ),
 ]
 

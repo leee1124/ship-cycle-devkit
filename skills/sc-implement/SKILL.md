@@ -65,12 +65,19 @@ authz from the principal only, DTOs not entities, whitelist validation, no N+1, 
 For a nature whose overlay declares `visualCheck` (or that `designer` reviews), the looks are settled here,
 with the owner watching the running app — not in review rounds. The rule is
 `${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md` (Live visual loop); in short: launch the live app from a
-dev/debug build (a release-form build cannot hot reload; the build is heavy work), show the change on the
-first `visualCheck.profiles` entry, ask in plain words what to look at, iterate without re-entering
-sc-review, and answer vague feedback with 2–3 labelled, uncommitted prototypes on the running app — the
-chosen one is productionized and the rest deleted before any commit. Walk the accessibility-floor checks
-from that file with the owner. Record `state.visualCheck[<nature>]` (owner-confirmed, or the unattended
-fallback), then run G5–G7 on the settled result. A route plan may name this loop (§ship-cycle Route plan).
+dev/debug build (a release-form build cannot hot reload; build → start emulator → loop on a small host),
+record prior device values before changing them and restore those, also on abort; show the change on the
+first `visualCheck.profiles` entry, ask in plain words what to look at, and answer vague feedback with 2–3
+labelled, uncommitted prototypes on the running app — the chosen one is productionized and the rest deleted.
+- **Presentation-only tweaks** (styles, layout, copy, tokens, assets) iterate without re-entering sc-review
+  **before the first sc-review only**; any behaviour, state, data or navigation change goes back to sc-tdd
+  (Red first). After the first review, every edit goes through the delta re-review and G5–G7 and counts
+  against the loop cap.
+- **Before G5**, record the prototype cleanup check in `state.visualCheck[<nature>].cleanup`.
+- Walk the accessibility-floor checks with the owner. Write `state.visualCheck[<nature>]` for every nature in
+  `state.nature` (`"n/a"` for a non-UI one). Only the top-level session that talks to the user writes
+  `owner-confirmed`, in the owner's own words, and never with `state.route.ownerPresent` false; a subagent
+  writes `agent-captured` at most. A route plan may name this loop (§ship-cycle Route plan).
 
 ## Verify (this stage owns build + tests, separate from review)
 - **G5**: build succeeds and the **new tests pass** (Green) — or, where G4 recorded an execution-based

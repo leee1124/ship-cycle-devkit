@@ -2,44 +2,57 @@
 
 ## 0.3.14 — UI natures: a live owner loop is the visual evidence (#83)
 
-- **One rule file, `docs/visual-check.md`**, pointed to from sc-implement, sc-design, sc-review, sc-qa,
-  sc-ship and the route plan. A **UI nature** is one whose overlay entry declares the new
-  `changeNature[].visualCheck` block: `run` (dev server) and `profiles` (the owner's device first —
-  resolution, density, font scale, theme) required; `open`, `devBuild`, `restore`, `capture`, `diff` and
-  `designTool` optional.
+- **One rule file, `docs/visual-check.md`**, pointed to from sc-brainstorm, sc-design, sc-implement,
+  sc-review, sc-qa, sc-ship and the route plan. A **UI nature** declares the new `changeNature[].visualCheck`
+  block — `run` (dev server) and `profiles` (the owner's device first: resolution, density, font scale,
+  theme) required; `open`, `devBuild`, `restore`, `capture`, `diff`, `designTool` optional — or is reviewed
+  by `designer` without one, which uses a default profile list (common phone/viewport, font 1.0 and the
+  largest scale, light and dark).
 - **Live visual loop inside sc-implement.** Launch the live app from a dev/debug build (a release-form build
-  installed on the device cannot hot reload; the build is heavy work under docs/heavy-work.md — on a small
-  host stop the emulator during it — and device settings changed for a profile are restored afterwards),
-  show the change on the owner's profile, ask in plain words what to look at, and iterate without
-  re-entering sc-review. Vague feedback gets 2–3 prototypes rendered side by side on the running app,
-  labelled `variant A/B/C`, uncommitted; only the chosen one is productionized and the rest are deleted
-  before any commit, review or test. An abstract multiple-choice question first is the anti-pattern.
-  Review (designer + a11y + cold) runs once, on the settled result.
-- **Evidence.** The owner's confirmation, recorded in the new `state.visualCheck[<nature>]` (profile, what
-  was checked, the owner's words, the tree), is the primary visual evidence: G11 labels it
-  `live (owner-confirmed)` and G9 does not repeat the loop. Screenshots are optional (PR record); a
-  screenshot-diff counts only where the project declares a harness. **Unattended** (no owner present):
-  agent capture across every profile → `review-only (agent-captured)`, each profile on the pre-merge manual
-  gate; no capture command → `unverified`, same gate. A confirmation older than a later change to that
-  nature's files is re-shown or gated.
+  cannot hot reload; the build is heavy work — on a small host build → start emulator → loop). Record prior
+  device values (`settings get system font_scale`, `wm size`, `wm density`) in state before changing them
+  and restore those, also on abort. Show the change on the owner's profile and ask in plain words what to
+  look at. Vague feedback gets 2–3 prototypes side by side on the running app, labelled `variant A/B/C`,
+  uncommitted; only the chosen one is productionized. A prototype-cleanup check (label search + `git diff
+  --stat` vs the pre-loop tree) is recorded before G5 and verified by the cold lens at G8.
+- **What a tweak is, and when it is review-free.** A tweak is presentation-only (styles, layout, copy,
+  tokens, assets); any behaviour, state, data or navigation change goes back to sc-tdd (Red first). The
+  review-free loop holds only before the first sc-review; after it, every edit — a re-show tweak, an edit
+  during G9 or G11 — goes through sc-review's delta re-review and G5–G7 and counts against the loop cap.
+- **Evidence.** `state.visualCheck[<nature>]`, written by sc-implement for every nature in `state.nature`
+  (`"n/a"` for non-UI), is the evidence for **appearance claims only**: G11 labels an owner confirmation
+  `live (owner-confirmed)`; behaviour claims still need a test or QA log, and sc-qa's G9 treats the
+  confirmation as covering appearance, not behaviour. Only the top-level session that talks to the user
+  writes `owner-confirmed`, in the owner's own words; a subagent writes `agent-captured` at most. The route
+  records `state.route.ownerPresent`; with `false`, `owner-confirmed` is invalid. Unattended runs capture
+  every profile (to the state or scratch dir, slugified names) → `review-only (agent-captured)` on the
+  pre-merge manual gate. Screenshots are optional; a screenshot-diff counts only with a declared harness.
+- **Stale, mechanically.** G11 accepts a visual check only if its `tree` equals the final tree or
+  `git diff <tree>..HEAD` over the nature's `match` ∪ declared design paths (tokens, components, shared
+  theme, i18n) is empty; otherwise re-show or gate it.
 - **Reuse check moved earlier**: sc-design checks each needed primitive against the declared design-system
   doc (`design.guide`, tokens, components) before any new component or token; the designer lens keeps it
   as a backstop.
-- **Accessibility floor as named checks** in both the live loop and the designer lens: touch target,
-  contrast in every theme, screen-reader labels/roles, the largest font scale in `profiles`, reduced
-  motion. A check that blocks use is High.
+- **Accessibility floor as named checks, and an outcome**: touch target, contrast in every theme,
+  screen-reader labels/roles, the largest font scale in `profiles`, reduced motion — in the live loop and the
+  designer lens. For a UI nature the designer lens (or at least this checklist) is never dropped by Tier S
+  or a route; it is on the Tier S bright line. A check that blocks use is High.
 - **Optional design-tool adapter** (`visualCheck.designTool`, e.g. impeccable): `shape` at brainstorm/design,
   `generate`/`live` in the loop (web), `critique`/`detect`/`audit` read-only in review, `polish` at ship —
-  each with a plain fallback; never required, and never `init`, `document` or a hook install inside a cycle.
+  each with a plain fallback; never required, and never `init`, `document` or a hook install inside a
+  cycle. Claude Code only for now: runtime-adapters names the Codex fallback.
 - **Validator** guards: the schema's `visualCheck` block is closed, requires `run` + `profiles` and lists
-  every documented field, and an example nature declares it (shared example checks apply); the doc keeps
-  its loop, evidence and a11y-floor blocks with their load-bearing phrases (dev/debug vs release-form,
-  heavy work, plain words, no review re-entry, labelled uncommitted variants, restore, owner-confirmed vs
-  agent-captured, unattended, stale, optional diff) and the adapter table's seven hooks with its fallback
-  and read-only constraint; sc-implement's `## Live visual loop` section, sc-design's reuse-check bullet,
-  the designer lens's five a11y checks, sc-ship G11's two labels and the manual-gate item, sc-qa G9, the
-  orchestrator's G11 row and the route plan each name it; `state.visualCheck` is documented and read.
-  Eighteen self-test mutations. It does not judge the prose.
+  every documented field, and an example nature declares it; the state shape has `route.ownerPresent` and a
+  visual-check entry with `tree`, `preLoopTree`, `owner`, `writtenBy`, `deviceRestore`, `cleanup`; the doc's
+  writer rule (every nature, top-level session only, subagent `agent-captured` at most, `ownerPresent`,
+  default profiles), loop / evidence / a11y-floor blocks and the adapter table are checked on full phrases
+  (release-form cannot reload, build → start emulator → loop, prior value + abort, presentation-only, back to
+  sc-tdd, before the first sc-review only, delta re-review + loop cap, labelled uncommitted variants,
+  cleanup before G5, the owner's own words, appearance claims only, final-tree staleness, outside-repo
+  captures, a11y never dropped); sc-implement, sc-design, sc-review (designer lens, G8, delta pass), sc-qa
+  G9, sc-ship G11 and the manual gate, sc-brainstorm, the orchestrator's G11 row, route plan and Tier S
+  bright line, and the runtime-adapters row each name it. Thirty-two self-test mutations. It does not judge
+  the prose.
 
 ## 0.3.13 — Route plan: decide which stages run at G1, with the criteria (#82)
 

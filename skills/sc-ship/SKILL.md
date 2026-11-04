@@ -37,12 +37,17 @@ from an argued one. Label every claim with one of:
   If **every** criterion lands on `review-only` for this reason, say that in one line rather than letting a
   claim map of quarantines read like a verified change.
 
-**Visual claims of a UI nature** (`${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md` — Visual evidence) map to
-`state.visualCheck[<nature>]`, not to screenshots: `owner-confirmed` → **`live (owner-confirmed)`**, naming
-the profile and what was checked; `agent-captured` (no owner present) → **`review-only (agent-captured)`**
-with each profile on the pre-merge manual gate; `unverified` → `review-only` with the same gate item.
-Screenshots are optional, for the PR record; a screenshot-diff counts only where the project declares a
-harness. A confirmation older than a later change to that nature's files is stale — re-show, or gate it.
+**Appearance claims of a UI nature** (`${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md` — Visual evidence) map
+to `state.visualCheck[<nature>]`, not to screenshots: `owner-confirmed` → **`live (owner-confirmed)`**,
+naming the profile and what was checked; `agent-captured` (no owner present) →
+**`review-only (agent-captured)`** with each profile on the pre-merge manual gate; `unverified` →
+`review-only` with the same gate item. Owner confirmation backs appearance claims only — a behaviour claim
+(state, data, navigation) still needs a test or QA log. Reject `owner-confirmed` when
+`state.route.ownerPresent` is `false` or `writtenBy` is not the top-level session. **Stale**: accept the
+entry only if `visualCheck.tree` equals the final tree, or `git diff <tree>..HEAD` over the nature's `match`
+∪ declared design paths (`design.tokens`, `design.components`, shared theme, i18n) is empty; otherwise
+re-show (the edit goes through the delta re-review) or gate it. Screenshots are optional, for the PR
+record; a screenshot-diff counts only where the project declares a harness.
 
 Surface the labels in the PR body's claim map (e.g. `- ✅ rate limit rejects 11th request — **live** (e2e:
 login_spec)` / `- ✅ owner check on delete — **review-only** (dev user can't reach another owner's record)`).

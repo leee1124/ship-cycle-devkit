@@ -15,7 +15,8 @@ the mechanics that only matter when something unusual happens to its name or its
                                                 "nature": ["backend"] },
              "stages": { "sc-design": "skip: config bump, nothing to design", "sc-tdd": "run",
                          "sc-implement": "run", "sc-review": "run", "sc-qa": "run", "sc-ship": "run" },
-             "lenses": ["security", "quality", "cold"], "qa": "full bring-up + seam checks" },
+             "lenses": ["security", "quality", "cold"], "qa": "full bring-up + seam checks",
+             "ownerPresent": true },
   "sizeEvidence": ["src/a.py:41", "src/b.py:88"],
   "baseline": { "capturedOn": "<base-sha>", "source": "local",
                 "run": null,
@@ -41,9 +42,15 @@ the mechanics that only matter when something unusual happens to its name or its
                              "buildLog": "<release-form build log>", "deviceAttempt": "<start attempt log>" },
                     "backend": "n/a" },
   "visualCheck": { "mobile": { "result": "owner-confirmed", "tree": "<tree id it was confirmed on>",
+                               "preLoopTree": "<tree id before the loop>",
                                "profiles": ["owner phone 1080x2340 450dpi font 1.3 light"],
                                "checked": ["summary card hierarchy", "touch target", "largest font scale"],
-                               "owner": "<the owner's own words>", "captures": [] },
+                               "owner": "<the owner's own words>", "writtenBy": "top-level session",
+                               "deviceRestore": { "font_scale": "1.0", "wm size": "Physical size: 1080x2340",
+                                                  "wm density": "Physical density: 450" },
+                               "cleanup": { "labelGrep": "variant A|B|C → 0 hits",
+                                            "diffStat": "<git diff --stat preLoopTree..>: no losing-variant file" },
+                               "captures": [] },
                    "backend": "n/a" },
   "models": { "brainstorm": "opus", "design": "opus", "tdd": "sonnet", "implement": "sonnet",
               "review": "opus", "qa": "sonnet", "ship": "sonnet" },
@@ -121,12 +128,12 @@ output) are outside the id by design: changing only those does not invalidate a 
 
 `route` is the plan confirmed at G1 (§ship-cycle — Route plan): one entry per stage after sc-brainstorm,
 `"run"` or `"skip: <reason>"`; `sc-implement`, `sc-review` and `sc-ship` are always `"run"`, and `sc-tdd`
-skips only for layout, copy or config. A skip becomes `gates.<G> = "n/a: route — <reason>"` when the stage
-is reached. `basis` is `size`, `risk` and `nature` at confirmation: a larger size, or a risk tag or nature
-not in it, invalidates every skip. `lenses`
-and `qa` are what sc-review (with the floor) and sc-qa run. It only grows: entries turn from `skip` to
-`run` and lenses are added, never the reverse. Absent on a cycle started before 0.3.13 — stages then decide
-from the tier as before.
+skips only for layout, copy or config. A skip becomes `gates.<G> = "n/a: route — <reason>"` when the stage is
+reached. `basis` is `size`, `risk` and `nature` at confirmation: a larger size, or a risk tag or nature not in
+it, invalidates every skip. `lenses` and `qa` are what sc-review (with the floor) and sc-qa run.
+`ownerPresent` (UI natures) says whether the owner will watch the live visual loop; `false` makes an
+`owner-confirmed` visual check invalid. It only grows: entries turn from `skip` to `run` and lenses are added,
+never the reverse. Absent on a cycle started before 0.3.13 — stages then decide from the tier as before.
 
 `parked` is `null` unless `stage` is `parked` (§Parking). `reconcile` is append-only, one entry per resume
 (§Resume reconcile).
@@ -139,10 +146,12 @@ its `tree` (must equal `gateTrees.G9`), artifact and installed-package identity,
 evidence per flow, any `deferred` parts — or `"n/a"` (diff did not touch `appliesTo`) / `"n/a: <reason>"`
 (no config). Any deferral goes on the pre-merge manual gate. Rules are in sc-qa — Release-artifact smoke.
 
-`visualCheck` (written by sc-implement's live visual loop) holds one entry per nature: `result`
-`owner-confirmed` / `agent-captured` / `"unverified: <reason>"`, the `tree` it was judged on, the profiles,
-what was checked, the owner's words (owner-confirmed only) and any capture paths — or `"n/a"` (not a UI
-nature). Anything but `owner-confirmed` goes on the pre-merge manual gate. Rules are in
+`visualCheck` (written by sc-implement for every nature in `state.nature`) holds one entry per nature:
+`result` `owner-confirmed` / `agent-captured` / `"unverified: <reason>"`, the `tree` it was judged on and the
+`preLoopTree`, the profiles, what was checked, the owner's words and `writtenBy` (owner-confirmed only — the
+top-level session, never a subagent, and never with `route.ownerPresent: false`), the prior device values
+in `deviceRestore`, the prototype `cleanup` check, and capture paths in the state or scratch dir — or `"n/a"`
+(not a UI nature). Anything but `owner-confirmed` goes on the pre-merge manual gate. Rules are in
 `${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md`.
 
 ## The slug
