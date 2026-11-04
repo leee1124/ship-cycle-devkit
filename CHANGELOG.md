@@ -19,7 +19,7 @@
   values.
 - **Validator** guards that the schema documents the field (item keys, `when` keys, `manual`), that the
   example overlay's items are well-formed with unique ids, that sc-ship's rule is tied to the pre-merge
-  manual gate, and that the G12 row references `releaseChecklist`; five self-test mutations. It does not
+  manual gate, and that the G12 row references `releaseChecklist`; eight self-test mutations. It does not
   judge the prose.
 
 ## 0.3.9 — Load-bearing factual claims in design and review reports carry evidence (#72)

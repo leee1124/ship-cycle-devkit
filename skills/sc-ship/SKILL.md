@@ -80,7 +80,8 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   entry unless it is `undetermined (ci-deferred)` and listed on the pre-merge manual gate below.
 - **Gate summary, rendered from the gate log** (`<state dir>/<branch-slug>.log.md` — `.claude/ship-cycle/`
   on Claude Code; §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Gate log). The body carries a
-  **"Gate summary"** table, one row per gate G1–G13: the **latest** logged result and its evidence pointer,
+  **"Gate summary"** table, one row per gate G1–G13: the **latest** logged result (not the
+  `releaseChecklist.` sub-check rows, §state-file Gate log) and its evidence pointer,
   verbatim — an `n/a: <reason>` keeps its reason, a `degrade`/`checklist`/`deferred` keeps its manual-gate
   pointer — plus the loop count from `state.loops` and a `cleared` count when the reconcile cleared it.
   Log cells are copied as they are — the writer already escaped them; only a cell sourced from
@@ -132,8 +133,11 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
     `changeNature.match`. Every `when` key given must hold: `changeNature` names the diff touches, `paths`
     any changed path, `release: true` the PR's actual base (as created or read from the host) equals
     `vcs.releaseBranch` (unset: never matches; PREFLIGHT notes it).
-  - **Read the list from the base branch** (`git show <base>:<overlay path>`) when the overlay is tracked:
-    a PR that edits its own checklist must not be able to delete the item that would fail it. If the diff
+  - **Read the list from the base branch** (`git show origin/<base>:<overlay path>`, after a fresh fetch;
+    never a local branch) when the overlay is tracked: a PR that edits its own checklist must not be able
+    to delete the item that would fail it. If the base lacks the overlay file or the field, the base list
+    is empty: every matching head item goes on the pre-merge manual gate as "new checklist item, not yet
+    enforced" (machine items may still run); never fall back silently to the head list. If the diff
     edits `releaseChecklist`, list that edit on the pre-merge manual gate. A gitignored local overlay
     cannot be read from the base; its owner edits it outside the cycle.
   - **Machine item** (no `manual`): run `check` before push, alongside the merge-tree probe; judge by
@@ -141,7 +145,7 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
     waived, only fixed or removed by the overlay's owner.
   - **`undetermined`**: the check errored before reaching what it checks (binary missing, needs network
     or credentials). It never passes: list it on the pre-merge manual gate with the command and the
-    reason, else G12 fails.
+    reason, else G12 fails. Its logged result is `undetermined`, then `deferred: <id>` once on the gate.
   - **Manual item** (`manual: true`): never run by the agent; list it under **"Pre-merge manual gate"**
     with its `id`, `check` and the `evidence` that closes it ("reviewer confirms …", never the value), and
     log `deferred: <id>`. G12 counts it as satisfied **only** when listed, like a `degrade` G9.
