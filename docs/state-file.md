@@ -16,7 +16,7 @@ the mechanics that only matter when something unusual happens to its name or its
              "stages": { "sc-design": "skip: config bump, nothing to design", "sc-tdd": "run",
                          "sc-implement": "run", "sc-review": "run", "sc-qa": "run", "sc-ship": "run" },
              "lenses": ["security", "quality", "cold"], "qa": "full bring-up + seam checks",
-             "ownerPresent": true },
+             "waveCheck": "run", "ownerPresent": true },
   "sizeEvidence": ["src/a.py:41", "src/b.py:88"],
   "baseline": { "capturedOn": "<base-sha>", "source": "local",
                 "run": null,
@@ -53,13 +53,26 @@ the mechanics that only matter when something unusual happens to its name or its
                                "captures": [] },
                    "backend": "n/a" },
   "models": { "brainstorm": "opus", "design": "opus", "tdd": "sonnet", "implement": "sonnet",
-              "review": "opus", "qa": "sonnet", "ship": "sonnet" },
+              "review": "opus", "review.wave": "sonnet", "qa": "sonnet", "ship": "sonnet" },
   "effort": { "design": "xhigh", "tdd": "medium", "implement": "low",
-              "review": "high", "qa": "medium", "ship": "low" },
+              "review": "high", "review.wave": "medium", "qa": "medium", "ship": "low" },
   "reviewJobs": [{ "id": "<host job id>", "agent": "<external reviewer name>",
                    "lens": "external-adversarial", "status": "running", "startedAt": "<iso>",
                    "endedAt": null, "snapshot": "<path outside the worktree>",
                    "resultPath": "<path outside the worktree>" }],
+  "waveBarriers": [{ "wave": 0, "tree": "<tree id at the green barrier>",
+                     "worktree": "<path the barrier was taken in>", "tier": "L", "superseded": false,
+                     "fixRound": false }],
+  "waveReviews": [{ "wave": 1, "from": "<tree id of the previous barrier, or the base>",
+                    "tree": "<tree id of this barrier>", "model": "sonnet", "effort": "medium",
+                    "refuter": { "model": "sonnet", "effort": "medium" },
+                    "cold": ["<cold-pass finding, verbatim>"],
+                    "findings": { "critical": 0, "high": 0, "medium": 1, "low": 2 },
+                    "refutedItems": [{ "item": "<finding>", "where": "src/b.py:12",
+                                       "refutation": "<evidence: path:line or command → output>" }],
+                    "refutedCarried": { "critical": 0, "high": 1 }, "routedTo": null, "superseded": false,
+                    "unresolved": [{ "item": "<finding or cannot-verify item>", "severity": "medium",
+                                     "where": "src/a.py:41", "design": false }] }],
   "bakeOff": { "stances": ["mvp-first", "risk-first", "performance-first"],
                "criteria": [{ "name": "reversibility", "weight": "high" }],
                "judgeLenses": ["algorithm", "cold"],
@@ -140,6 +153,24 @@ reached. `basis` is `size`, `risk` and `nature` at confirmation: a larger size, 
 it, invalidates every skip. `lenses` and `qa` are what sc-review (with the floor) and sc-qa run. It only
 grows: entries turn from `skip` to `run` and lenses are added, never the reverse. Absent on a cycle started
 before 0.3.13 — stages then decide from the tier as before.
+
+`route.waveCheck` is `"run"` or `"skip: <reason>"` on Tier L waved or multi-stack work and absent
+otherwise; it follows the growth-only rule.
+
+`waveBarriers` (written by sc-implement at every green Tier L wave barrier, checked or not) is append-only:
+the wave, its tree identity (§Tree identity), the worktree it was taken in, the `tier` at that moment and
+`superseded` (set `true` by a re-plan after sc-design). A wave check reads its `from` from the latest
+non-superseded entry for the previous wave in the same `worktree`; a re-plan and a confirmed-Critical fix append a second entry for
+the same wave.
+
+`waveReviews` (written by sc-implement at each Tier L wave barrier) is append-only, one entry per wave check:
+the two barrier tree identities it read (§Tree identity), the model and effort it ran on and its
+`refuter`'s, the `cold` findings frozen verbatim before the spec was sent, findings by severity after
+verification, the `refutedItems` and the refuted Critical/High still carried (`refutedCarried`), `routedTo`
+(`"sc-design"` when a verified design finding stopped the waves, else `null`), the `unresolved` items the
+sc-review brief carries to G8, and `superseded` (a re-plan invalidated it). It is advisory: it sets no gate.
+Rules:
+`${CLAUDE_PLUGIN_ROOT}/docs/wave-check.md`.
 
 `route.ownerPresent` (UI natures) says whether the owner will watch the live visual loop. Only `true`
 permits an `owner-confirmed` visual check; absent or `false` fails closed. It has its own rule, not the
@@ -266,7 +297,7 @@ compares worktree evidence with it and with `gates`:
 | test files in the diff vs the base | **tests exist but G4 not recorded** | continue at `sc-tdd`, which confirms Red (against the base if code is already there) before recording G4 |
 | a recorded `pass` whose other evidence is gone — a missing artifact path, coverage report or test file | the gate and what vanished | clear the gate; continue at its owner |
 | a gate recorded `pass` for a stage **after** the recorded stage (G8 `pass` while it reads `sc-tdd`) | a pass the pipeline could not have produced yet | clear the gate |
-| subagents running when the session died — the recorded stage, `bakeOff` candidates without a `docPath`, `reviewJobs` still `running`/`launching` | their output is lost: partial files are evidence to inspect, not results | their stage is not done; a review job is polled, never relaunched (`/resume` step 6) |
+| subagents running when the session died — the recorded stage, `bakeOff` candidates without a `docPath`, `reviewJobs` still `running`/`launching`, a wave check whose barrier qualifies — `route.waveCheck` is `"run"`, a later wave exists, the `waveBarriers` entry is `tier` `L` and not superseded, and no `waveReviews` entry has that barrier's `tree` | their output is lost: partial files are evidence to inspect, not results | their stage is not done; a review job is polled, never relaunched (`/resume` step 6); a wave check is rerun — cheap and idempotent |
 
 **Inference only ever lowers.** The reconcile may move the stage earlier and clear a `pass` (to `—`); it
 never turns a `route` entry from `run` to `skip` (a missing `route` stays missing, §Shape); it

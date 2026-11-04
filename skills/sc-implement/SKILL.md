@@ -46,6 +46,13 @@ a layer), worktree-per-stack doesn't apply — the collision risk is *within* th
   alarms; agents may "fix" each other). So either isolate (`isolation: worktree`, costly at high fan-out)
   and self-verify, or keep a shared tree with a **single barrier typecheck** and, on failure, **bisect —
   map each error to its owning file → re-dispatch only that owner**, rather than stalling the whole wave.
+- **Wave check at each barrier (Tier L).** Once a barrier's build/typecheck is green and a later wave
+  remains, one cheap read-only reviewer reads that wave's diff — a cold pass, then spec alignment — before
+  the next wave starts; the same holds at a multi-stack contract-first barrier. It is advisory: only a
+  verified design-level finding stops the waves (routed as the `BLOCKED` (design defect) row), and its
+  unresolved items reach G8. Record every green barrier in `state.waveBarriers`, checked or not; unless
+  `state.route.waveCheck` skips it, append to `state.waveReviews`. Rule:
+  `${CLAUDE_PLUGIN_ROOT}/docs/wave-check.md`.
 - **Resource-aware concurrency**: the full suite, builds and emulators agents launch are the heavy part
   (separate agent processes cost memory too). Run them under overlay `env.heavyLock` per
   `${CLAUDE_PLUGIN_ROOT}/docs/heavy-work.md`; with no `heavyLock` on a small host, run heavy-launching agents

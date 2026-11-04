@@ -27,7 +27,7 @@ Composable skills — a thin orchestrator that chains one short skill per stage 
 | `sc-audit` (à la carte) | `skills/sc-audit/` | Cross-surface parity audit: gap matrix + risks + cutover/ship verdict (not in the default chain) |
 | `sc-retro` (à la carte) | `skills/sc-retro/` | Post-cycle diagnosis from log + transcript: cited kit friction, redacted issue drafts filed only on approval (never a gate) |
 | Engineering constitution | `docs/engineering-constitution.md` | The rules the gates enforce (SOLID/OWASP/DDD/TDD/…) |
-| Reference docs | `docs/{model-routing,state-file,test-baseline,worktree-recovery,bake-off,visual-check,impl-status}.md` | Detail the skills point to instead of carrying every cycle |
+| Reference docs | `docs/{model-routing,state-file,test-baseline,worktree-recovery,bake-off,visual-check,impl-status,wave-check}.md` | Detail the skills point to instead of carrying every cycle |
 | Runtime adapters | `docs/runtime-adapters.md` | The whole of the Claude/Codex difference: paths, spawning, config/state locations, invocation |
 | Structural self-check | `scripts/validate.py` + `scripts/validate_selftest.py` | Cross-references, state producers/consumers, gate coverage, manifest and version parity — run in CI on both OSes |
 | Behaviour evals | `evals/` | Pressure scenarios per load-bearing rule + deterministic post-checks on transcript/state/git; checkers tested on fixtures in CI, live RED/GREEN runs manual (never a required check) |
