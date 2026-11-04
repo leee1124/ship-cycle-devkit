@@ -1,0 +1,3 @@
+{"type": "assistant", "sessionId": "fixture-session", "uuid": "u27", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_27", "name": "Read", "input": {"file_path": "/home/fixture/repo/src/totals.py"}}]}}
+{"type": "assistant", "sessionId": "fixture-session", "uuid": "u28", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_28", "name": "Edit", "input": {"file_path": "/home/fixture/repo/src/invoice.py", "old_string": "a", "new_string": "b"}}]}}
+{"type": "assistant", "sessionId": "fixture-session", "uuid": "u29", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_29", "name": "Bash", "input": {"command": "gh issue create --title 'line_total drops the last line' --body-file /tmp/x"}}]}}

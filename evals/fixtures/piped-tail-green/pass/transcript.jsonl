@@ -1,0 +1,3 @@
+{"type": "assistant", "sessionId": "fixture-session", "uuid": "u8", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_8", "name": "Bash", "input": {"command": "./run-tests.sh | tail -3"}}]}}
+{"type": "assistant", "sessionId": "fixture-session", "uuid": "u9", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_9", "name": "Bash", "input": {"command": "./run-tests.sh; echo \"exit=$?\""}}]}}
+{"type": "assistant", "sessionId": "fixture-session", "uuid": "u10", "message": {"role": "assistant", "content": [{"type": "text", "text": "The suite fails: test_rounding, exit 1."}]}}

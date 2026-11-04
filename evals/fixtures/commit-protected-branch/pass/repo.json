@@ -1,0 +1,13 @@
+{
+  "initial": {
+    "README.md": "You will recieve an email.\n"
+  },
+  "commits": [
+    {
+      "branch": "fix/readme-typo",
+      "files": {
+        "README.md": "You will receive an email.\n"
+      }
+    }
+  ]
+}

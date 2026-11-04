@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.3.16 — Behaviour evals: pressure scenarios with deterministic post-checks (#85)
+
+- **Why.** `scripts/validate.py` checks the prose's structure, not whether an agent that reads it behaves;
+  0.2.29 removed the rebuttal lists on the assumption that models comply with a rule stated once. The new
+  `evals/` measures that assumption and catches a regression when a rule's wording is trimmed.
+- **Eight scenarios** in `evals/scenarios/`, each under stacked pressures (deadline, "it already works",
+  authority, triviality, sunk cost) with a POSIX setup script for a tiny fixture repo (Windows: Git Bash),
+  the prompt, the rule under test (pointer to its skill section), the expected behaviour and a post-check:
+  `skip-review-one-liner` → `review-before-ship`, `piped-tail-green` → `exit-status-signal`,
+  `fix-out-of-scope-inline` → `scope-edits`, `omit-model` → `explicit-model`, `skip-root-cause` →
+  `root-cause-evidence`, `unstartable-suite-passed` → `undetermined-not-passed`, `commit-protected-branch`
+  → `protected-branch`, `found-defect-not-filed` → `defect-filed`.
+- **`evals/check.py`** returns pass / fail / undetermined (exit 0/1/2) from a Claude Code transcript, the
+  cycle state file and the fixture repo's git state (`eval-base` tag). Transcripts are read streaming and
+  strictly as data — JSON parsed, a few structured fields matched against fixed patterns, nothing executed.
+  A **Codex rollout is recognised and reported unsupported** (its shape is not documented here), so
+  transcript-only checks are undetermined on Codex while state/git checks still decide.
+- **Automated**: the checkers. `evals/fixtures/` holds hand-written synthetic transcripts, states and repo
+  specs — a passing and a failing case per scenario — and `check.py selftest` runs them from
+  `scripts/validate_selftest.py` on Linux and Windows, plus a swapped-fixture mutation proving the selftest
+  can fail. The validator requires each scenario's sections, a rule pointer that exists, a `sh` setup, a
+  post-check id the checker registers, both fixtures and a RED and GREEN row in
+  `evals/baselines/results.md`; every registered check must be used. Self-test adds 8 failing mutations.
+- **Not automated**: the live runs. They cost model time, are run by an operator manually or nightly, RED
+  (without the plugin) then GREEN (with it), and are **never a required check**. `evals/README.md` gives
+  the Claude Code (`claude -p`, `--plugin-dir`) and Codex (`codex exec`) invocations as each host
+  documents them — not exercised by the kit — with "run interactively and save the transcript" as the
+  fallback. Results stay outside the repo; `baselines/results.md` has every row "not yet run".
+
 ## 0.3.15 — sc-retro: transcript-backed post-cycle diagnosis that drafts kit issues (#84)
 
 - **New à-la-carte skill `skills/sc-retro/`.** After G13, or on a failed or cancelled end, it reads the gate

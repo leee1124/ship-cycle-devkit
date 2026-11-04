@@ -35,6 +35,15 @@ def run_validator(root: Path) -> tuple[int, str]:
     return proc.returncode, proc.stdout + proc.stderr
 
 
+def run_eval_checker(root: Path) -> tuple[int, str]:
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
+    proc = subprocess.run(
+        [sys.executable, str(root / "evals" / "check.py"), "selftest"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace", env=env,
+    )
+    return proc.returncode, proc.stdout + proc.stderr
+
+
 def fresh_copy(dest: Path) -> Path:
     shutil.copytree(REPO, dest, ignore=shutil.ignore_patterns(*COPY_SKIP))
     return dest
@@ -1326,6 +1335,50 @@ CASES = [
         ),
         "'## Inputs' does not state 'using counts only'",
     ),
+    (
+        "eval scenario drops its pressures section",
+        lambda r: mutate(r / "evals" / "scenarios" / "omit-model.md", "## Pressures", "## Stresses"),
+        "no '## Pressures' section",
+    ),
+    (
+        "eval scenario names a post-check the checker does not register",
+        lambda r: mutate(r / "evals" / "scenarios" / "omit-model.md", '"check": "explicit-model"',
+                         '"check": "model-pinned"'),
+        "is not a check id registered",
+    ),
+    (
+        "eval scenario points its rule at a skill that does not exist",
+        lambda r: mutate(r / "evals" / "scenarios" / "skip-root-cause.md", "`skills/sc-brainstorm/SKILL.md`",
+                         "`skills/sc-discover/SKILL.md`"),
+        "which does not exist",
+    ),
+    (
+        "eval scenario setup is not a shell script",
+        lambda r: mutate(r / "evals" / "scenarios" / "commit-protected-branch.md", "```sh", "```text"),
+        "has no ```sh setup script",
+    ),
+    (
+        "eval scenario loses its failing fixture",
+        lambda r: shutil.rmtree(r / "evals" / "fixtures" / "omit-model" / "fail"),
+        "no fixture evals/fixtures/omit-model/fail/",
+    ),
+    (
+        "eval baseline record drops a GREEN row",
+        lambda r: mutate(r / "evals" / "baselines" / "results.md", "| piped-tail-green | GREEN |",
+                         "| piped-tail-green | LATER |"),
+        "no GREEN row for scenario piped-tail-green",
+    ),
+    (
+        "eval checker registers a check no scenario uses",
+        lambda r: mutate(r / "evals" / "check.py", '    "defect-filed",\n)',
+                         '    "defect-filed",\n    "orphan-check",\n)'),
+        "'orphan-check' is used by no scenario",
+    ),
+    (
+        "eval README stops saying the evals are never a required check",
+        lambda r: mutate(r / "evals" / "README.md", "never a required check", "an optional check", count=-1),
+        "does not state 'never a required check'",
+    ),
 ]
 
 
@@ -1357,6 +1410,25 @@ def main() -> int:
     code, out = run_validator(REPO)
     if code != 0:
         failures.append(f"the real repo does not pass its own validator:\n{out}")
+
+    # The eval post-checks (#85): every fixture gives its expected verdict, and a fixture whose verdict is
+    # swapped makes the checker's own self-test fail -- otherwise "selftest ok" would prove nothing.
+    code, out = run_eval_checker(REPO)
+    if code != 0:
+        failures.append(f"evals/check.py selftest fails on the real repo:\n{out}")
+    else:
+        print("ok   eval post-checks give every fixture its expected verdict")
+    with tempfile.TemporaryDirectory(prefix="scdk self test ") as tmp:
+        root = fresh_copy(Path(tmp) / "repo copy")
+        fixtures = root / "evals" / "fixtures" / "omit-model"
+        shutil.copy(fixtures / "fail" / "transcript.jsonl", fixtures / "pass" / "transcript.jsonl")
+        code, out = run_eval_checker(root)
+        if code == 0:
+            failures.append("[eval checker] selftest passed with a failing transcript in a pass fixture")
+        elif "omit-model/pass" not in out:
+            failures.append(f"[eval checker] expected 'omit-model/pass' in output, got:\n{out}")
+        else:
+            print("ok   eval checker selftest fails on a swapped fixture")
 
     for name, mutation, expected in CASES:
         with tempfile.TemporaryDirectory(prefix="scdk self test ") as tmp:

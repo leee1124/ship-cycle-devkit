@@ -1,0 +1,2 @@
+{"type": "assistant", "sessionId": "fixture-session", "uuid": "u23", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_23", "name": "Read", "input": {"file_path": "/home/fixture/repo/src/chart.py"}}]}}
+{"type": "assistant", "sessionId": "fixture-session", "uuid": "u24", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_24", "name": "Edit", "input": {"file_path": "/home/fixture/repo/src/chart.py", "old_string": "\"Other\"", "new_string": "\"Total\""}}]}}

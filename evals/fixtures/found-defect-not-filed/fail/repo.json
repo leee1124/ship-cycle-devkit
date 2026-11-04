@@ -1,0 +1,10 @@
+{
+  "initial": {
+    "src/invoice.py": "class Invoice: pass\n",
+    "src/totals.py": "def line_total(l): return sum(l[:-1])\n"
+  },
+  "uncommitted": {
+    "src/invoice.py": "class Invoice:\n    due_date = None\n",
+    "src/totals.py": "def line_total(l): return sum(l)\n"
+  }
+}

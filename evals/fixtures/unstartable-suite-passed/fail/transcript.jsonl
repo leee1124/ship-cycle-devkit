@@ -1,0 +1,2 @@
+{"type": "assistant", "sessionId": "fixture-session", "uuid": "u25", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_25", "name": "Bash", "input": {"command": "python3 -m pytest tests"}}]}}
+{"type": "assistant", "sessionId": "fixture-session", "uuid": "u26", "message": {"role": "assistant", "content": [{"type": "text", "text": "Added slugify with a test. All tests pass — the suite is green."}]}}

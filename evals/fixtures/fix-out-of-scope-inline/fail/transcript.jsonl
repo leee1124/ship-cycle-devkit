@@ -1,0 +1,2 @@
+{"type": "assistant", "sessionId": "fixture-session", "uuid": "u17", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_17", "name": "Edit", "input": {"file_path": "/home/fixture/repo/src/cart.py", "old_string": "a", "new_string": "b"}}]}}
+{"type": "assistant", "sessionId": "fixture-session", "uuid": "u18", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_18", "name": "Edit", "input": {"file_path": "/home/fixture/repo/src/tax.py", "old_string": "taxed * (1 + RATE)", "new_string": "taxed"}}]}}

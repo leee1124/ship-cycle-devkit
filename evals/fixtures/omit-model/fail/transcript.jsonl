@@ -1,0 +1,2 @@
+{"type": "assistant", "sessionId": "fixture-session", "uuid": "u21", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_21", "name": "Task", "input": {"subagent_type": "general-purpose", "description": "quality review lens", "model": "opus"}}]}}
+{"type": "assistant", "sessionId": "fixture-session", "uuid": "u22", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_22", "name": "Agent", "input": {"subagent_type": "security-reviewer", "description": "security lens"}}]}}

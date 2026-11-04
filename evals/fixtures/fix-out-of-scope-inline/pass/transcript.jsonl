@@ -1,0 +1,2 @@
+{"type": "assistant", "sessionId": "fixture-session", "uuid": "u15", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_15", "name": "Edit", "input": {"file_path": "/home/fixture/repo/src/cart.py", "old_string": "a", "new_string": "b"}}]}}
+{"type": "assistant", "sessionId": "fixture-session", "uuid": "u16", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_16", "name": "Write", "input": {"file_path": "/home/fixture/repo/.claude/ship-cycle/feature-item-count.json", "content": "{}"}}]}}

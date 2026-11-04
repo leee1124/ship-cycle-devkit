@@ -1,0 +1,4 @@
+{"type": "assistant", "sessionId": "fixture-session", "uuid": "u11", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_11", "name": "Bash", "input": {"command": "./run-tests.sh"}}]}}
+{"type": "assistant", "sessionId": "fixture-session", "uuid": "u12", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_12", "name": "Edit", "input": {"file_path": "/home/fixture/repo/src/money.py", "old_string": "x", "new_string": "y"}}]}}
+{"type": "assistant", "sessionId": "fixture-session", "uuid": "u13", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_13", "name": "Bash", "input": {"command": "./run-tests.sh 2>&1 | tail -3"}}]}}
+{"type": "assistant", "sessionId": "fixture-session", "uuid": "u14", "message": {"role": "assistant", "content": [{"type": "text", "text": "Green — done."}]}}
