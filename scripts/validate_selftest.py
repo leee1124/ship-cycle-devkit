@@ -628,6 +628,133 @@ CASES = [
         lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "(`state.branchCreated`) ", ""),
         "Route plan section does not state '`state.branchCreated`'",
     ),
+    (
+        "visualCheck schema stops requiring profiles",
+        lambda r: mutate(
+            r / "docs" / "ship-cycle.config.schema.json",
+            '"required": ["run", "profiles"]',
+            '"required": ["run"]',
+        ),
+        "visualCheck is missing",
+    ),
+    (
+        "visualCheck schema block opened",
+        lambda r: mutate(
+            r / "docs" / "ship-cycle.config.schema.json",
+            '"required": ["run", "profiles"],\n            "additionalProperties": false',
+            '"required": ["run", "profiles"],\n            "additionalProperties": true',
+        ),
+        "visualCheck is missing",
+    ),
+    (
+        "no example nature declares visualCheck",
+        lambda r: mutate(
+            r / "docs" / "ship-cycle.config.example.json",
+            '"visualCheck": {',
+            '"visualCheckOff": {',
+            count=-1,
+        ),
+        "no changeNature declares visualCheck",
+    ),
+    (
+        "example visualCheck loses profiles",
+        lambda r: mutate(
+            r / "docs" / "ship-cycle.config.example.json",
+            '"profiles": ["desktop',
+            '"profilez": ["desktop',
+        ),
+        "missing required field 'profiles'",
+    ),
+    (
+        "live loop drops the dev-build-not-release rule",
+        lambda r: mutate(r / "docs" / "visual-check.md", "release-form", "release", count=-1),
+        "visual-loop-rule block does not state 'release-form'",
+    ),
+    (
+        "live loop drops labelled prototypes",
+        lambda r: mutate(r / "docs" / "visual-check.md", "`variant A`", "`option`", count=-1),
+        "visual-loop-rule block does not state 'variant A'",
+    ),
+    (
+        "visual evidence drops the unattended fallback",
+        lambda r: mutate(r / "docs" / "visual-check.md", "agent-captured", "captured", count=-1),
+        "visual-evidence-rule block does not state 'agent-captured'",
+    ),
+    (
+        "a11y floor drops reduced motion",
+        lambda r: mutate(r / "docs" / "visual-check.md", "**reduced motion**", "**motion**"),
+        "a11y-floor block does not state 'reduced motion'",
+    ),
+    (
+        "design-tool adapter drops read-only",
+        lambda r: mutate(r / "docs" / "visual-check.md", "used read-only in review", "used in review"),
+        "design-tool adapter does not state 'read-only'",
+    ),
+    (
+        "design-tool adapter drops the polish hook",
+        lambda r: mutate(r / "docs" / "visual-check.md", "`polish` —", "polish —"),
+        "no `polish` hook",
+    ),
+    (
+        "sc-implement loses the live visual loop",
+        lambda r: mutate(
+            r / "skills" / "sc-implement" / "SKILL.md",
+            "## Live visual loop (UI natures)",
+            "## Visual notes",
+        ),
+        "no '## Live visual loop' section",
+    ),
+    (
+        "live loop re-enters review per tweak",
+        lambda r: mutate(
+            r / "skills" / "sc-implement" / "SKILL.md",
+            "iterate without re-entering",
+            "iterate and re-enter",
+        ),
+        "does not state 'without re-entering sc-review'",
+    ),
+    (
+        "sc-design loses the early reuse check",
+        lambda r: mutate(
+            r / "skills" / "sc-design" / "SKILL.md",
+            "**Reuse check before any new component or token**",
+            "**Reuse**",
+        ),
+        "does not state '**Reuse check before any new component or token**'",
+    ),
+    (
+        "designer lens drops the largest font scale",
+        lambda r: mutate(r / "skills" / "sc-review" / "SKILL.md", "largest font scale", "big fonts"),
+        "designer lens does not state 'largest font scale'",
+    ),
+    (
+        "sc-ship G11 drops the owner-confirmed label",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "**`live (owner-confirmed)`**", "**`live`**"),
+        "does not state 'live (owner-confirmed)'",
+    ),
+    (
+        "pre-merge gate drops unconfirmed visual checks",
+        lambda r: mutate(
+            r / "skills" / "sc-ship" / "SKILL.md",
+            "every `state.visualCheck` entry that is not",
+            "every visual entry that is not",
+        ),
+        "'## PR (G12)' does not state 'state.visualCheck'",
+    ),
+    (
+        "G11 row drops visualCheck",
+        lambda r: mutate(
+            r / "skills" / "ship-cycle" / "SKILL.md",
+            "a UI nature's looks → `state.visualCheck`",
+            "a UI nature's looks",
+        ),
+        "G11 row does not reference state.visualCheck",
+    ),
+    (
+        "route plan stops naming the live visual loop",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "**live visual loop**", "**loop**"),
+        "'## Route plan' does not state 'live visual loop'",
+    ),
 ]
 
 

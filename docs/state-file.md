@@ -40,6 +40,11 @@ the mechanics that only matter when something unusual happens to its name or its
                     "wearable": { "result": "deferred", "tree": "<tree id>", "reason": "no emulator could start",
                              "buildLog": "<release-form build log>", "deviceAttempt": "<start attempt log>" },
                     "backend": "n/a" },
+  "visualCheck": { "mobile": { "result": "owner-confirmed", "tree": "<tree id it was confirmed on>",
+                               "profiles": ["owner phone 1080x2340 450dpi font 1.3 light"],
+                               "checked": ["summary card hierarchy", "touch target", "largest font scale"],
+                               "owner": "<the owner's own words>", "captures": [] },
+                   "backend": "n/a" },
   "models": { "brainstorm": "opus", "design": "opus", "tdd": "sonnet", "implement": "sonnet",
               "review": "opus", "qa": "sonnet", "ship": "sonnet" },
   "effort": { "design": "xhigh", "tdd": "medium", "implement": "low",
@@ -133,6 +138,12 @@ values and rules are in sc-implement G6.
 its `tree` (must equal `gateTrees.G9`), artifact and installed-package identity, release-form indicators,
 evidence per flow, any `deferred` parts — or `"n/a"` (diff did not touch `appliesTo`) / `"n/a: <reason>"`
 (no config). Any deferral goes on the pre-merge manual gate. Rules are in sc-qa — Release-artifact smoke.
+
+`visualCheck` (written by sc-implement's live visual loop) holds one entry per nature: `result`
+`owner-confirmed` / `agent-captured` / `"unverified: <reason>"`, the `tree` it was judged on, the profiles,
+what was checked, the owner's words (owner-confirmed only) and any capture paths — or `"n/a"` (not a UI
+nature). Anything but `owner-confirmed` goes on the pre-merge manual gate. Rules are in
+`${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md`.
 
 ## The slug
 

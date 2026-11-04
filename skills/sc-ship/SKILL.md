@@ -37,6 +37,13 @@ from an argued one. Label every claim with one of:
   If **every** criterion lands on `review-only` for this reason, say that in one line rather than letting a
   claim map of quarantines read like a verified change.
 
+**Visual claims of a UI nature** (`${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md` — Visual evidence) map to
+`state.visualCheck[<nature>]`, not to screenshots: `owner-confirmed` → **`live (owner-confirmed)`**, naming
+the profile and what was checked; `agent-captured` (no owner present) → **`review-only (agent-captured)`**
+with each profile on the pre-merge manual gate; `unverified` → `review-only` with the same gate item.
+Screenshots are optional, for the PR record; a screenshot-diff counts only where the project declares a
+harness. A confirmation older than a later change to that nature's files is stale — re-show, or gate it.
+
 Surface the labels in the PR body's claim map (e.g. `- ✅ rate limit rejects 11th request — **live** (e2e:
 login_spec)` / `- ✅ owner check on delete — **review-only** (dev user can't reach another owner's record)`).
 This makes verification strength auditable and stops a review-only fallback from silently masquerading as a
@@ -128,7 +135,9 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   deferral can't slip in as a silent pass. For an unrunnable-here item the observable check is the **CI
   job that must show that suite executed (count > 0) and green on this branch's head commit** — a link a
   reviewer can click, not a claim they have to trust; name the suite and its recorded `reason` beside it.
-  Matched `releaseChecklist` items with `manual: true` go here too (see Release checklist below).
+  Matched `releaseChecklist` items with `manual: true` go here too (see Release checklist below), and
+  every `state.visualCheck` entry that is not `owner-confirmed` — one item per profile for the owner to
+  look at.
   A `gates.G9: degrade` goes here too, with its reason — and each deferred flow or part of a
   `state.releaseSmoke` entry as its own item, to be run on the release-form artifact (§sc-qa
   Release-artifact smoke). If none were recorded, say so.

@@ -61,6 +61,17 @@ costs more than it carries. Adapt to your stack.
 Follow the engineering constitution (`${CLAUDE_PLUGIN_ROOT}/docs/engineering-constitution.md`):
 authz from the principal only, DTOs not entities, whitelist validation, no N+1, no swallowed exceptions.
 
+## Live visual loop (UI natures)
+For a nature whose overlay declares `visualCheck` (or that `designer` reviews), the looks are settled here,
+with the owner watching the running app — not in review rounds. The rule is
+`${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md` (Live visual loop); in short: launch the live app from a
+dev/debug build (a release-form build cannot hot reload; the build is heavy work), show the change on the
+first `visualCheck.profiles` entry, ask in plain words what to look at, iterate without re-entering
+sc-review, and answer vague feedback with 2–3 labelled, uncommitted prototypes on the running app — the
+chosen one is productionized and the rest deleted before any commit. Walk the accessibility-floor checks
+from that file with the owner. Record `state.visualCheck[<nature>]` (owner-confirmed, or the unattended
+fallback), then run G5–G7 on the settled result. A route plan may name this loop (§ship-cycle Route plan).
+
 ## Verify (this stage owns build + tests, separate from review)
 - **G5**: build succeeds and the **new tests pass** (Green) — or, where G4 recorded an execution-based
   verification instead, that verification ran and its output was read. Run the nature's build/test commands

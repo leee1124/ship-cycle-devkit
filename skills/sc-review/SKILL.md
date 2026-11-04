@@ -49,11 +49,15 @@ different failure modes.
   - **decorative-not-informative indicator**: a "progress" element that doesn't encode progress (a fixed
     spinner where a fill/ring belongs), or a chart that misreads (wrong axis, legend showing internal keys);
   - **off-scale**: type sizes/spacing not on the defined scale;
-  - **accessibility floor**: touch target below the platform minimum, missing labels, contrast below AA,
-    no focus management/trap on modals;
+  - **accessibility floor** — the named checks in `${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md`: touch
+    target below the platform minimum, contrast below AA in any theme, missing screen-reader labels/roles
+    (or no focus trap on modals), clipping at the largest font scale in `visualCheck.profiles`, and
+    animation that ignores reduced motion;
   - **emoji-as-icon** where a vector icon system exists.
   When the overlay declares a `design` source of truth, check the change against it — did it reuse, or
-  reinvent?
+  reinvent? (A backstop: sc-design ran the reuse check first.) The lens runs once, on the result the
+  owner settled in the live visual loop, not per tweak. With a `visualCheck.designTool`, run its
+  `critique` / `detect` / `audit` read-only — never `init`, `document` or a hook install inside a cycle.
 - **cold / spec-blind** (adversarial — always run one on a non-trivial change): this lens gets **only the
   diff** — NOT the design doc, canonical spec, or acceptance criteria — and is told to *assume nothing the
   author claims* and find what's wrong from first principles, hunting hardest in the real-world states above

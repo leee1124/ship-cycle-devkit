@@ -818,6 +818,115 @@ def check_route_plan(root: Path, f: Findings) -> None:
 # --- entry point -------------------------------------------------------------------------------
 
 
+VISUAL_DOC = Path("docs/visual-check.md")
+VISUAL_FIELDS = ("run", "open", "devBuild", "profiles", "restore", "capture", "diff", "designTool")
+A11Y_FLOOR_TOKENS = ("touch target", "contrast", "screen-reader", "largest font scale", "reduced motion")
+VISUAL_BLOCK_TOKENS = {
+    "visual-loop-rule": ("dev/debug", "release-form", "heavy-work.md", "profiles", "plain words",
+                         "without re-entering sc-review", "variant A", "uncommitted", "delete the rest",
+                         "restore", "state.visualCheck", "owner-confirmed"),
+    "visual-evidence-rule": ("owner-confirmed", "agent-captured", "optional", "visualCheck.diff",
+                             "Pre-merge manual gate", "unattended", "Stale", "G9"),
+    "a11y-floor": A11Y_FLOOR_TOKENS,
+}
+DESIGN_TOOL_HOOKS = ("shape", "generate", "live", "critique", "detect", "audit", "polish")
+
+
+def _flat(text: str) -> str:
+    """Whitespace-collapsed text, so a phrase wrapped across lines still matches."""
+    return " ".join(text.split())
+
+
+def _section(text: str, heading_prefix: str) -> str:
+    m = re.search(r"^## " + re.escape(heading_prefix) + r".*?(?=^## |\Z)", text, re.M | re.S)
+    return m.group(0) if m else ""
+
+
+def check_visual_check(root: Path, f: Findings) -> None:
+    """#83: UI natures settle their looks in a live owner loop, and that is the visual evidence.
+
+    Guards the overlay's `changeNature[].visualCheck` block (closed, `run` + `profiles` required, every
+    documented field present) and an example nature using it; docs/visual-check.md keeps its loop,
+    evidence and accessibility-floor blocks and the design-tool adapter table with its read-only constraint;
+    sc-implement has the live-loop section, sc-design the reuse check, sc-review's designer lens the named
+    a11y checks, sc-ship G11 the owner-confirmed / agent-captured labels and the manual-gate item, and the
+    orchestrator's G11 row and route plan name it. It does not judge the prose.
+    """
+    schema = load_json(root, OVERLAY_SCHEMA, f)
+    if schema is not None:
+        try:
+            spec = schema["properties"]["changeNature"]["items"]["properties"]["visualCheck"]
+            ok = (spec.get("additionalProperties") is False
+                  and {"run", "profiles"} <= set(spec["required"])
+                  and set(VISUAL_FIELDS) <= set(spec["properties"]))
+        except (KeyError, TypeError):
+            ok = False
+        if not ok:
+            f.error(shown(OVERLAY_SCHEMA), "changeNature.items.properties.visualCheck is missing, "
+                                           "not closed, lacks run/profiles as required, or lacks one of "
+                                           + "/".join(VISUAL_FIELDS))
+            return
+    blocks = list(example_blocks(root, f, "visualCheck"))
+    if not blocks:
+        f.error(shown(OVERLAY_EXAMPLE), "no changeNature declares visualCheck")
+    doc = root / VISUAL_DOC
+    if not doc.is_file():
+        f.error(shown(VISUAL_DOC), "missing")
+    else:
+        text = read(doc)
+        for name, tokens in VISUAL_BLOCK_TOKENS.items():
+            m = re.search(rf"<!-- {name} -->(.*?)<!-- /{name} -->", text, re.S)
+            if not m:
+                f.error(shown(VISUAL_DOC), f"no <!-- {name} --> block")
+                continue
+            body = _flat(m.group(1))
+            for token in tokens:
+                if token not in body:
+                    f.error(shown(VISUAL_DOC), f"{name} block does not state {token!r}")
+        adapter = _flat(_section(text, "Design-tool adapter"))
+        for hook in DESIGN_TOOL_HOOKS:
+            if f"`{hook}`" not in adapter:
+                f.error(shown(VISUAL_DOC), f"design-tool adapter table has no `{hook}` hook")
+        for token in ("fallback", "never requires", "read-only", "`init`", "`document`", "hook"):
+            if token not in adapter:
+                f.error(shown(VISUAL_DOC), f"design-tool adapter does not state {token!r}")
+    anchors = (
+        ("sc-implement", "Live visual loop", ("visual-check.md", "visualCheck.profiles", "state.visualCheck",
+                                              "release-form", "without re-entering sc-review", "prototypes",
+                                              "uncommitted", "accessibility-floor")),
+        ("sc-design", "UI-only changes", ("**Reuse check before any new component or token**",
+                                          "design.guide", "backstop")),
+        ("sc-ship", "Verify (G11)", ("visual-check.md", "state.visualCheck", "live (owner-confirmed)",
+                                     "review-only (agent-captured)", "pre-merge manual gate")),
+        ("sc-ship", "PR (G12)", ("state.visualCheck",)),
+        ("sc-qa", "Gate G9", ("state.visualCheck", "visual-check.md")),
+        ("ship-cycle", "Route plan", ("live visual loop", "visual-check.md")),
+    )
+    for skill, heading, tokens in anchors:
+        path = root / SKILLS_DIR / skill / "SKILL.md"
+        if not path.is_file():
+            continue
+        sec = _flat(_section(read(path), heading))
+        if not sec:
+            f.error(shown(path.relative_to(root)), f"no '## {heading}' section")
+            continue
+        for token in tokens:
+            if token not in sec:
+                f.error(shown(path.relative_to(root)), f"'## {heading}' does not state {token!r}")
+    review = root / SKILLS_DIR / "sc-review" / "SKILL.md"
+    if review.is_file():
+        m = re.search(r"^- \*\*designer\*\*.*?(?=^- \*\*)", read(review), re.M | re.S)
+        lens = _flat(m.group(0)) if m else ""
+        for token in A11Y_FLOOR_TOKENS + ("visual-check.md", "read-only", "once"):
+            if token not in lens:
+                f.error(shown(review.relative_to(root)), f"designer lens does not state {token!r}")
+    orch = root / SKILLS_DIR / "ship-cycle" / "SKILL.md"
+    if orch.is_file():
+        row = next((l for l in read(orch).splitlines() if l.startswith("| G11 |")), "")
+        if "state.visualCheck" not in row:
+            f.error(shown(orch.relative_to(root)), "G11 row does not reference state.visualCheck")
+
+
 def main(argv: list[str]) -> int:
     root = Path(argv[1]).resolve() if len(argv) > 1 else Path(__file__).resolve().parent.parent
     f = Findings()
@@ -836,6 +945,7 @@ def main(argv: list[str]) -> int:
     check_release_checklist(root, f)
     check_heavy_work(root, f)
     check_route_plan(root, f)
+    check_visual_check(root, f)
 
     for w in f.warnings:
         print(f"warning  {w}")

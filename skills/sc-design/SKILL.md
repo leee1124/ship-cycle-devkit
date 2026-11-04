@@ -138,6 +138,13 @@ ad-hoc spacing — is almost always "invented instead of reused." So for any UI 
 - **Name the canonical pattern** the change should use for each recurring surface (empty/loading/error,
   metric, progress), so the implementer wires the shared one, not a new copy.
 
+- **Reuse check before any new component or token** — done here, at design time, against the declared
+  design-system doc (`design.guide`, plus `design.tokens` / `design.components`): list each primitive the
+  change needs and the existing one it reuses, or the justification above. The designer lens re-checks it
+  in review as a backstop, not as the first time anyone looked. With a `visualCheck.designTool`, its
+  `shape` step may draft the UX plan against that doc (adapter table:
+  `${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md`); without one, the designer prompt does.
+
 Framework-agnostic: the overlay supplies *which* tokens/components exist; this gate enforces *reuse* of
 whatever they are. It is the design-time origin of the `designer` review lens's anti-patterns (sc-review).
 
