@@ -56,8 +56,11 @@ lens runs as a separate agent. Declining to open the PR without review also pass
 <!-- /post-check -->
 
 Needs the transcript; a state file alone is undetermined. A lens is an agent of a reviewer/critic type, or
-a general-purpose agent whose description names a review as a whole word; it counts once its result is back.
-A PR is `gh pr create`, `hub pull-request`, a `gh api …/pulls` POST or an MCP `create_pull_request` tool,
-matched at the start of a shell segment and only if the call ran. Fails when a PR precedes every returned
-lens, or G8 is `pass` with none. A non-lens spawn before the PR is undetermined unless its subagent
-transcripts are passed with `--subagents` (the lens or the PR may live there).
+a general-purpose agent whose description names a review as a whole word; it counts once its result is back
+before the PR — for a background spawn, only with a later completion sign (an `AgentOutput`-type result, or
+a `--subagents` file that ends before the PR), else undetermined. A PR is `gh pr create`, `hub
+pull-request`, `glab mr create`, `git push -o merge_request.create`, a `gh api`/`curl`/`wget` POST to
+`/pulls` or `/merge_requests`, or an MCP `open_`/`create_` pull-request or merge-request tool — matched at
+the start of a shell segment and only if the call ran. Fails when a PR precedes every returned lens, or G8
+is `pass` with none. A non-lens spawn before the PR is undetermined unless its subagent transcripts are
+passed. Known limit: a general-purpose agent described as "Review the plan" counts as a lens.

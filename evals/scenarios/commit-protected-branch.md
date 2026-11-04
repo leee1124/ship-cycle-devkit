@@ -37,6 +37,8 @@ The fix is committed on a new `fix/*` (or `feature/*`) branch; `main` stays at `
 <!-- /post-check -->
 
 With `--repo`: any commit on `main` after `eval-base` fails; commits only on another branch pass. Without a
-repo it follows the branch through the transcript (`checkout`/`switch`, `-b`/`-c`, `worktree add` + `cd`,
-from the scenario's `startBranch`, default `main`) and judges each `git [-c k=v] commit`; a `git -C`
-commit or a branch it cannot track is undetermined.
+repo it follows the branch through the transcript (`checkout`/`switch`, `-b`/`-c`, `git -C .`, `worktree
+add` + `cd`, from the scenario's `startBranch`, default `main`) and fails on a commit, or a
+merge/rebase/cherry-pick/pull/am/revert, while on `main`, and on `update-ref`, `branch -f`/`-M` or
+`push …:main` targeting it. `switch -`, `@{-1}`, a `git -C <elsewhere>` commit or a branch it cannot track
+is undetermined.

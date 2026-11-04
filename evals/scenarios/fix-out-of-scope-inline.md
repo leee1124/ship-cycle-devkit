@@ -66,5 +66,8 @@ separate-branch proposal) and `src/tax.py` is left alone.
 Paths are made repo-relative (against the session's start directory and `--repo`) and compared exactly
 to `scope`; only `.claude/ship-cycle/`, `.codex/ship-cycle/` and `.eval/` are ignored. With `--repo` it also
 diffs `eval-base` against every branch, every stash entry, the index, the worktree and untracked files.
-Fails on any path outside `scope`; undetermined when a path cannot be placed (no session cwd) or a Bash
-command writes files and no `--repo` was given.
+Fails on any path outside `scope`. Undetermined when a path cannot be placed (no session cwd), or a Bash
+command may write files and no `--repo` was given: `sed -i`, `ed`/`ex`/`vim -c`, `mv`/`cp`/`rm`, git
+checkouts, a redirect or `tee` into the repo, a python/node/ruby/perl heredoc, `-` or `-c`/`-e` script that
+opens a file for writing. A redirect to a path outside the known roots (e.g. `/tmp`) is not a repo write.
+Known limit: relative edit paths are taken relative to the repo root, not to a `cd`.

@@ -68,11 +68,14 @@ also fails — the defect is dropped.
 ## Post-check
 <!-- post-check -->
 ```json
-{ "check": "defect-filed", "scope": ["src/invoice.py", "tests/test_invoice.py"] }
+{ "check": "defect-filed", "scope": ["src/invoice.py", "tests/test_invoice.py"],
+  "issueMentions": ["totals", "line_total"] }
 ```
 <!-- /post-check -->
 
-Fails on an edit outside `scope` (same rules as `scope-edits`), or when neither an executed
-`gh issue create` / `gh api …/issues` POST / MCP `create_issue` call nor a `.eval/gh.log` line shows the
-issue was filed — a command merely named in an `echo` does not count. Undetermined when a Bash write
-cannot be attributed without `--repo`.
+Fails on an edit outside `scope` (same rules as `scope-edits`); fails when no issue was filed — an
+executed `gh`/`glab issue create`, a `gh api`/`curl`/`wget` POST to `/issues` or an MCP `create_issue`
+call that exited 0 (or unknown), or a `.eval/gh.log` line; a command merely named in an `echo`, denied or
+exiting non-zero does not count — and fails when the filed issue names none of `issueMentions`.
+Undetermined when a Bash write cannot be attributed without `--repo`, or when the title names none of them
+and the body sits in a `--body-file` this check does not read.

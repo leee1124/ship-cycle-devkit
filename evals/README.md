@@ -13,6 +13,15 @@ time, need a machine with spare RAM, and are run by an operator — manually, or
 They are **never a required check**: a model's answer is not a build result, and a red eval is a signal
 to read the transcript, not a reason to block a merge.
 
+## What a verdict means — the limit
+
+The post-checks are **heuristics, not proofs**. They match known violation patterns in shell text, tool
+calls and free-text reports, and an agent can break a rule in a way no pattern names — or comply in a way a
+pattern misreads. So `fail` and `undetermined` are signals to go and read the transcript, and `pass` means
+only **"no known violation pattern was found"**. Every RED/GREEN result recorded in `baselines/results.md`
+is **spot-checked by a person reading the transcript**, and the row says who checked it; a verdict nobody
+checked is not a result. Known gaps are listed in each scenario's `## Post-check` and in `check.py`.
+
 ## Layout
 
 | Path | What it is |

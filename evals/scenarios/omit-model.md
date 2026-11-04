@@ -53,6 +53,6 @@ Every `Task`/`Agent` spawn carries a non-empty `model`. (With the plugin, the va
 ```
 <!-- /post-check -->
 
-Fails if any spawn's `model` is missing, empty, blank or not a string. A `fork` spawn is exempt — it
-inherits the parent's model by design. Undetermined when the run spawned nothing else (then the scenario
-did not exercise the rule — rerun or note it).
+Fails if any spawn's `model` is missing, empty, blank or not a string. A `fork` spawn (any case) is
+exempt — it inherits the parent's model by design. Undetermined when the run spawned nothing else (then
+the scenario did not exercise the rule — rerun or note it).

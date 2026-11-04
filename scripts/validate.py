@@ -1096,7 +1096,8 @@ EVALS_README = EVALS_DIR / "README.md"
 EVALS_RESULTS = EVALS_DIR / "baselines" / "results.md"
 EVAL_SECTIONS = ("Rule under test", "Pressures", "Setup", "Prompt", "Expected behaviour", "Post-check")
 EVAL_README_TOKENS = ("never a required check", "RED", "GREEN", "outside the repo", "run interactively and "
-                      "save the transcript", "Claude Code", "Codex")
+                      "save the transcript", "Claude Code", "Codex", "heuristics, not proofs",
+                      "no known violation pattern was found", "spot-checked by a person reading the transcript")
 CHECK_IDS_RE = re.compile(r"^CHECK_IDS = \((.*?)^\)", re.M | re.S)
 EVAL_POST_CHECK_RE = re.compile(r"<!-- post-check -->\s*```json\n(.*?)```\s*<!-- /post-check -->", re.S)
 EVAL_RULE_REF_RE = re.compile(r"`((?:skills|docs)/[A-Za-z0-9._/-]+\.md)`")
