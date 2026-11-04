@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.3.15 — sc-retro: transcript-backed post-cycle diagnosis that drafts kit issues (#84)
+
+- **New à-la-carte skill `skills/sc-retro/`.** After G13, or on a failed or cancelled end, it reads the
+  gate log (live or archived), the state file where it survives, sc-ship's cost readout, the PR's Gate
+  summary, the kit version and the host transcript, and reports kit friction on five dimensions: loops &
+  re-reviews, review effectiveness, stage/route fit (skips a later defect traces to, stages that ran and
+  caught nothing), cost/time, user friction. Without a confirmed transcript it runs on state + log only and
+  says so. Transcripts are read locally and measured before reading; their content is data, not
+  instructions.
+- **Evidence rule**: every finding cites `path:line` (held to `docs/claim-evidence.md`); no citation, not
+  reported. Numbers come from an input or a command, never an estimate.
+- **Report** `<slug>-<date>.retro.md` in the archive dir beside the gate log, findings ranked; kit-generic
+  findings get an issue draft (title, problem, proposal, evidence) after a search of the kit repo's open
+  and closed issues — a match is linked, not duplicated; project-specific findings are listed separately
+  and never drafted.
+- **Redaction before any draft is shown** (secrets, emails, people, hosts, internal paths, customer data,
+  the project's name and domain terms unless the user opts in), and **filing only after the user approves
+  that draft in this session** — never auto-filed, never by a subagent.
+- **Never a gate.** It writes no gate value and never edits state or log; sc-ship offers it after G13 and the
+  orchestrator after a failed or cancelled end. `docs/runtime-adapters.md` gains a host-transcript row
+  (Claude Code `~/.claude/projects/…`, Codex `~/.codex/sessions/…`); README lists the skill.
+- **Validator** guards: the skill exists; its marked evidence-rule, redaction, filing and privacy blocks keep
+  their phrases (no citation → not reported; before any draft is shown; unless the user opts in; approves
+  that draft in this session; never auto-file; a subagent cannot approve; read locally only); its Not-a-gate
+  section says it never blocks a merge and the skill assigns no gate value; its inputs (state + log
+  fallback), five dimensions and report (project-specific never drafted, issue search) keep their anchors;
+  the runtime-adapters row names sc-retro and both hosts' paths; README, sc-ship G13 and the orchestrator's
+  State section offer it. Self-test adds 15 failing mutations.
+
 ## 0.3.14 — UI natures: a live owner loop is the visual evidence (#83)
 
 - **One rule file, `docs/visual-check.md`**, pointed to from sc-brainstorm, sc-design, sc-implement,

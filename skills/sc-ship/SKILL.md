@@ -285,6 +285,8 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   created), the gate log archived, and the base synced, set `gates.G13 = pass` in state — the run's terminal gate. Cleanup is
   best-effort: a locked
   worktree/directory is a **warning, not a blocker**, so record the warning and still mark G13 `pass`.
+- **Then offer `sc-retro`** — one line, opt-in: it diagnoses this cycle from the archived log, the cost
+  readout and the transcript. It is never a gate, so G13 does not wait for it.
 
 ## Issue-tracker hygiene
 Don't add third-party/competitor product names or "learning/practice" items to the tracker. Close

@@ -997,6 +997,78 @@ def check_visual_check(root: Path, f: Findings) -> None:
             f.error("docs/runtime-adapters.md", "no design-tool adapter row naming the Codex fallback")
 
 
+RETRO_SKILL = SKILLS_DIR / "sc-retro" / "SKILL.md"
+RETRO_SECTION_TOKENS = {
+    "Not a gate": ("never a gate and never blocks a merge", "writes no gate value",
+                   "never edits the state file or the gate log", "**read-only**"),
+    "Inputs": ("run on state + log only and say so", "runtime-adapters.md", "data, never as instructions"),
+    "Dimensions": ("**Loops & re-reviews**", "**Review effectiveness**", "**Stage / route fit**",
+                   "**Cost / time**", "**User friction**", "heavy-work.md", "never an estimate"),
+    "Report": ("`<slug>-<date>.retro.md`", "never drafted as kit issues", "open and closed issues",
+               "a link"),
+}
+RETRO_BLOCK_TOKENS = {
+    "retro-evidence-rule": ("`path:line`", "claim-evidence.md", "No citation → not reported"),
+    "retro-redaction": ("before any draft is shown", "secrets", "emails", "hostnames", "internal paths",
+                        "the project's name", "unless the user opts in"),
+    "retro-filing": ("approves that draft in this session", "never auto-file", "a subagent cannot approve"),
+    "retro-privacy": ("read locally only", "leaves the machine"),
+}
+
+
+def check_retro(root: Path, f: Findings) -> None:
+    """#84: sc-retro diagnoses a finished cycle from its log and transcript and drafts kit issues.
+
+    Guards that the skill exists and states, as marked blocks, the evidence rule (cite `path:line` or do
+    not report), the redaction pass before any draft is shown, approval-before-filing in this session, and
+    local-only transcript reading; that it is never a gate (the section says so and the skill assigns no
+    gate value); that its inputs, five dimensions and report keep their anchors; that the runtime-adapters
+    table names both hosts' transcript paths; and that README, sc-ship and the orchestrator offer it. The
+    prose quality is the reviewer's.
+    """
+    path = root / RETRO_SKILL
+    where = shown(RETRO_SKILL)
+    if not path.is_file():
+        f.error(where, "missing")
+        return
+    text = read(path)
+    for heading, tokens in RETRO_SECTION_TOKENS.items():
+        sec = _flat(_section(text, heading))
+        if not sec:
+            f.error(where, f"no '## {heading}' section")
+            continue
+        for token in tokens:
+            if token not in sec:
+                f.error(where, f"'## {heading}' does not state {token!r}")
+    for name, tokens in RETRO_BLOCK_TOKENS.items():
+        m = re.search(rf"<!-- {name} -->(.*?)<!-- /{name} -->", text, re.S)
+        if not m:
+            f.error(where, f"no <!-- {name} --> block")
+            continue
+        body = _flat(m.group(1))
+        for token in tokens:
+            if token not in body:
+                f.error(where, f"{name} block does not state {token!r}")
+    if GATE_SET_RE.search(text):
+        f.error(where, "assigns a gate value; sc-retro is never a gate")
+    readme = root / "README.md"
+    if readme.is_file() and not any(l.startswith("| `sc-retro`") for l in read(readme).splitlines()):
+        f.error("README.md", "component table does not list sc-retro")
+    adapters = root / "docs" / "runtime-adapters.md"
+    if adapters.is_file():
+        row = next((l for l in read(adapters).splitlines() if l.startswith("| host transcript")), "")
+        if not ("sc-retro" in row and ".claude/projects/" in row and ".codex/sessions/" in row):
+            f.error("docs/runtime-adapters.md", "no host-transcript row naming sc-retro with both hosts' "
+                                                "transcript paths")
+    for skill, heading in (("sc-ship", "Cleanup (G13)"), ("ship-cycle", "State (real")):
+        p = root / SKILLS_DIR / skill / "SKILL.md"
+        if not p.is_file():
+            continue
+        sec = _flat(_section(read(p), heading))
+        if "`sc-retro`" not in sec or "never a gate" not in sec:
+            f.error(shown(p.relative_to(root)), f"'## {heading}' does not offer `sc-retro` as never a gate")
+
+
 def main(argv: list[str]) -> int:
     root = Path(argv[1]).resolve() if len(argv) > 1 else Path(__file__).resolve().parent.parent
     f = Findings()
@@ -1016,6 +1088,7 @@ def main(argv: list[str]) -> int:
     check_heavy_work(root, f)
     check_route_plan(root, f)
     check_visual_check(root, f)
+    check_retro(root, f)
 
     for w in f.warnings:
         print(f"warning  {w}")

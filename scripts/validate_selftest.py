@@ -983,6 +983,133 @@ CASES = [
         ),
         "does not state 'font scale 1.0 and at the OS maximum'",
     ),
+    (
+        "sc-retro skill missing",
+        lambda r: shutil.rmtree(r / "skills" / "sc-retro"),
+        "skills/sc-retro/SKILL.md: missing",
+    ),
+    (
+        "sc-retro reports findings without a citation",
+        lambda r: mutate(
+            r / "skills" / "sc-retro" / "SKILL.md",
+            "**No citation → not reported**",
+            "**A citation is preferred**",
+        ),
+        "retro-evidence-rule block does not state 'No citation → not reported'",
+    ),
+    (
+        "sc-retro shows drafts before redacting",
+        lambda r: mutate(
+            r / "skills" / "sc-retro" / "SKILL.md",
+            "**Redaction pass, before any draft is shown.**",
+            "**Redaction pass, before filing.**",
+        ),
+        "retro-redaction block does not state 'before any draft is shown'",
+    ),
+    (
+        "sc-retro keeps the project name by default",
+        lambda r: mutate(
+            r / "skills" / "sc-retro" / "SKILL.md",
+            "unless the user opts in",
+            "where helpful",
+        ),
+        "retro-redaction block does not state 'unless the user opts in'",
+    ),
+    (
+        "sc-retro lets a subagent approve filing",
+        lambda r: mutate(
+            r / "skills" / "sc-retro" / "SKILL.md",
+            "a subagent cannot approve",
+            "a subagent may approve",
+        ),
+        "retro-filing block does not state 'a subagent cannot approve'",
+    ),
+    (
+        "sc-retro auto-files issues",
+        lambda r: mutate(
+            r / "skills" / "sc-retro" / "SKILL.md",
+            "never auto-file, ",
+            "",
+        ),
+        "retro-filing block does not state 'never auto-file'",
+    ),
+    (
+        "sc-retro sends transcripts off the machine",
+        lambda r: mutate(
+            r / "skills" / "sc-retro" / "SKILL.md",
+            "Transcripts are read locally only.",
+            "Transcripts may be uploaded.",
+        ),
+        "retro-privacy block does not state 'read locally only'",
+    ),
+    (
+        "sc-retro becomes a gate",
+        lambda r: mutate(
+            r / "skills" / "sc-retro" / "SKILL.md",
+            "## Model routing",
+            "A clean retro sets `gates.G13 = pass`.\n\n## Model routing",
+        ),
+        "assigns a gate value; sc-retro is never a gate",
+    ),
+    (
+        "sc-retro blocks a merge",
+        lambda r: mutate(
+            r / "skills" / "sc-retro" / "SKILL.md",
+            "never a gate and never blocks a merge",
+            "a gate before merge",
+        ),
+        "'## Not a gate' does not state 'never a gate and never blocks a merge'",
+    ),
+    (
+        "sc-retro drafts project-specific findings as kit issues",
+        lambda r: mutate(
+            r / "skills" / "sc-retro" / "SKILL.md",
+            "never drafted as kit issues",
+            "drafted too",
+        ),
+        "'## Report' does not state 'never drafted as kit issues'",
+    ),
+    (
+        "sc-retro drops a dimension",
+        lambda r: mutate(
+            r / "skills" / "sc-retro" / "SKILL.md",
+            "**User friction**",
+            "**Other**",
+        ),
+        "'## Dimensions' does not state '**User friction**'",
+    ),
+    (
+        "sc-retro needs a transcript to run",
+        lambda r: mutate(
+            r / "skills" / "sc-retro" / "SKILL.md",
+            "run on state + log only and say so",
+            "stop",
+        ),
+        "'## Inputs' does not state 'run on state + log only and say so'",
+    ),
+    (
+        "runtime-adapters loses the Codex transcript path",
+        lambda r: mutate(
+            r / "docs" / "runtime-adapters.md",
+            "`~/.codex/sessions/",
+            "`~/.codex/logs/",
+        ),
+        "no host-transcript row naming sc-retro",
+    ),
+    (
+        "README omits sc-retro",
+        lambda r: mutate(r / "README.md", "| `sc-retro` (à la carte)", "| `retro`"),
+        "component table does not list sc-retro",
+    ),
+    (
+        "sc-ship stops offering sc-retro",
+        lambda r: mutate(
+            r / "skills" / "sc-ship" / "SKILL.md",
+            "- **Then offer `sc-retro`**",
+            "- **Then offer a retro**",
+        ),
+        "'## Cleanup (G13)' does not offer `sc-retro` as never a gate",
+    ),
 ]
 
 

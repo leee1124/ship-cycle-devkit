@@ -265,6 +265,9 @@ never authoritative over the state (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md`
 never with a live-tree freeze, and never with a live job or freeze that `holds` does not name
 (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Parking).
 
+**Retro, on offer only.** After a `failed` or `cancelled` end, offer `sc-retro` (after G13 sc-ship
+offers it); it reads the log and transcript afterwards and is never a gate.
+
 **One exception to per-cycle isolation: `gitFreeze` describes a repo-wide hazard.** `git worktree add /
 remove / prune` and an `index.lock` recovery reach outside the cycle that runs them, and `prune` is
 repo-scoped. Before any of those, scan **every** `.claude/ship-cycle/*.json` in this working directory for
