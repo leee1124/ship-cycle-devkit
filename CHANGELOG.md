@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.6 — G9 requires a release-artifact smoke for build-config/native changes (#69)
+
+- **Overlay `changeNature[].releaseSmoke`** (`appliesTo`, `artifact`, `flows`, `device?`). Per nature,
+  beside `build`/`bootCheck`/`coverage`, because the release form, flows and device are stack-specific;
+  `appliesTo` globs match the whole diff, so a root lockfile can trigger a nature's smoke.
+- **When the diff touches `appliesTo`, G9 requires every listed flow on the release-form artifact** —
+  shrinking, release signing and production config as shipped — with evidence per flow. A dev or debug
+  build does not count. G7 only proved the artifact builds, so a shrinker-stripped generic signature that
+  crashed a third-party SDK login only in release builds passed every gate with dev-build E2E green.
+- **`state.releaseSmoke`** per nature: a `pass`/`fail` object, `"n/a"` (untouched), `"n/a: no releaseSmoke
+  config"`, or `"deferred: <reason>"` when it cannot run here (no device, no signing key) — G9 `degrade`,
+  one pre-merge manual-gate item per flow, never a pass. Tier S does not skip it. Rule: sc-qa —
+  Release-artifact smoke; `/status` prints it.
+- The validator checks the example overlay's `releaseSmoke` against the schema; two self-test cases.
+
 ## 0.3.5 — `parked` stage and a resume reconcile (#68)
 
 - **`stage: "parked"`** with `parked: { reason, resumeStage, at, holds }`, from any non-terminal stage on

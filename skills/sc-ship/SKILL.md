@@ -96,7 +96,8 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   deferral can't slip in as a silent pass. For an unrunnable-here item the observable check is the **CI
   job that must show that suite executed (count > 0) and green on this branch's head commit** — a link a
   reviewer can click, not a claim they have to trust; name the suite and its recorded `reason` beside it.
-  A `gates.G9: degrade` goes here too, with its reason. If none were recorded, say so.
+  A `gates.G9: degrade` goes here too, with its reason — and a `"deferred: <reason>"` `state.releaseSmoke`
+  entry as one item per listed flow, each to be run on the release-form artifact (§sc-qa Release-artifact smoke). If none were recorded, say so.
 - **Verify the closing token actually landed (don't trust that you wrote it).** After opening the PR,
   **re-fetch the created body** and assert it contains the exact intended token for **every** tracked issue
   in `state`: `Closes #NN` when that issue is fully done, `Refs #NN` when partial. A bare mention (`#NN`,

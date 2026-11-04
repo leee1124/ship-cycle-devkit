@@ -246,6 +246,24 @@ CASES = [
         ),
         "missing required field 'reportPath'",
     ),
+    (
+        "example overlay releaseSmoke missing its flows",
+        lambda r: mutate(
+            r / "docs" / "ship-cycle.config.example.json",
+            '"flows": ["sign-in (email)", "sign-in (third-party SDK)", "start and finish a workout"],',
+            "",
+        ),
+        "missing required field 'flows'",
+    ),
+    (
+        "example overlay releaseSmoke artifact is not a command list",
+        lambda r: mutate(
+            r / "docs" / "ship-cycle.config.example.json",
+            '"artifact": ["cd apps/mobile/android && ./gradlew assembleRelease"],',
+            '"artifact": "cd apps/mobile/android && ./gradlew assembleRelease",',
+        ),
+        "'artifact' must be an array of strings",
+    ),
 ]
 
 

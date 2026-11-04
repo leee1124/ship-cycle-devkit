@@ -363,6 +363,55 @@ def check_example_coverage(root: Path, f: Findings) -> None:
             f.error(where, f"threshold {threshold!r} is not a number in {th_min}..{th_max}")
 
 
+def check_example_release_smoke(root: Path, f: Findings) -> None:
+    """The example overlay's `changeNature[].releaseSmoke` satisfies the schema's releaseSmoke block.
+
+    Same reason as the coverage check: a copied example missing `flows` or `artifact` leaves G9 nothing to
+    exercise, so the smoke it was meant to require reads as satisfied. Rules come from the schema itself.
+    """
+    schema = load_json(root, OVERLAY_SCHEMA, f)
+    example = load_json(root, OVERLAY_EXAMPLE, f)
+    if not isinstance(schema, dict) or not isinstance(example, dict):
+        return
+    try:
+        spec = schema["properties"]["changeNature"]["items"]["properties"]["releaseSmoke"]
+        props = spec["properties"]
+        required = spec["required"]
+        closed = spec.get("additionalProperties") is False
+    except (KeyError, TypeError):
+        f.error(shown(OVERLAY_SCHEMA), "changeNature.items.properties.releaseSmoke is missing its properties "
+                                       "or required list")
+        return
+    natures = example.get("changeNature", [])
+    if not isinstance(natures, list):
+        return  # reported by check_example_coverage
+    for i, nature in enumerate(natures):
+        block = nature.get("releaseSmoke") if isinstance(nature, dict) else None
+        if block is None:
+            continue
+        where = f"{shown(OVERLAY_EXAMPLE)} changeNature[{i}].releaseSmoke"
+        if not isinstance(block, dict):
+            f.error(where, "must be an object")
+            continue
+        for key in required:
+            if key not in block:
+                f.error(where, f"missing required field '{key}'")
+        if closed:
+            for key in sorted(set(block) - set(props)):
+                f.error(where, f"unknown field '{key}' (schema sets additionalProperties: false)")
+        for key, sub in props.items():
+            if key not in block:
+                continue
+            val = block[key]
+            if sub.get("type") == "array":
+                if (not isinstance(val, list) or not all(isinstance(x, str) for x in val)
+                        or len(val) < sub.get("minItems", 0)):
+                    f.error(where, f"'{key}' must be an array of strings with at least "
+                                   f"{sub.get('minItems', 0)} item(s)")
+            elif sub.get("type") == "string" and not isinstance(val, str):
+                f.error(where, f"'{key}' must be a string")
+
+
 def check_skill_frontmatter(root: Path, f: Findings) -> None:
     """Every skill declares name + description, and name matches its directory."""
     base = root / SKILLS_DIR
@@ -404,6 +453,7 @@ def main(argv: list[str]) -> int:
     check_manifests_and_versions(root, f)
     check_skill_frontmatter(root, f)
     check_example_coverage(root, f)
+    check_example_release_smoke(root, f)
 
     for w in f.warnings:
         print(f"warning  {w}")

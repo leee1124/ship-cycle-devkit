@@ -25,6 +25,10 @@ the mechanics that only matter when something unusual happens to its name or its
                              "report": "apps/backend/build/reports/jacoco/test/jacocoTestReport.xml",
                              "format": "jacoco", "runStartedAt": "<iso>", "reportMtime": "<iso>" },
                 "web": "n/a: no coverage config" },
+  "releaseSmoke": { "mobile": { "result": "pass", "artifact": "<path> sha256:<digest> (release variant)",
+                                 "device": "<emulator or device>",
+                                 "flows": [{ "flow": "login", "evidence": "<log or screenshot path>" }] },
+                    "backend": "n/a", "web": "deferred: no release signing key here" },
   "models": { "brainstorm": "opus", "design": "opus", "tdd": "sonnet", "implement": "sonnet",
               "review": "opus", "qa": "sonnet", "ship": "sonnet" },
   "effort": { "design": "xhigh", "tdd": "medium", "implement": "low",
@@ -104,6 +108,11 @@ output) are outside the id by design: changing only those does not invalidate a 
 
 `coverage` (written at G6) and `baseline.coverage` (written at PREFLIGHT) hold one entry per nature;
 values and rules are in sc-implement G6.
+
+`releaseSmoke` (written at G9) holds one entry per nature: an object with `result` (`pass`/`fail`), the
+artifact identity and evidence per flow, `"n/a"` (diff did not touch `appliesTo`), `"n/a: <reason>"` (no
+config) or `"deferred: <reason>"` (could not run here → pre-merge manual gate). Rules are in sc-qa —
+Release-artifact smoke.
 
 ## The slug
 

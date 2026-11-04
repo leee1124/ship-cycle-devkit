@@ -149,7 +149,8 @@ authz from the principal only, DTOs not entities, whitelist validation, no N+1, 
   multi-byte character, cumulatively along the line — 2 per 3-byte CJK character. The result often still
   parses, so nothing necessarily errors. Slice the encoded bytes, or use the parser's own
   extract-the-source-segment helper instead of doing index arithmetic.
-- **G7**: if the change ships an artifact (APK/IPA/binary), run the **real packaging build**.
+- **G7**: if the change ships an artifact (APK/IPA/binary), run the **real packaging build**. Building is
+  not running: a diff touching `releaseSmoke.appliesTo` also needs G9's release-artifact smoke (§sc-qa).
 - **G7b — boot/context-load smoke (nature declares `bootCheck`)**: unit tests hand-assemble collaborators
   and sliced ITs skip full wiring, so a framework-wiring defect — a new type caught by an **unchanged**
   bean/mapper/component scan, a bean-scope clash, a missing-property `@Conditional` — passes every other

@@ -56,6 +56,8 @@ Otherwise parse the JSON and print a compact, scannable status report:
 - **Coverage** from `coverage`, per nature: `result`, `percent` against `floor`, or the n/a string as
   written. Print any `undetermined` loudly with its `error`/`reason` (ci-deferred → G6 `checklist`), and flag an
   entry — or a `baseline.coverage` one — whose `reportMtime ≤ runStartedAt` as stale.
+- **Release smoke** from `releaseSmoke`, per nature: `result` and each flow, or the `n/a`/`deferred:`
+  string as written. Print a `deferred` entry loudly — it owes a pre-merge manual-gate item, never a pass.
 - **Review jobs** from `reviewJobs`: for each, the reviewer, lens, `status` and **age** (`startedAt` to
   now). Print a `running` job **loudly** — the cycle is not judgeable while one is in flight — and print a
   `timeout`/`failed` one with its id, since it owes a pre-merge manual-gate item.
