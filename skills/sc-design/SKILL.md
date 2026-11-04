@@ -104,9 +104,10 @@ back/close (or the platform's dismiss) does from there. Call sites that share th
 and back/close behaviour may share one criterion, with the sites listed. A path the design deliberately
 removes or leaves unchanged is listed too, with that stated, so a silent omission can't hide among them.
 
-The criteria are appended to the cycle's acceptance-criteria record (the `criteria.md` G1 points to), marked
-design-derived, so `sc-tdd` (G4) and `sc-ship` (G11/G12) pick them up. They are shown to the user with the
-design at G2/G3; there is no separate approval round.
+The criteria are appended to the acceptance criteria G1 recorded in this cycle's state file (and to the
+artifact the G1 log row names, if any), each marked `design-derived`, so `sc-tdd` (G4) and `sc-ship`
+(G11/G12) pick them up. They are listed in the design doc the user sees at G2/G3; there is no separate
+approval round.
 
 ### Design-consistency gate — reuse before create
 Consistency isn't a review afterthought; it is decided **here**, when the UI change is designed. A crude,

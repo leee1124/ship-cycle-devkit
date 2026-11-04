@@ -321,7 +321,11 @@ CASES = [
     ),
     (
         "sc-design critic stops checking the entry-path inventory",
-        lambda r: mutate(r / "skills" / "sc-design" / "SKILL.md", "- **Entry-path inventory** (when", "- Entry-path inventory (when"),
+        lambda r: mutate(
+            r / "skills" / "sc-design" / "SKILL.md",
+            "- **Entry-path inventory** (when",
+            "- Entry-path inventory (when",
+        ),
         "critic review has no '**Entry-path inventory**' bullet",
     ),
 ]
