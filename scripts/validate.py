@@ -448,6 +448,93 @@ def check_example_release_smoke(root: Path, f: Findings) -> None:
         pass
 
 
+def check_release_checklist(root: Path, f: Findings) -> None:
+    """#73: the overlay's `releaseChecklist` is documented, consumed by sc-ship and counted by G12.
+
+    A field nothing reads is a false promise: release steps listed in the overlay would be skipped silently.
+    Guards the schema entry (item keys, `when` selector keys, `manual`), that the example overlay's items are
+    well-formed with unique ids, and that sc-ship and the G12 row name it. It does not judge the prose.
+    """
+    schema = load_json(root, OVERLAY_SCHEMA, f)
+    example = load_json(root, OVERLAY_EXAMPLE, f)
+    if schema is None or example is None:
+        return
+    try:
+        spec = schema["properties"]["releaseChecklist"]
+        item = spec["items"]
+        props, required = item["properties"], item["required"]
+        when_keys = set(props["when"]["properties"])
+        ok = (spec.get("type") == "array" and "manual" in props
+              and {"id", "when", "check", "evidence"} <= set(required)
+              and {"changeNature", "paths", "release"} <= when_keys)
+    except (KeyError, TypeError):
+        ok = False
+    if not ok:
+        f.error(shown(OVERLAY_SCHEMA), "properties.releaseChecklist is missing or lacks "
+                                       "id/when/check/evidence, manual, or the when keys "
+                                       "changeNature/paths/release")
+    items = example.get("releaseChecklist", []) if isinstance(example, dict) else []
+    if not isinstance(items, list):
+        f.error(shown(OVERLAY_EXAMPLE), "releaseChecklist must be an array")
+        items = []
+    seen: set = set()
+    natures = {n.get("nature") for n in example.get("changeNature", []) if isinstance(n, dict)} \
+        if isinstance(example, dict) else set()
+    uses_release = False
+    for i, it in enumerate(items):
+        where = f"{shown(OVERLAY_EXAMPLE)} releaseChecklist[{i}]"
+        if not isinstance(it, dict):
+            f.error(where, "must be an object")
+            continue
+        for name in ("id", "when", "check", "evidence"):
+            if name not in it:
+                f.error(where, f"missing required field '{name}'")
+        iid = it.get("id")
+        if not isinstance(iid, str) or not re.fullmatch(r"[a-z0-9][a-z0-9-]*", iid):
+            f.error(where, f"id {iid!r} must match ^[a-z0-9][a-z0-9-]*$")
+        elif iid in seen:
+            f.error(where, f"duplicate id '{iid}'")
+        else:
+            seen.add(iid)
+        for name in ("check", "evidence"):
+            if name in it and (not isinstance(it[name], str) or not it[name].strip()):
+                f.error(where, f"'{name}' must be a non-empty string")
+        if "manual" in it and not isinstance(it["manual"], bool):
+            f.error(where, "'manual' must be a boolean")
+        when = it.get("when")
+        if not isinstance(when, dict) or not when or set(when) - {"changeNature", "paths", "release"}:
+            f.error(where, "'when' must be a non-empty object using only changeNature/paths/release")
+        else:
+            uses_release = uses_release or when.get("release") is True
+            for n in when.get("changeNature", []) if isinstance(when.get("changeNature"), list) else []:
+                if n not in natures:
+                    f.error(where, f"when.changeNature '{n}' is not a declared nature")
+    if uses_release and not (isinstance(example, dict) and isinstance(example.get("vcs"), dict)
+                             and example["vcs"].get("releaseBranch")):
+        f.error(shown(OVERLAY_EXAMPLE), "an item uses when.release but vcs.releaseBranch is not declared")
+    try:
+        import jsonschema  # optional extra check
+        jsonschema.validate(example, schema)
+    except ImportError:
+        pass
+    except Exception as e:  # jsonschema.ValidationError
+        f.error(shown(OVERLAY_EXAMPLE), f"fails schema validation: {str(e).splitlines()[0]}")
+    ship = root / SKILLS_DIR / "sc-ship" / "SKILL.md"
+    orch = root / SKILLS_DIR / "ship-cycle" / "SKILL.md"
+    if ship.is_file():
+        m = re.search(r"\*\*Release checklist \(overlay `releaseChecklist`\).*?(?=\n- \*\*|\n\n##|\Z)",
+                      read(ship), re.S)
+        if not m:
+            f.error(shown(ship.relative_to(root)), "no 'Release checklist' rule naming releaseChecklist")
+        elif '"Pre-merge manual gate"' not in m.group(0):
+            f.error(shown(ship.relative_to(root)),
+                    "Release checklist rule is not tied to the pre-merge manual gate")
+    if orch.is_file():
+        row = next((l for l in read(orch).splitlines() if l.startswith("| G12 |")), "")
+        if "releaseChecklist" not in row:
+            f.error(shown(orch.relative_to(root)), "G12 row does not reference releaseChecklist")
+
+
 def check_skill_frontmatter(root: Path, f: Findings) -> None:
     """Every skill declares name + description, and name matches its directory."""
     base = root / SKILLS_DIR
@@ -568,6 +655,7 @@ def main(argv: list[str]) -> int:
     check_skill_frontmatter(root, f)
     check_example_coverage(root, f)
     check_example_release_smoke(root, f)
+    check_release_checklist(root, f)
 
     for w in f.warnings:
         print(f"warning  {w}")

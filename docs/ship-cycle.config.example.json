@@ -5,6 +5,7 @@
     "provider": "github",
     "repo": "your-org/your-repo",
     "defaultBase": "dev",
+    "releaseBranch": "main",
     "protectedBranches": ["main", "master", "dev"],
     "tracker": {
       "milestones": true,
@@ -57,6 +58,22 @@
       "nature": "docs-i18n",
       "tests": [],
       "reviews": ["quality"]
+    }
+  ],
+
+  "releaseChecklist": [
+    {
+      "id": "mobile-version-bump",
+      "when": { "changeNature": ["mobile"], "release": true },
+      "check": "node scripts/check-version-bump.js apps/mobile",
+      "evidence": "exit 0: versionCode/versionName are higher than the last released values"
+    },
+    {
+      "id": "oauth-release-key-hash",
+      "when": { "paths": ["apps/mobile/android/**/*.gradle", "apps/mobile/eas.json"], "release": true },
+      "check": "Register the release signing key hash with the OAuth provider console",
+      "evidence": "reviewer confirms in the PR: console shows the release key hash",
+      "manual": true
     }
   ],
 

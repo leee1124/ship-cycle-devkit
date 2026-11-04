@@ -10,6 +10,7 @@
         "provider": { "type": "string" },
         "repo": { "type": "string" },
         "defaultBase": { "type": "string" },
+        "releaseBranch": { "type": "string", "description": "Optional. The branch a release PR targets. releaseChecklist `when.release: true` matches only when the PR's actual base equals it; unset, such items never match (PREFLIGHT says so)." },
         "protectedBranches": { "type": "array", "items": { "type": "string" } },
         "tracker": {
           "type": "object",
@@ -84,6 +85,32 @@
           }
         },
         "required": ["match", "nature", "reviews"]
+      }
+    },
+    "releaseChecklist": {
+      "type": "array",
+      "description": "Optional. Release bookkeeping for projects that ship to a store, installer channel, registry or production host: version bump, third-party signing-key registration, release notes, backend-first deploy order, symbol/deobfuscation-map upload. Top-level, not per nature, because one release step often spans natures. sc-ship runs the items whose `when` matches right before G12: machine items (`manual` absent/false) run and are logged to the gate log; `manual: true` items go on the PR body's pre-merge manual gate. Not releaseSmoke (does the release artifact run, G9). Omit it and nothing changes. Evaluated from the base-branch copy of the overlay. Full rule: sc-ship \u2014 Release checklist.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$", "description": "Stable key, unique in the list; names the item in the gate log and the PR manual gate." },
+          "when": {
+            "type": "object",
+            "minProperties": 1,
+            "description": "Selector; every key given must match (AND). Several items express OR.",
+            "properties": {
+              "changeNature": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Matches when the change touches one of these changeNature names." },
+              "paths": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Globs; matches when any changed path matches." },
+              "release": { "type": "boolean", "description": "true: matches only when the PR base, as created or read from the host, equals vcs.releaseBranch (unset: never matches)." }
+            },
+            "additionalProperties": false
+          },
+          "check": { "type": "string", "description": "What to do or verify: a shell command for a machine item, prose for a `manual: true` item." },
+          "evidence": { "type": "string", "description": "What counts as done: command exit status, a file present, or the human confirmation to record." },
+          "manual": { "type": "boolean", "default": false, "description": "true: a human must do it (a console, a store dashboard, a key registration). It is listed on the pre-merge manual gate and never run by the agent." }
+        },
+        "required": ["id", "when", "check", "evidence"],
+        "additionalProperties": false
       }
     },
     "i18n": {

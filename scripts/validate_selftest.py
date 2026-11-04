@@ -266,6 +266,55 @@ CASES = [
         "'artifact' must be an array of strings",
     ),
     (
+        "G12 row drops releaseChecklist",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md",
+                         "every matched overlay `releaseChecklist` item", "every item"),
+        "G12 row does not reference releaseChecklist",
+    ),
+    (
+        "sc-ship loses its Release checklist rule",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "**Release checklist (overlay",
+                         "**Release list (overlay"),
+        "no 'Release checklist' rule naming releaseChecklist",
+    ),
+    (
+        "sc-ship Release checklist drops the manual gate",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "list it under **\"Pre-merge manual gate\"**",
+                         "mention it"),
+        "not tied to the pre-merge manual gate",
+    ),
+    (
+        "schema releaseChecklist loses the manual field",
+        lambda r: mutate(r / "docs" / "ship-cycle.config.schema.json", '"manual": {', '"manualx": {'),
+        "properties.releaseChecklist is missing or lacks",
+    ),
+    (
+        "example overlay releaseChecklist item missing its evidence",
+        lambda r: mutate(
+            r / "docs" / "ship-cycle.config.example.json",
+            '"evidence": "exit 0: versionCode/versionName are higher than the last released values"',
+            '"x": 1',
+        ),
+        "missing required field 'evidence'",
+    ),
+    (
+        "example overlay releaseChecklist duplicate id",
+        lambda r: mutate(r / "docs" / "ship-cycle.config.example.json", '"id": "oauth-release-key-hash"',
+                         '"id": "mobile-version-bump"'),
+        "duplicate id",
+    ),
+    (
+        "example overlay releaseChecklist bad when key",
+        lambda r: mutate(r / "docs" / "ship-cycle.config.example.json", '"paths": ["apps/mobile/android',
+                         '"path": ["apps/mobile/android'),
+        "'when' must be a non-empty object",
+    ),
+    (
+        "example overlay uses when.release without vcs.releaseBranch",
+        lambda r: mutate(r / "docs" / "ship-cycle.config.example.json", '"releaseBranch": "main",', ""),
+        "vcs.releaseBranch is not declared",
+    ),
+    (
         "sc-ship PR template drops the Gate summary",
         lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "Gate summary", "Summary", count=-1),
         "does not include the 'Gate summary'",

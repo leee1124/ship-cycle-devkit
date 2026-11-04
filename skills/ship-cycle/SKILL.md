@@ -129,7 +129,9 @@ is not resumed by a new goal: ask "resume or replace?" (`/resume` is the explici
    `prune`, leftover directories and a stale `index.lock` from a timed-out add each have an order a
    recursive delete gets wrong — see `${CLAUDE_PLUGIN_ROOT}/docs/worktree-recovery.md`.
 3. **Load overlay**: read `${CLAUDE_PROJECT_DIR}/<projectConfig>` (plugin setting; default
-   `.claude/ship-cycle.config.json`). Absent → built-in heuristics + log "defaults in use". Malformed →
+   `.claude/ship-cycle.config.json`). Absent → built-in heuristics + log "defaults in use". A
+   `releaseChecklist` item with `when.release: true` but no `vcs.releaseBranch` never matches: say so.
+   Malformed →
    **fail closed**: stop and report, rather than running on defaults the operator didn't choose. One
    carve-out: a file that parses whose only problem is a schema-invalid `env` block — an opportunistic cost
    knob whose fallback is "spin up fresh" (see sc-qa) — emits `SC-DEGRADE-ENV` naming the section and
@@ -224,7 +226,7 @@ release valve, §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Parking) — and
 | G9 | 0 new defects in integration/E2E vs `state.baseline` (ignoring `unrunnableHere`; `flaky` not exempt; under `ci-status-only` every defect blocks unless its suite is in `run.rechecked`); seams reproduced; ITs that **can** run here actually ran; release-artifact smoke when `appliesTo` is touched (§sc-qa Release-artifact smoke) | → sc-implement |
 | G10 | docs matching the change exist | writer |
 | G11 | every claim mapped 1:1 to a test/build/QA log | rework |
-| G12 | build+test+review+QA passed — a `degrade` G9 / `checklist` G7b or G6 counts **only** when its item is on the pre-merge manual gate (a `deferred` release smoke included), and an `"n/a: <reason>"` gate counts with its reason carried to the PR body; **branch merges cleanly into** overlay `vcs.defaultBase` (merge-tree probe + host `mergeable`); PR body's **Gate summary** matches a fresh render from state + log, re-checked right before merge | merge base + resolve, re-verify |
+| G12 | build+test+review+QA passed, and every matched overlay `releaseChecklist` item ran green or (`manual`) is on the pre-merge manual gate — a `degrade` G9 / `checklist` G7b or G6 counts **only** when its item is on the pre-merge manual gate (a `deferred` release smoke included), and an `"n/a: <reason>"` gate counts with its reason carried to the PR body; **branch merges cleanly into** overlay `vcs.defaultBase` (merge-tree probe + host `mergeable`); PR body's **Gate summary** matches a fresh render from state + log, re-checked right before merge | merge base + resolve, re-verify |
 | G13 | merged branch deleted (local + remote); feature worktree removed if created (**linked dep stores unlinked first**, never deleted through); cycle state file deleted; gate log archived, not deleted; base synced | — |
 
 ## Model routing (resolved at PREFLIGHT)

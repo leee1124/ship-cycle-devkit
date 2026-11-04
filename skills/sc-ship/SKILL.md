@@ -80,7 +80,8 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   entry unless it is `undetermined (ci-deferred)` and listed on the pre-merge manual gate below.
 - **Gate summary, rendered from the gate log** (`<state dir>/<branch-slug>.log.md` — `.claude/ship-cycle/`
   on Claude Code; §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Gate log). The body carries a
-  **"Gate summary"** table, one row per gate G1–G13: the **latest** logged result and its evidence pointer,
+  **"Gate summary"** table, one row per gate G1–G13: the **latest** logged result (not the
+  `releaseChecklist.` sub-check rows, §state-file Gate log) and its evidence pointer,
   verbatim — an `n/a: <reason>` keeps its reason, a `degrade`/`checklist`/`deferred` keeps its manual-gate
   pointer — plus the loop count from `state.loops` and a `cleared` count when the reconcile cleared it.
   Log cells are copied as they are — the writer already escaped them; only a cell sourced from
@@ -120,9 +121,44 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   deferral can't slip in as a silent pass. For an unrunnable-here item the observable check is the **CI
   job that must show that suite executed (count > 0) and green on this branch's head commit** — a link a
   reviewer can click, not a claim they have to trust; name the suite and its recorded `reason` beside it.
+  Matched `releaseChecklist` items with `manual: true` go here too (see Release checklist below).
   A `gates.G9: degrade` goes here too, with its reason — and each deferred flow or part of a
   `state.releaseSmoke` entry as its own item, to be run on the release-form artifact (§sc-qa
   Release-artifact smoke). If none were recorded, say so.
+- **Release checklist (overlay `releaseChecklist`).** Release steps tracked in someone's head get skipped
+  on the one PR that needs them (version bump, signing-key registration, release notes, backend-first
+  deploy order, symbol-map upload). Not releaseSmoke (G9: does the release artifact run); this is
+  bookkeeping. Absent field or no match = no-op.
+  - **Select** before writing the PR body, from the **final diff**, with the same glob rules as
+    `changeNature.match`. Every `when` key given must hold: `changeNature` names the diff touches, `paths`
+    any changed path, `release: true` the PR's actual base (as created or read from the host) equals
+    `vcs.releaseBranch` (unset: never matches; PREFLIGHT notes it).
+  - **Read the list from the base branch** (`git show origin/<base>:<overlay path>`, after a fresh fetch;
+    never a local branch) when the overlay is tracked: a PR that edits its own checklist must not be able
+    to delete the item that would fail it. If the base lacks the overlay file or the field, the base list
+    is empty: every matching head item goes on the pre-merge manual gate as "new checklist item, not yet
+    enforced" (machine items may still run); never fall back silently to the head list. If the diff
+    edits `releaseChecklist`, list that edit on the pre-merge manual gate. The fields that decide whether
+    an item matches — `vcs.releaseBranch` and the `changeNature` definitions — come from the same base
+    overlay, and a diff edit to them goes on the manual gate too; otherwise a PR could escape an item
+    by narrowing a glob instead of deleting it. A gitignored local overlay cannot be read from the base;
+    its owner edits it outside the cycle.
+  - **Machine item** (no `manual`): run `check` before push, alongside the merge-tree probe; judge by
+    `evidence`. On a failure set `gates.G12 = fail` first, then append the row with the loop count; never
+    waived, only fixed or removed by the overlay's owner.
+  - **`undetermined`**: the check errored before reaching what it checks (binary missing, needs network
+    or credentials). It never passes: list it on the pre-merge manual gate with the command and the
+    reason, else G12 fails. Its logged result is `undetermined`, then `deferred: <id>` once on the gate.
+  - **Manual item** (`manual: true`): never run by the agent; list it under **"Pre-merge manual gate"**
+    with its `id`, `check` and the `evidence` that closes it ("reviewer confirms …", never the value), and
+    log `deferred: <id>`. G12 counts it as satisfied **only** when listed, like a `degrade` G9.
+  - **Gate log**: one sub-check row per item (`gate=G12`, evidence `releaseChecklist.<id>: exit 0 ·
+    tree <prefix>`; §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Gate log). **Record only** exit status,
+    file path and tree id in the log and PR body, never stdout/stderr or key/hash values.
+  - **Right before merge**, re-select and re-run the machine items if the tree or base changed since they
+    ran (the logged tree id mismatching is stale), and re-verify the manual items are still listed in
+    the body.
+  - A matched item the PR neither ran nor listed fails G12 (a silent skip is what this exists to stop).
 - **Verify the closing token actually landed (don't trust that you wrote it).** After opening the PR,
   **re-fetch the created body** and assert it contains the exact intended token for **every** tracked issue
   in `state`: `Closes #NN` when that issue is fully done, `Refs #NN` when partial. A bare mention (`#NN`,
@@ -143,7 +179,9 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   passing. A finding triaged as out-of-scope and then never filed is not deferred, it is **dropped** — the
   same silent leak as a missing `Closes` token.
 - If `vcs.tracker` defines a board, move the item **In Progress → Done** as work completes.
-- Gate: build + test + review + QA all passed — a `gates.G9: degrade` or a `gates.G7b`/`gates.G6: checklist` counts as
+- Gate: build + test + review + QA all passed, every matched overlay `releaseChecklist` machine item passed
+  and every manual one is listed on the pre-merge manual gate — a `gates.G9: degrade` or a
+  `gates.G7b`/`gates.G6: checklist` counts as
   satisfied **only** when its item is on the pre-merge manual gate above, with its reason, and a gate
   recorded as `"n/a: <reason>"` for a stage that plainly had nothing to do (§ship-cycle — Pipeline) counts
   as satisfied with its reason carried to the PR body (verbatim up to the cell cap) — **the branch
