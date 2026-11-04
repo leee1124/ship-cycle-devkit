@@ -7,14 +7,16 @@ one-liners here are exempt from the 110-column prose limit.
 
 A **UI nature** is one whose overlay `changeNature[]` entry declares `visualCheck` (schema:
 `${CLAUDE_PLUGIN_ROOT}/docs/ship-cycle.config.schema.json`), or one reviewed by `designer` without it. The
-latter runs the loop with the project's ordinary run command and the **default profile list**: the
-platform's common phone (or desktop viewport) at font scale 1.0 and at the largest scale, light and dark.
+latter runs the loop with the project's ordinary run command and the **default profile list**: a phone at
+1080×2400 (native) or a 390×844 viewport (web), each at font scale 1.0 and at the OS maximum, in light and
+dark.
 
 **Who writes `state.visualCheck[<nature>]`**: sc-implement, for every nature in `state.nature` — the loop
 outcome for a UI nature, `"n/a"` for any other. Only the **top-level session that talks to the user** may
-write `owner-confirmed`, and only when `state.route.ownerPresent` is not `false`; a subagent writes
-`agent-captured` at most. With `ownerPresent: false`, an `owner-confirmed` entry is invalid and G11
-rejects it.
+write `owner-confirmed`, and only when `state.route.ownerPresent === true` — absent or `false` fails closed;
+a subagent writes `agent-captured` at most. When the nature grows to include a UI nature, re-ask the owner
+whether they will watch (or set `ownerPresent: false`). `writtenBy` is **advisory only** — a field anyone
+can write; it is not proof. The proof is checked at G11 (Visual evidence below).
 
 <!-- visual-loop-rule -->
 ## Live visual loop (inside sc-implement)
@@ -42,9 +44,12 @@ rejects it.
    by side on the running app, below the current version, each labelled `variant A` / `B` / `C`. They are
    temporary and uncommitted. The owner picks one or mixes; productionize only the chosen one and delete
    the rest before any commit, review or test.
-6. **Prototype cleanup is recorded before G5** in `state.visualCheck[<nature>].cleanup`: a search for the
-   variant labels finds nothing, and `git diff --stat` against the pre-loop tree (`preLoopTree`) lists no
-   file only a losing variant used. The cold lens checks it at G8.
+6. **Prototype cleanup is recorded before G5** in `state.visualCheck[<nature>].cleanup`, and is part of
+   G5's evidence: a search for the variant labels finds nothing, and `git diff --stat` against the pre-loop
+   tree (`preLoopTree`) lists no file only a losing variant used. **Any loop that builds variants** — a
+   post-review re-show included — resets `preLoopTree` when it starts and re-records `cleanup` before its
+   G5. At G8 the cold lens hunts losing-variant leftovers in the diff without being handed the record; when
+   no cold lens runs, the designer lens (never dropped for a UI nature) does that check.
 7. **Settled = the owner said so, in the owner's own words in this run.** Record `result:
    "owner-confirmed"`, the profile(s), what was checked, the owner's words, and the `tree` it was
    confirmed on. Then G5–G7, then sc-review once on the settled result.
@@ -53,19 +58,21 @@ rejects it.
 <!-- visual-evidence-rule -->
 ## Visual evidence (G9, G11)
 
-- **Owner confirmation backs appearance claims only.** "Owner confirmed on `<profile>`: `<what was
-  checked>`" is the primary evidence for how the screens look; sc-ship G11 labels it
-  **`live (owner-confirmed)`**. Behaviour claims (state, data, navigation) still need a test or a QA log.
-  Screenshots are optional — a PR record, not the loop. A screenshot-diff against the base runs only when
-  the project declares a harness (`visualCheck.diff`); it is added evidence, never a replacement.
+- **Owner confirmation backs appearance claims only.** "Owner confirmed on `<profile>`: `<what was checked>`"
+  is the primary evidence for how the screens look; sc-ship G11 labels it **`live (owner-confirmed)`** only
+  when the top-level session (sc-ship talks to the user) finds the recorded owner words as a user turn in its
+  own conversation, or asks the owner to re-confirm now — otherwise the entry is downgraded to
+  `agent-captured` and goes to the manual gate. Behaviour claims (state, data, navigation) still need a test
+  or a QA log. Screenshots are optional — a PR record, not the loop. A screenshot-diff against the base runs
+  only when the project declares a harness (`visualCheck.diff`); it is added evidence, never a replacement.
 - **No owner present (unattended run).** Fall back to agent capture (`visualCheck.capture`) across every
   profile in the matrix: `result: "agent-captured"`, one capture per profile, written to the state or
   scratch dir (never inside the repo) under a slugified profile name. G11 labels it
   **`review-only (agent-captured)`** and sc-ship lists each profile on the **"Pre-merge manual gate"**.
   No capture command either → `result: "unverified: <reason>"`, same gate item.
 - **Stale, defined mechanically.** G11 accepts the entry only if its `tree` equals the final tree, or
-  `git diff <tree>..HEAD` restricted to the nature's `match` globs ∪ the declared design paths
-  (`design.tokens`, `design.components`, shared theme, i18n) is empty. Otherwise re-show the changed
+  `git diff <tree>..HEAD` restricted to the nature's `match` globs ∪ the declared `design.*` paths ∪
+  `visualCheck.sharedPaths` (shared theme, i18n) is empty. Otherwise re-show the changed
   screens (an edit then follows step 4's post-review rule) or the entry drops to the manual-gate item above.
 - **G9.** sc-qa does not repeat the loop: the confirmation covers the appearance of the screens it names,
   not their behaviour; flows, seams and a release smoke are still QA's.

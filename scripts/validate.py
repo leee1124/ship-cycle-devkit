@@ -819,7 +819,8 @@ def check_route_plan(root: Path, f: Findings) -> None:
 
 
 VISUAL_DOC = Path("docs/visual-check.md")
-VISUAL_FIELDS = ("run", "open", "devBuild", "profiles", "restore", "capture", "diff", "designTool")
+VISUAL_FIELDS = ("run", "open", "devBuild", "profiles", "restore", "capture", "diff", "sharedPaths",
+                 "designTool")
 A11Y_FLOOR_TOKENS = ("touch target", "contrast", "screen-reader", "largest font scale", "reduced motion")
 VISUAL_BLOCK_TOKENS = {
     "visual-loop-rule": (
@@ -831,19 +832,27 @@ VISUAL_BLOCK_TOKENS = {
         "delta re-review and G5–G7, and counts against the loop cap", "labelled `variant A`",
         "temporary and uncommitted", "delete the rest before any commit, review or test",
         "Prototype cleanup is recorded before G5", "`git diff --stat` against the pre-loop tree",
-        "in the owner's own words in this run", "state.visualCheck"),
+        "in the owner's own words in this run", "state.visualCheck", "part of G5's evidence",
+        "resets `preLoopTree`", "without being handed the record",
+        "when no cold lens runs, the designer lens"),
     "visual-evidence-rule": (
         "backs appearance claims only",
         "Behaviour claims (state, data, navigation) still need a test or a QA log",
         "**`live (owner-confirmed)`**", "**`review-only (agent-captured)`**", "Pre-merge manual gate",
         "unattended", "never inside the repo", "slugified profile name", "its `tree` equals the final tree",
-        "`git diff <tree>..HEAD`", "only when the project declares a harness", "not their behaviour"),
+        "`git diff <tree>..HEAD`", "only when the project declares a harness", "not their behaviour",
+        "finds the recorded owner words as a user turn in its own conversation",
+        "downgraded to `agent-captured`", "`visualCheck.sharedPaths`"),
     "a11y-floor": A11Y_FLOOR_TOKENS + ("An outcome, not ceremony",
                                        "not on the Tier S path, not by a route plan"),
 }
 VISUAL_WRITER_TOKENS = ("for every nature in `state.nature`", "top-level session that talks to the user",
-                        "a subagent writes `agent-captured` at most", "`state.route.ownerPresent`",
-                        "default profile list")
+                        "a subagent writes `agent-captured` at most",
+                        "`state.route.ownerPresent === true` — absent or `false` fails closed",
+                        "re-ask the owner", "**advisory only**", "default profile list",
+                        "font scale 1.0 and at the OS maximum")
+OWNER_PRESENT_STATE_TOKENS = ("Only `true` permits", "absent or `false` fails closed",
+                              "`false → true` is allowed only by asking the owner")
 VISUAL_STATE_KEYS = ("result", "tree", "preLoopTree", "owner", "writtenBy", "deviceRestore", "cleanup")
 DESIGN_TOOL_HOOKS = ("shape", "generate", "live", "critique", "detect", "audit", "polish")
 
@@ -920,6 +929,10 @@ def check_visual_check(root: Path, f: Findings) -> None:
         route = shape.get("route") if isinstance(shape.get("route"), dict) else {}
         if "ownerPresent" not in route:
             f.error(shown(STATE_SHAPE_DOC), "route lacks 'ownerPresent'")
+        prose = _flat(read(shape_doc))
+        for token in OWNER_PRESENT_STATE_TOKENS:
+            if token not in prose:
+                f.error(shown(STATE_SHAPE_DOC), f"route.ownerPresent rule does not state {token!r}")
         vc = shape.get("visualCheck") if isinstance(shape.get("visualCheck"), dict) else {}
         entry = next((v for v in vc.values() if isinstance(v, dict)), {})
         for key in VISUAL_STATE_KEYS:
@@ -931,18 +944,22 @@ def check_visual_check(root: Path, f: Findings) -> None:
             "uncommitted prototypes", "before the first sc-review only", "goes back to sc-tdd",
             "counts against the loop cap", "state.visualCheck[<nature>].cleanup", "accessibility-floor",
             "for every nature in `state.nature`", "Only the top-level session that talks to the user writes",
-            "in the owner's own words", "`state.route.ownerPresent` false", "`agent-captured` at most")),
+            "in the owner's own words", "`state.route.ownerPresent === true`", "`agent-captured` at most",
+            "resets `preLoopTree`", "part of G5's evidence")),
         ("sc-design", "UI-only changes", ("**Reuse check before any new component or token**",
                                           "design.guide", "backstop")),
         ("sc-ship", "Verify (G11)", (
             "visual-check.md", "state.visualCheck", "live (owner-confirmed)", "review-only (agent-captured)",
             "pre-merge manual gate", "backs appearance claims only", "still needs a test or QA log",
-            "`state.route.ownerPresent` is `false`", "`writtenBy` is not the top-level session",
-            "`visualCheck.tree` equals the final tree", "`git diff <tree>..HEAD`")),
+            "`state.route.ownerPresent === true` (absent fails closed)",
+            "as a user turn in your own conversation", "`writtenBy` is advisory only",
+            "downgrade it to `agent-captured`", "`visualCheck.tree` equals the final tree",
+            "`git diff <tree>..HEAD`", "`visualCheck.sharedPaths`")),
         ("sc-ship", "PR (G12)", ("every `state.visualCheck` entry that is not `owner-confirmed`",)),
         ("sc-qa", "Gate G9", ("state.visualCheck", "visual-check.md", "not their behaviour",
                               "delta re-review")),
-        ("sc-review", "Gate G8", ("state.visualCheck[<nature>].cleanup", "never dropped")),
+        ("sc-review", "Gate G8", ("state.visualCheck[<nature>].cleanup", "never dropped",
+                                  "**without being handed**", "when no cold lens runs, the designer lens")),
         ("sc-review", "Re-review after fixes", ("visual-check.md", "counted against the loop cap")),
         ("sc-brainstorm", "Do", ("`state.route.ownerPresent`",)),
         ("ship-cycle", "Route plan", ("live visual loop", "visual-check.md", "`state.route.ownerPresent`",
@@ -970,8 +987,9 @@ def check_visual_check(root: Path, f: Findings) -> None:
     orch = root / SKILLS_DIR / "ship-cycle" / "SKILL.md"
     if orch.is_file():
         row = next((l for l in read(orch).splitlines() if l.startswith("| G11 |")), "")
-        if "state.visualCheck" not in row:
-            f.error(shown(orch.relative_to(root)), "G11 row does not reference state.visualCheck")
+        if "state.visualCheck" not in row or "appearance only; not stale; `ownerPresent` true" not in row:
+            f.error(shown(orch.relative_to(root)), "G11 row does not reference state.visualCheck with "
+                                                   "'appearance only; not stale; `ownerPresent` true'")
     adapters = root / "docs" / "runtime-adapters.md"
     if adapters.is_file():
         row = next((l for l in read(adapters).splitlines() if "visualCheck.designTool" in l), "")

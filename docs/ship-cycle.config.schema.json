@@ -89,6 +89,7 @@
               "restore": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Command(s) that put back the prior device values the loop recorded in state before changing them (wm size/density, font scale); also run on abort." },
               "capture": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Optional. Screenshot command for an unattended run (agent capture across every profile) or the PR record; writes to the state or scratch dir, never inside the repo, under a slugified profile name." },
               "diff": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Optional. Screenshot-diff harness against the base branch; run only when declared." },
+              "sharedPaths": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Optional. Globs outside match whose change makes a visual confirmation stale (shared theme, i18n); added to match and the design.* paths in G11's staleness diff." },
               "designTool": { "type": "string", "description": "Optional. An installed design skill hooked into UI stages (e.g. impeccable); never required \u2014 adapter table in docs/visual-check.md." }
             },
             "required": ["run", "profiles"],

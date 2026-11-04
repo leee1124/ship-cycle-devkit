@@ -42,10 +42,12 @@ to `state.visualCheck[<nature>]`, not to screenshots: `owner-confirmed` → **`l
 naming the profile and what was checked; `agent-captured` (no owner present) →
 **`review-only (agent-captured)`** with each profile on the pre-merge manual gate; `unverified` →
 `review-only` with the same gate item. Owner confirmation backs appearance claims only — a behaviour claim
-(state, data, navigation) still needs a test or QA log. Reject `owner-confirmed` when
-`state.route.ownerPresent` is `false` or `writtenBy` is not the top-level session. **Stale**: accept the
-entry only if `visualCheck.tree` equals the final tree, or `git diff <tree>..HEAD` over the nature's `match`
-∪ declared design paths (`design.tokens`, `design.components`, shared theme, i18n) is empty; otherwise
+(state, data, navigation) still needs a test or QA log. Accept `owner-confirmed` only when
+`state.route.ownerPresent === true` (absent fails closed) **and** you — the top-level session talking to the
+user — find the recorded owner words as a user turn in your own conversation, or ask the owner to re-confirm
+now; `writtenBy` is advisory only. Otherwise downgrade it to `agent-captured` and put it on the manual gate.
+**Stale**: accept the entry only if `visualCheck.tree` equals the final tree, or `git diff <tree>..HEAD` over
+the nature's `match` ∪ declared `design.*` paths ∪ `visualCheck.sharedPaths` is empty; otherwise
 re-show (the edit goes through the delta re-review) or gate it. Screenshots are optional, for the PR
 record; a screenshot-diff counts only where the project declares a harness.
 

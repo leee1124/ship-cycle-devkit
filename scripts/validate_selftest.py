@@ -804,10 +804,10 @@ CASES = [
         'sc-ship G11 accepts owner-confirmed without the owner',
         lambda r: mutate(
             r / "skills" / "sc-ship" / "SKILL.md",
-            '`state.route.ownerPresent` is `false`',
-            'the owner is busy',
+            '`state.route.ownerPresent === true` (absent fails closed)',
+            '`state.route.ownerPresent` is not `false`',
         ),
-        "does not state '`state.route.ownerPresent` is `false`'",
+        "does not state '`state.route.ownerPresent === true` (absent fails closed)'",
     ),
     (
         'tweaks may change behaviour',
@@ -840,10 +840,10 @@ CASES = [
         'G8 stops verifying prototype cleanup',
         lambda r: mutate(
             r / "skills" / "sc-review" / "SKILL.md",
-            '`state.visualCheck[<nature>].cleanup` against the diff',
-            'the diff',
+            '**without being handed** `state.visualCheck[<nature>].cleanup`',
+            'with `state.visualCheck[<nature>].cleanup`',
         ),
-        "'## Gate G8' does not state 'state.visualCheck[<nature>].cleanup'",
+        "'## Gate G8' does not state '**without being handed**'",
     ),
     (
         'restore loses the abort path',
@@ -880,6 +880,105 @@ CASES = [
             '| design tool',
         ),
         'no design-tool adapter row',
+    ),
+    (
+        'absent ownerPresent no longer fails closed',
+        lambda r: mutate(
+            r / "docs" / "visual-check.md",
+            '— absent or `false` fails closed;',
+            '— unless `false`;',
+        ),
+        "does not state '`state.route.ownerPresent === true` — absent or `false` fails closed'",
+    ),
+    (
+        'state-file drops the absent-fails-closed rule',
+        lambda r: mutate(
+            r / "docs" / "state-file.md",
+            'absent or `false` fails closed',
+            '`false` blocks',
+        ),
+        "route.ownerPresent rule does not state 'absent or `false` fails closed'",
+    ),
+    (
+        'state-file lets ownerPresent flip without asking',
+        lambda r: mutate(
+            r / "docs" / "state-file.md",
+            '`false → true` is allowed only by asking the owner',
+            'it may change freely',
+        ),
+        "does not state '`false → true` is allowed only by asking the owner'",
+    ),
+    (
+        'writtenBy treated as proof',
+        lambda r: mutate(
+            r / "docs" / "visual-check.md",
+            '`writtenBy` is **advisory only**',
+            '`writtenBy` is **proof**',
+        ),
+        "writer rule does not state '**advisory only**'",
+    ),
+    (
+        'G11 trusts the recorded owner words',
+        lambda r: mutate(
+            r / "skills" / "sc-ship" / "SKILL.md",
+            'find the recorded owner words as a user turn in your own conversation',
+            'read the recorded owner words',
+        ),
+        "does not state 'as a user turn in your own conversation'",
+    ),
+    (
+        'G11 no longer downgrades unverified owner words',
+        lambda r: mutate(
+            r / "docs" / "visual-check.md",
+            'otherwise the entry is downgraded to',
+            'otherwise keep it',
+        ),
+        "does not state 'downgraded to `agent-captured`'",
+    ),
+    (
+        'cold lens is handed the cleanup record',
+        lambda r: mutate(
+            r / "docs" / "visual-check.md",
+            'without being handed the record',
+            'with the record',
+        ),
+        "does not state 'without being handed the record'",
+    ),
+    (
+        'variant re-show keeps the old preLoopTree',
+        lambda r: mutate(
+            r / "docs" / "visual-check.md",
+            'resets `preLoopTree` when it starts',
+            'keeps `preLoopTree`',
+        ),
+        "does not state 'resets `preLoopTree`'",
+    ),
+    (
+        'schema drops visualCheck.sharedPaths',
+        lambda r: mutate(
+            r / "docs" / "ship-cycle.config.schema.json",
+            '"sharedPaths": {',
+            '"sharedPathz": {',
+        ),
+        'visualCheck is missing',
+    ),
+    (
+        'G11 row drops its three conditions',
+        lambda r: mutate(
+            r / "skills" / "ship-cycle" / "SKILL.md",
+            'appearance only; not stale; `ownerPresent` true',
+            'appearance',
+        ),
+        'G11 row does not reference state.visualCheck with',
+    ),
+    (
+        'default profiles not concrete',
+        lambda r: mutate(
+            r / "docs" / "visual-check.md",
+            'font scale 1.0 and at the OS maximum',
+            'a few sizes',
+        ),
+        "does not state 'font scale 1.0 and at the OS maximum'",
     ),
 ]
 

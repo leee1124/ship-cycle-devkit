@@ -73,10 +73,12 @@ labelled, uncommitted prototypes on the running app — the chosen one is produc
   **before the first sc-review only**; any behaviour, state, data or navigation change goes back to sc-tdd
   (Red first). After the first review, every edit goes through the delta re-review and G5–G7 and counts
   against the loop cap.
-- **Before G5**, record the prototype cleanup check in `state.visualCheck[<nature>].cleanup`.
+- **Before G5**, record the prototype cleanup check in `state.visualCheck[<nature>].cleanup` — it is part of
+  G5's evidence. Any loop that builds variants (a post-review re-show too) resets `preLoopTree` and
+  re-records `cleanup` before its G5.
 - Walk the accessibility-floor checks with the owner. Write `state.visualCheck[<nature>]` for every nature in
   `state.nature` (`"n/a"` for a non-UI one). Only the top-level session that talks to the user writes
-  `owner-confirmed`, in the owner's own words, and never with `state.route.ownerPresent` false; a subagent
+  `owner-confirmed`, in the owner's own words, and only with `state.route.ownerPresent === true`; a subagent
   writes `agent-captured` at most. A route plan may name this loop (§ship-cycle Route plan).
 
 ## Verify (this stage owns build + tests, separate from review)

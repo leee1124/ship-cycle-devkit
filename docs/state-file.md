@@ -130,10 +130,14 @@ output) are outside the id by design: changing only those does not invalidate a 
 `"run"` or `"skip: <reason>"`; `sc-implement`, `sc-review` and `sc-ship` are always `"run"`, and `sc-tdd`
 skips only for layout, copy or config. A skip becomes `gates.<G> = "n/a: route — <reason>"` when the stage is
 reached. `basis` is `size`, `risk` and `nature` at confirmation: a larger size, or a risk tag or nature not in
-it, invalidates every skip. `lenses` and `qa` are what sc-review (with the floor) and sc-qa run.
-`ownerPresent` (UI natures) says whether the owner will watch the live visual loop; `false` makes an
-`owner-confirmed` visual check invalid. It only grows: entries turn from `skip` to `run` and lenses are added,
-never the reverse. Absent on a cycle started before 0.3.13 — stages then decide from the tier as before.
+it, invalidates every skip. `lenses` and `qa` are what sc-review (with the floor) and sc-qa run. It only
+grows: entries turn from `skip` to `run` and lenses are added, never the reverse. Absent on a cycle started
+before 0.3.13 — stages then decide from the tier as before.
+
+`route.ownerPresent` (UI natures) says whether the owner will watch the live visual loop. Only `true`
+permits an `owner-confirmed` visual check; absent or `false` fails closed. It has its own rule, not the
+growth-only one: `false → true` is allowed only by asking the owner, and a nature that grows to a UI nature
+re-asks it (or sets `false`).
 
 `parked` is `null` unless `stage` is `parked` (§Parking). `reconcile` is append-only, one entry per resume
 (§Resume reconcile).
@@ -148,8 +152,9 @@ evidence per flow, any `deferred` parts — or `"n/a"` (diff did not touch `appl
 
 `visualCheck` (written by sc-implement for every nature in `state.nature`) holds one entry per nature:
 `result` `owner-confirmed` / `agent-captured` / `"unverified: <reason>"`, the `tree` it was judged on and the
-`preLoopTree`, the profiles, what was checked, the owner's words and `writtenBy` (owner-confirmed only — the
-top-level session, never a subagent, and never with `route.ownerPresent: false`), the prior device values
+`preLoopTree` (reset by every loop that builds variants), the profiles, what was checked, the owner's words
+and `writtenBy` (owner-confirmed only; **advisory** — G11 re-verifies the owner words in the top-level
+conversation, and `owner-confirmed` needs `route.ownerPresent === true`), the prior device values
 in `deviceRestore`, the prototype `cleanup` check, and capture paths in the state or scratch dir — or `"n/a"`
 (not a UI nature). Anything but `owner-confirmed` goes on the pre-merge manual gate. Rules are in
 `${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md`.

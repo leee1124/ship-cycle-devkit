@@ -302,9 +302,9 @@ of a cycle's review spend goes once the first pass has landed. Scope it to what 
   list with no dispositions does not pass; sc-ship re-asserts this at G12, and an assertion that quantifies
   only over the findings *marked* filed would pass vacuously on an artifact that was never triaged.
 - If a finding is a **design flaw** (not an impl bug), loop back to `sc-design`, not `sc-implement`.
-- **UI nature**: the designer lens ran (a11y floor — never dropped), and the cold lens verified
-  `state.visualCheck[<nature>].cleanup` against the diff — no variant label, no file only a losing
-  prototype used.
+- **UI nature**: the designer lens ran (a11y floor — never dropped), and the cold lens hunted
+  losing-variant leftovers in the diff **without being handed** `state.visualCheck[<nature>].cleanup` — no
+  variant label, no file only a losing prototype used; when no cold lens runs, the designer lens does it.
 - Set `gates.G8 = pass` (or `fail` on a loop-back), `state.gateTrees.G8` (the reviewed tree identity,
   §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Tree identity) and loop count in state (respect the
   orchestrator's loop cap).
