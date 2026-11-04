@@ -71,7 +71,12 @@ is an outcome, never dialed away by Tier S or a route (`${CLAUDE_PLUGIN_ROOT}/do
   spots** — a wrong assumption baked into the spec gets rated "as-designed" by every spec-anchored lens, and
   only a reviewer with **no stake in the framing** catches it. It is the in-pipeline stand-in for an outside
   reviewer; when a fresh external reviewer keeps finding what your fleet waved through, this is the missing
-  lens.
+  lens. **Review focus, after the blind pass**: the list is never in the cold lens's blind-pass brief, and
+  every blind pass is a fresh agent with no prior compare in its context. When `state.reviewFocus` holds
+  entries, the cold lens's findings are frozen verbatim into the review artifact first; only then does it
+  receive the list and report, per entry, whether it had raised it and whether the pinned test covers it
+  (recorded as the entry's `cold`; findings it adds then are `postList: true`).
+  Rule: `${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md`.
 
 ## Running the lenses (agent mapping + fallback)
 Lens names are **roles, not fixed agent types**. Map each to whatever your environment provides, and
@@ -269,6 +274,16 @@ too, as "previously flagged, refuted at wave N — confirm": a refutation from a
 never drops a Critical/High, which also stays unresolved for G8. A wave check that found nothing,
 or was skipped by the route, reduces no lens: G8 runs the full fleet either way.
 
+**Review-focus items are verified after the compare.** Every `state.reviewFocus` entry whose `cold` reads
+`raised: false` or `pinHolds: false` (§`${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md`) surfaces after the
+parallel lenses ran, so it never waits for their brief: a scoped second pass of a spec-anchored lens
+(quality or algorithm, on the same model and effort that lens ran with at G8 — risk upgrade included,
+§Model routing) on just these items, or this triage at `high` effort, verifies each and records who did,
+with `verify.evidence` it opened itself, in the entry's `verify`. Outcomes sit in the review artifact
+beside the other dispositions: `covered: <pinnedBy>` (the pin holds and drives the input — verified, not
+fixed-here, never sent to the delta pass), or, for a pin that does not hold — a finding — fixed-here /
+filed-as `#NN`; a fixed pin is shown failing against the pre-change tree (`verify.pinFixedBy`).
+
 ## Re-review after fixes — the delta pass
 An edit after the first review — including a live-visual-loop tweak during a re-show, G9 or G11 — comes here:
 delta re-review, then G5–G7, counted against the loop cap (`${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md`).
@@ -289,6 +304,10 @@ of a cycle's review spend goes once the first pass has landed. Scope it to what 
   have nothing to verify here.) (2) did the fix **introduce a regression** in the lines it changed or the paths it reaches?
   Run it as the **cold lens** (diff-only, assumes nothing) — fixes are written by the author who missed the
   original defect, so the independent view matters more here, not less.
+- **Review-focus items reach it as code locations only** — the `path:line` of the pin or the fix, never
+  an entry's `input` or `expected` text (§`${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md`); a `covered` entry
+  does not reach it at all. For these the delta pass checks only whether the pin or fix introduced a
+  regression; resolution is proven by `verify.pinFixEvidence` and the pin's passing run at G11.
 - **Same tier, same model pin** as the review it follows (§Model routing). The delta pass is narrower, not
   cheaper in judgment.
 - **Escalate to a full re-review** instead when the fix: reaches files or modules the first review never
@@ -316,6 +335,9 @@ of a cycle's review spend goes once the first pass has landed. Scope it to what 
 - **Every implementer concern handed to review has a disposition** — the `DONE_WITH_CONCERNS` items from
   `state.telemetry.implStatus` that skipped the fix round (§Triage); one without a disposition fails G8.
   The same holds for every unresolved wave-check item in `state.waveReviews` (§Triage).
+- **Every missed or uncovered `state.reviewFocus` entry has a `verify` outcome** (§Triage) — and a
+  fixed-here one its `pinFixedBy` with failing-first evidence; when the cold lens ran on a non-empty list,
+  every entry has its `cold` record, taken after the frozen blind pass.
 - If a finding is a **design flaw** (not an impl bug), loop back to `sc-design`, not `sc-implement`.
 - **UI nature**: the designer lens ran (a11y floor — never dropped), and the cold lens hunted
   losing-variant leftovers in the diff **without being handed** `state.visualCheck[<nature>].cleanup` — no

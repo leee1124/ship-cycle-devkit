@@ -43,9 +43,10 @@ Two properties survive the translation or the kit is not running:
   maps tiers to whatever the host's current catalog calls them, which is why it is a per-project setting and
   not a constant in this repo.
 - **Two-pass agents without live messaging.** Where a rule runs one agent through two passes in sequence
-  (the wave check's cold pass, then spec alignment — §`${CLAUDE_PLUGIN_ROOT}/docs/wave-check.md`) and the
-  host cannot send a running agent a second message — Codex subagents among them — run two agents on the
-  same pinned model and pass the first one's frozen output to the second.
+  (the wave check's cold pass, then spec alignment — §`${CLAUDE_PLUGIN_ROOT}/docs/wave-check.md`; the G8
+  cold lens's blind pass, then the review-focus compare — §`${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md`)
+  and the host cannot send a running agent a second message — Codex subagents among them — run two agents
+  on the same pinned model and pass the first one's frozen output to the second.
 
 ## Config and state: one convention, two locations
 

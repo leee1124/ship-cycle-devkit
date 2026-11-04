@@ -63,6 +63,12 @@ depends on is run now (a full suite, build or E2E under overlay `env.heavyLock`,
 manual gate; none may back a `live` or `test` label unrun. An item run now gets its `coveredBy`. The cost
 readout prints the open list.
 
+**Review focus.** Each `state.reviewFocus` entry (§`${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md`) is mapped
+like a criterion: to its `pinnedBy` test's passing run (`test`) — `covered` entries included — or, for an
+`n/a` pin, to the named verification's output with its label. An entry whose `cold.pinHolds` is `false`
+backs a claim only with `verify.pinFixedBy` and its `pinFixEvidence` (the fixed pin failing on the
+pre-change tree); one filed as `#NN` is listed as open, not claimed. Superseded entries are not mapped.
+
 When every criterion is mapped, set `gates.G11 = pass` in state, so `/status` and resume can tell "claims
 mapped" from "just entered sc-ship". While an unproven criterion loops back, leave G11 unset; record a bare
 `fail` only if the cycle stops at G11, and name the criterion in the loop-back report, not in the value.

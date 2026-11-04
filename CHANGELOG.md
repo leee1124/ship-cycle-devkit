@@ -1,5 +1,47 @@
 # Changelog
 
+## 0.3.21 — Review focus: the inputs the spec implies and no test exercises (#90)
+
+- **Why.** Spec silence is where users break software, and the kit's generic edge classes (legacy rows,
+  N≥2, unsaved id, re-run) name kinds of state, not this feature's inputs. Nothing asked anyone to name
+  those, so nothing pinned them and the cold lens could not tell what it had missed.
+- **`docs/review-focus.md`** states the rule once:
+  - **sc-design writes `state.reviewFocus[]`** with the design: at most five per-feature inputs or failure
+    modes the criteria or design imply but no existing test exercises, ranked by likelihood × harm —
+    `{id, input, impliedBy, uncovered (cited, per claim-evidence), expected}`. Never a generic class, an
+    a11y-floor check or a restated criterion (promote it instead); `[]` means checked, absent means not
+    written. Shown at G2/G3 with no separate approval round; the critic may object to an entry. After G3 the
+    list is append- or annotate-only: a corrected entry keeps its id with `pinnedBy` the existing test, a
+    rewrite marks old entries `superseded` and G4 re-pins, new ids continue the numbering (`RF6`+) with the
+    cap counting only non-superseded entries, promoting an entry to a criterion is a G1 re-show, and scope
+    growth re-opens the list at whichever stage wrote it.
+  - **G4 pins every entry**: a failing-first test (`pinnedBy: "<test id>"`), or `pinnedBy: "n/a: <reason>"`
+    only for a layout, copy or config item (§core 3) — a logic entry always needs a failing-first test, and
+    a misused `n/a` is a critic objection and `pinHolds: false`. G4 does not pass with an entry unpinned.
+  - **The cold lens gets the list only after its blind pass**: never in its blind brief, a fresh agent each
+    time (after a redesign too). Its findings are frozen verbatim first (the wave check's pattern), then it
+    records per entry `raised` and `pinHolds` as `cold`; findings it adds then are `postList: true`.
+  - **Verify after the compare.** Misses surface after the parallel lenses ran, so a scoped second pass of a
+    spec-anchored lens (quality or algorithm — the same model and effort that lens ran with at G8, risk
+    upgrade included) or triage at `high` effort verifies each and is recorded in `verify`, with
+    `verify.evidence` (assertion + construction call `path:line`) opened by the verifier, never copied.
+    Outcomes: `covered: <pinnedBy>` (the pin holds — verified, not fixed-here, not sent
+    to the delta pass), `fixed-here` (a fixed pin shown failing on the pre-change tree: `pinFixedBy` +
+    `pinFixEvidence`) or `filed-as #NN`. The delta pass sees only code locations, never input/expected text,
+    and checks only for regressions — resolution is proven by `pinFixEvidence` and the pin's run at G11.
+  - **Tier S and route skips**: with no sc-design, sc-tdd writes at most two entries (`source: "sc-tdd"`) or
+    `[]`; when sc-tdd is route-skipped it still pins existing entries and a logic entry grows it to `run`;
+    with no list the field stays absent. No cold lens at all → `cold: null`, "not compared".
+- **Consumers.** sc-tdd (pins, route-skip path), sc-review (compare, verify step, delta pass, G8), sc-ship G11
+  (each entry mapped to its pin; a fixed pin needs its failing-first evidence) and sc-retro (`covered` misses
+  counted as "cold-lens miss, caught by the pin"; superseded entries read as the earlier design's misses;
+  `cold: null` skipped). The orchestrator's G4 row and Tier S
+  path, the runtime-adapter two-pass note and the state shape carry it. It sets no gate value of its own.
+- **Validator.** `check_review_focus` guards the five doc blocks (freeze → compare → record → verify in
+  order; forbidden early-list, approval-round, class-as-entry and miss-as-fix wording), every producer and
+  consumer section — the list staying out of the cold lens's blind brief included — the G4 row, the
+  runtime-adapter note and the state shape's entry, `cold` and `verify` keys; 65 self-test mutations.
+
 ## 0.3.20 — When a gate goes red: reproduce, one hypothesis at a time, keep the record (#89)
 
 - **Why.** Loop-cap exhaustion was usually blind retrying: a fix made before the failure was reproduced, a

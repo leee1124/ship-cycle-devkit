@@ -19,8 +19,10 @@ it is genuinely unclear which case you are in, write the test: it costs little a
 tag or `state.nature` not in it), and the change really is layout, copy or config. If it has a contract after
 all — a function, an endpoint, a state machine — grow the entry to `run` (a `route` log row, the user told)
 and write the tests. Otherwise run the verification the reason names and record `gates.G4 = "n/a: route —
-<reason>"`. When the route says `run`, this stage writes failing tests: the G4 execution alternative below is
-for cycles with no route, where this stage still judges for itself.
+<reason>"`. The skip path still pins any `state.reviewFocus` entries (`n/a` only for a layout, copy or
+config item); a logic entry grows this stage to `run`. When the route says `run`, this stage writes failing
+tests: the G4 execution alternative below is for cycles with no route, where this stage still judges for
+itself.
 
 ## Do
 1. For each acceptance criterion, write a test that encodes it: **Given/When/Then**, descriptive name.
@@ -33,6 +35,17 @@ for cycles with no route, where this stage still judges for itself.
    dependency already quarantined at PREFLIGHT, it **inherits** that entry (§ship-cycle Stage 0.5 — Capture
    a test baseline) rather than counting as Red: it is Red-deferred, its criterion carried to
    `review-only (ci-deferred)`, and it is not counted as Green at G5 either.
+
+## Pin the review focus
+Each `state.reviewFocus` entry (§`${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md`) is pinned like a criterion:
+a test that drives its `input` and asserts its `expected`, run and seen failing for the right reason, recorded
+as `pinnedBy: "<test id>"`. `pinnedBy: "n/a: <reason>"` — naming the execution-based verification that
+covers it — is only for a layout, copy or config item (§core 3); a logic entry always needs a failing-first
+test. An entry whose test passes before the change is not pinned: correct the entry (same `id`, `pinnedBy`
+the existing test, listed in the G4 report — the list is append- or annotate-only after G3) or fix the test.
+When sc-design did not run (a route skip or Tier S) and the list is absent, write at most two entries
+yourself, `source: "sc-tdd"`, and list them in the G4 report — or record `[]` when you checked and found
+none; when this stage is route-skipped too, the field stays absent.
 
 ## Cover the plural case (N≥2), not just the singular
 A test that exercises **one** item passes while a bug that only manifests with **two or more** hides:
@@ -63,6 +76,8 @@ verification to review/QA rather than writing a vacuous test.
   is the wrong tool (§core 3): the
   execution-based verification is named, was run, and its output read. Record it as
   `gates.G4 = "n/a: <the verification you ran>"` — a named alternative, never a silent skip.
+- Either way, every non-superseded `state.reviewFocus` entry has its `pinnedBy` — a failing-first test, or
+  a named `n/a: <reason>` for a layout, copy or config item only. G4 does not pass with an entry unpinned.
 
 ## Model routing
 test-engineer runs at the **mid** tier.

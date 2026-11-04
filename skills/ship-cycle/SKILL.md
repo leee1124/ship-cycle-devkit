@@ -291,7 +291,7 @@ release valve, §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Parking) — and
 |---|---|---|
 | G1 | acceptance criteria stated verifiably + **route plan**, user-agreed together | re-brainstorm |
 | G2/G3 | interfaces specified + 0 unresolved critic objections | re-design |
-| G4 | failing tests exist for the change's logic (Red evidence) — or, for layout/copy/config, the execution-based verification is named instead (§core 3) | reject |
+| G4 | failing tests exist for the change's logic (Red evidence) — or, for layout/copy/config, the execution-based verification is named instead (§core 3); every `state.reviewFocus` entry pinned (test or named `n/a`) | reject |
 | G5 | build succeeds + new tests pass (Green) | build-fixer, red-gate protocol |
 | G6 | no failures **new vs `state.baseline`** (`unrunnableHere` suites are neither pass nor regression; `baseline.flaky` cases are not exempt; under `ci-status-only` every failure blocks unless its suite is in `run.rechecked`); core coverage from the **report** clears its floor, or `"n/a: no coverage config"`; ci-deferred coverage → `checklist` (§sc-implement G6) | debugger → sc-implement, red-gate protocol (undetermined → fix the coverage run) |
 | G7 | (if an artifact ships) real build succeeds | build-fixer, red-gate protocol |
@@ -340,7 +340,9 @@ On **Tier S** (§Stage 0.2) brainstorm/design/review collapse into one check, he
 self-tests/link checks, and model tiers and effort drop with them. The security lens stays even at
 one-lens breadth — its `securityReviewModel` pin means nothing if the lens can be dialed away. Build/test
 verification, the pre-PR review, root-cause analysis, triage and the conflict check still run — and the
-release-artifact smoke when the diff touches a nature's `releaseSmoke.appliesTo` (§sc-qa).
+release-artifact smoke when the diff touches a nature's `releaseSmoke.appliesTo` (§sc-qa). With no
+sc-design, sc-tdd writes the review focus itself, at most two entries
+(§`${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md` — Tier S and route skips).
 
 **The bright line — dial ceremony, never an outcome.** *Ceremony* (dialable by size tier and risk): stage
 count, model tier and effort level, worktree-or-not **on a single-track change**, lens breadth,

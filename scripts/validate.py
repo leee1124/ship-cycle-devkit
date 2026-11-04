@@ -1792,6 +1792,187 @@ def check_red_gate(root: Path, f: Findings) -> None:
         f.error("docs/model-routing.md", "cost readout does not carry the red-gate debug lines")
 
 
+RF_DOC = Path("docs/review-focus.md")
+# Each marker block in docs/review-focus.md and the tokens it must state (#90).
+RF_BLOCK_TOKENS = {
+    "review-focus-rule": (
+        "`state.reviewFocus[]`", "**at most five**", "ranked by likelihood × harm", "`id`", "`input`",
+        "`impliedBy`", "`uncovered`", "`expected`", "docs/claim-evidence.md",
+        "**Per feature, never a class.**", "are not entries", "Accessibility floor",
+        "**Nor does it restate an acceptance criterion**", "is promoted to one",
+        "**An empty list means checked, not skipped.**", "An absent field means nobody wrote one",
+        "**Shown, not approved.**", "no separate approval round", "The critic may object",
+        "is a logic item planned for an `n/a` pin", "**Append or annotate only after G3.**",
+        "keeps its `id`", "`pinnedBy: \"<existing test id>\"`", "listed in the G4 report",
+        "`superseded: true`", "G4 re-pins", "continue the numbering (`RF6`+)",
+        "the five-entry cap counts only non-superseded entries", "is a G1 re-show (§ship-cycle Stage 0.4)",
+        "re-opens the list at whichever stage wrote it"),
+    "review-focus-pin": (
+        "**G4 pins every entry.**", "seen failing for the right reason", "`pinnedBy: \"<test id>\"`",
+        "`pinnedBy: \"n/a: <reason>\"`", "**only for a layout, copy or config item**",
+        "naming the execution-based verification", "a logic entry always needs a failing-first test",
+        "A misused `n/a` is a critic objection", "`pinHolds: false` at G8",
+        "passes before the change is not pinned",
+        "G4 does not pass while any non-superseded entry has no `pinnedBy`"),
+    "review-focus-cold": (
+        "**The cold lens gets the list only after its blind pass.**", "diff only, no list",
+        "the list is never in the cold lens's blind-pass brief",
+        "**fresh agent with no prior compare in its context**", "1. **Freeze.**", "**frozen verbatim**",
+        "before the list is sent", "docs/wave-check.md", "2. **Compare.**", "`raised`", "`pinHolds`",
+        "real construction path", "it is a layout, copy or config item", "`postList: true`",
+        "it never edits the frozen list", "3. **Record**",
+        "`cold = { raised, finding, pinHolds, evidence, tree }`", "4. **Verify**",
+        "The parallel lenses have already run", "**scoped second pass of a spec-anchored lens**",
+        "**triage at `high` effort**", "**The scoped pass runs on the same model and effort the chosen lens "
+        "ran with at G8**", "risk upgrade included", "Record who verified each",
+        "`verify = { by, model, effort, outcome, evidence }`", "the construction call it goes through",
+        "never a copy of `cold.evidence`", "**Host without live messaging:**",
+        "docs/runtime-adapters.md", "**Three outcomes, recorded in `verify.outcome`**",
+        "**`covered: <pinnedBy>`**", "not counted as fixed-here and never goes to the delta pass",
+        "\"cold-lens miss, caught by the pin\"", "**`fixed-here`**",
+        "**shown failing against the pre-change tree**", "`pinFixedBy`", "`pinFixEvidence`",
+        "**`filed-as #NN`**", "**The delta pass sees code locations only.**",
+        "never as its `input` or `expected` text",
+        "**It checks only whether the pin or fix introduced a regression**",
+        "resolution is proven by `verify.pinFixEvidence` and the pin's passing run at G11"),
+    "review-focus-tier": (
+        "**Tier S and route skips.**", "**at most two** entries", "`source: \"sc-tdd\"`",
+        "listed in the G4 report", "or `[]` when it checked and found none", "the field stays **absent**",
+        "the skip path still pins them", "a logic entry grows sc-tdd to `run`", "no compare step",
+        "blind pass and the designer lens still run", "entries keep `cold: null`", "\"not compared\"",
+        "sc-retro skips them"),
+    "review-focus-record": (
+        "`id`, `input`, `impliedBy`, `uncovered`, `expected`", "`source`", "`superseded`", "`pinnedBy`",
+        "`cold` and `verify`", "sc-tdd", "sc-review", "sc-ship G11", "`verify.pinFixedBy`", "sc-retro",
+        "which misses the pin caught", "superseded entries as evidence of the earlier design's misses",
+        "The list sets no gate value of its own"),
+}
+# Wording that would hand the cold lens the list early, add an approval round, accept a class as an entry or
+# count a pin-caught miss as a fix.
+RF_FORBIDDEN = ("receives the list before its blind pass", "a separate approval round for the review focus",
+                "a generic edge class is an entry", "the frozen list may be edited",
+                "is dispositioned `fixed-here` citing its `pinnedBy`",
+                "listed in the sc-review lenses' brief")
+RF_ENTRY_KEYS = ("id", "input", "impliedBy", "uncovered", "expected", "source", "superseded", "pinnedBy",
+                 "cold", "verify")
+RF_COLD_KEYS = ("raised", "finding", "pinHolds", "evidence", "tree")
+RF_VERIFY_KEYS = ("by", "model", "effort", "outcome", "evidence", "pinFixedBy", "pinFixEvidence")
+# (skill, section heading or None for the whole file, tokens) — every producer and consumer (#90).
+RF_SKILL_TOKENS = (
+    ("sc-design", "Design (architect", (
+        "`state.reviewFocus[]`", "at most five", "ranked by likelihood × harm", "never a generic edge class",
+        "never a restated acceptance criterion", "`[]` means checked and found none",
+        "no separate approval round", "append- or annotate-only", "docs/review-focus.md")),
+    ("sc-design", "Design review (critic)", (
+        "names a generic class", "restates a criterion", "an `uncovered`",
+        "`n/a` is only for a layout, copy or config item", "likelier input the list left off")),
+    ("sc-design", "Gate G2/G3", ("`state.reviewFocus` is written",)),
+    ("sc-tdd", "sc-tdd", (
+        "The skip path still pins any `state.reviewFocus` entries",
+        "a logic entry grows this stage to `run`")),
+    ("sc-tdd", "Pin the review focus", (
+        "`state.reviewFocus`", "`pinnedBy: \"<test id>\"`", "`pinnedBy: \"n/a: <reason>\"`",
+        "only for a layout, copy or config item", "a logic entry always needs a failing-first test",
+        "same `id`", "at most two entries", "`source: \"sc-tdd\"`", "record `[]`",
+        "the field stays absent")),
+    ("sc-tdd", "Gate G4", (
+        "every non-superseded `state.reviewFocus` entry has its `pinnedBy`",
+        "G4 does not pass with an entry unpinned")),
+    ("sc-review", "Lenses", (
+        "the list is never in the cold lens's blind-pass brief", "fresh agent with no prior compare",
+        "frozen verbatim into the review artifact first", "only then does it receive the list",
+        "`postList: true`", "docs/review-focus.md")),
+    ("sc-review", "Triage", (
+        "**Review-focus items are verified after the compare.**", "`raised: false`", "`pinHolds: false`",
+        "never waits for their brief", "scoped second pass of a spec-anchored lens", "at `high` effort",
+        "on the same model and effort that lens ran with at G8", "`verify.evidence`", "`covered: <pinnedBy>`",
+        "not fixed-here",
+        "never sent to the delta pass", "fixed-here / filed-as `#NN`", "`verify.pinFixedBy`")),
+    ("sc-review", "Re-review after fixes", ("Review-focus items reach it as code locations only",
+                                            "never an entry's `input` or `expected` text",
+                                            "checks only whether the pin or fix introduced a regression")),
+    ("sc-review", "Gate G8", ("missed or uncovered `state.reviewFocus` entry has a `verify` outcome",
+                              "`pinFixedBy`", "taken after the frozen blind pass")),
+    ("sc-ship", "Verify (G11)", ("**Review focus.**", "`state.reviewFocus`", "`pinnedBy`", "`cold.pinHolds`",
+                                 "`verify.pinFixedBy`", "`pinFixEvidence`")),
+    ("sc-retro", None, ("`state.reviewFocus`", "\"cold-lens miss, caught by the pin\"", "`cold: null`",
+                        "evidence of the earlier design's misses")),
+)
+
+
+def check_review_focus(root: Path, f: Findings) -> None:
+    """#90: sc-design names the per-feature inputs no test covers; G4 pins them; the cold lens checks them
+    only after its blind pass is frozen, and what it missed reaches G8 as items to verify.
+
+    Guards the doc's blocks (freeze before compare, in that order), every producer and consumer section, the
+    orchestrator's G4 row, the runtime-adapter two-pass note and the state shape's entry and `cold` keys.
+    """
+    doc = root / RF_DOC
+    where = shown(RF_DOC)
+    if not doc.is_file():
+        f.error(where, "missing")
+        return
+    text = read(doc)
+    for marker, tokens in RF_BLOCK_TOKENS.items():
+        m = re.search(rf"<!-- {marker} -->(.*?)<!-- /{marker} -->", text, re.S)
+        if not m:
+            f.error(where, f"no <!-- {marker} --> block")
+            continue
+        body = _flat(m.group(1))
+        for token in tokens:
+            if token not in body:
+                f.error(where, f"{marker} block does not state {token!r}")
+    cm = re.search(r"<!-- review-focus-cold -->(.*?)<!-- /review-focus-cold -->", text, re.S)
+    body = cm.group(1) if cm else ""
+    order = [body.find(t) for t in ("1. **Freeze.**", "2. **Compare.**", "3. **Record**", "4. **Verify**")]
+    if all(i >= 0 for i in order) and order != sorted(order):
+        f.error(where, "review-focus-cold does not freeze the blind pass before the compare")
+    flat = _flat(text)
+    for token in RF_FORBIDDEN:
+        if token in flat:
+            f.error(where, f"states {token!r} — the cold lens gets the list only after its frozen blind pass")
+    for skill, heading, tokens in RF_SKILL_TOKENS:
+        path = root / SKILLS_DIR / skill / "SKILL.md"
+        swhere = f"skills/{skill}/SKILL.md"
+        raw = read(path) if path.is_file() else ""
+        if heading == skill:  # the intro before the first "## " heading (sc-tdd's Route first)
+            raw = raw.split("\n## ", 1)[0]
+        elif heading:
+            raw = _section(raw, heading)
+        sec = _flat(raw)
+        label = f"'## {heading}'" if heading and heading != skill else "the skill"
+        for token in tokens:
+            if _flat(token) not in sec:
+                f.error(swhere, f"{label} does not state {_flat(token)!r} (review focus)")
+    orch = root / SKILLS_DIR / "ship-cycle" / "SKILL.md"
+    otext = read(orch) if orch.is_file() else ""
+    row = re.search(r"^\| G4 \|(.*)$", otext, re.M)
+    if not row or "`state.reviewFocus` entry pinned" not in row.group(1):
+        f.error("skills/ship-cycle/SKILL.md",
+                "gate table's G4 row does not require every reviewFocus entry pinned")
+    ra = root / "docs" / "runtime-adapters.md"
+    if ra.is_file() and "docs/review-focus.md" not in read(ra):
+        f.error("docs/runtime-adapters.md", "two-pass note does not cover the review-focus compare")
+    shape_path = root / STATE_SHAPE_DOC
+    shape_text = read(shape_path) if shape_path.is_file() else ""
+    blocks = re.findall(r"```json\n(.*?)\n```", shape_text, re.S)
+    try:
+        shape = json.loads(blocks[0]) if blocks else {}
+    except json.JSONDecodeError:
+        shape = {}  # reported by state_shape_fields
+    entries = shape.get("reviewFocus")
+    if not isinstance(entries, list) or not entries or not isinstance(entries[0], dict):
+        f.error(shown(STATE_SHAPE_DOC), "state shape has no reviewFocus entry")
+    else:
+        for key in RF_ENTRY_KEYS:
+            if key not in entries[0]:
+                f.error(shown(STATE_SHAPE_DOC), f"reviewFocus entry lacks '{key}'")
+        for sub, keys in (("cold", RF_COLD_KEYS), ("verify", RF_VERIFY_KEYS)):
+            val = entries[0].get(sub)
+            if not isinstance(val, dict) or not all(k in val for k in keys):
+                f.error(shown(STATE_SHAPE_DOC), f"reviewFocus.{sub} lacks one of {', '.join(keys)}")
+
+
 def main(argv: list[str]) -> int:
     root = Path(argv[1]).resolve() if len(argv) > 1 else Path(__file__).resolve().parent.parent
     f = Findings()
@@ -1817,6 +1998,7 @@ def main(argv: list[str]) -> int:
     check_impl_status(root, f)
     check_wave_check(root, f)
     check_red_gate(root, f)
+    check_review_focus(root, f)
 
     for w in f.warnings:
         print(f"warning  {w}")
