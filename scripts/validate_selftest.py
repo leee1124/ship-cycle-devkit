@@ -310,6 +310,39 @@ CASES = [
         "'when' must be a non-empty object",
     ),
     (
+        "schema env loses heavyLock",
+        lambda r: mutate(r / "docs" / "ship-cycle.config.schema.json", '"heavyLock": {', '"heavyLockx": {'),
+        "env lacks heavyLock",
+    ),
+    (
+        "schema maxConcurrentHeavy loses its minimum",
+        lambda r: mutate(r / "docs" / "ship-cycle.config.schema.json", '"minimum": 1,\n          "description": "How many',
+                         '"minimum": 0,\n          "description": "How many'),
+        "env lacks heavyLock",
+    ),
+    (
+        "example env maxConcurrentHeavy is zero",
+        lambda r: mutate(r / "docs" / "ship-cycle.config.example.json", '"maxConcurrentHeavy": 1',
+                         '"maxConcurrentHeavy": 0'),
+        "env.maxConcurrentHeavy must be an integer >= 1",
+    ),
+    (
+        "heavy-work doc drops the no-flock fallback",
+        lambda r: mutate(r / "docs" / "heavy-work.md", "mkdir", "makedir", count=-1),
+        "does not state 'mkdir'",
+    ),
+    (
+        "sc-qa stops referencing heavy-work",
+        lambda r: mutate(r / "skills" / "sc-qa" / "SKILL.md", "docs/heavy-work.md", "docs/other.md"),
+        "does not reference docs/heavy-work.md",
+    ),
+    (
+        "sc-review regains smaller-batches advice",
+        lambda r: mutate(r / "skills" / "sc-review" / "SKILL.md", "Lenses are read-only and cheap",
+                         "Run in smaller batches; lenses are read-only and cheap"),
+        "ad-hoc 'smaller batches'",
+    ),
+    (
         "example overlay uses when.release without vcs.releaseBranch",
         lambda r: mutate(r / "docs" / "ship-cycle.config.example.json", '"releaseBranch": "main",', ""),
         "vcs.releaseBranch is not declared",

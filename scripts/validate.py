@@ -535,6 +535,51 @@ def check_release_checklist(root: Path, f: Findings) -> None:
             f.error(shown(orch.relative_to(root)), "G12 row does not reference releaseChecklist")
 
 
+def check_heavy_work(root: Path, f: Findings) -> None:
+    """#74: `env.heavyLock`/`maxConcurrentHeavy`/`heavyHeadroomMB` are documented and the stages point at the rule.
+
+    Guards the schema entries (types, minimums), that the example env is well-formed, that
+    docs/heavy-work.md exists with its fallback sections, and that the orchestrator, sc-implement, sc-review
+    and sc-qa reference it while sc-review no longer carries the ad-hoc 'smaller batches' advice.
+    """
+    schema = load_json(root, OVERLAY_SCHEMA, f)
+    example = load_json(root, OVERLAY_EXAMPLE, f)
+    if schema is None or example is None:
+        return
+    try:
+        p = schema["properties"]["env"]["properties"]
+        ok = (p["heavyLock"]["type"] == "string"
+              and p["maxConcurrentHeavy"]["type"] == "integer" and p["maxConcurrentHeavy"]["minimum"] == 1
+              and p["heavyHeadroomMB"]["type"] == "integer" and p["heavyHeadroomMB"]["minimum"] == 1)
+    except (KeyError, TypeError):
+        ok = False
+    if not ok:
+        f.error(shown(OVERLAY_SCHEMA), "env lacks heavyLock (string), maxConcurrentHeavy and "
+                                       "heavyHeadroomMB (integer, minimum 1)")
+    env = example.get("env", {}) if isinstance(example, dict) else {}
+    if not isinstance(env.get("heavyLock"), str) or not env.get("heavyLock", "").strip():
+        f.error(shown(OVERLAY_EXAMPLE), "env.heavyLock must be a non-empty string")
+    for k in ("maxConcurrentHeavy", "heavyHeadroomMB"):
+        v = env.get(k)
+        if isinstance(v, bool) or not isinstance(v, int) or v < 1:
+            f.error(shown(OVERLAY_EXAMPLE), f"env.{k} must be an integer >= 1")
+    doc = root / "docs" / "heavy-work.md"
+    if not doc.is_file():
+        f.error("docs/heavy-work.md", "missing")
+    else:
+        text = read(doc)
+        for token in ("flock", "mkdir", "SC-DEGRADE-ENV", "sequential", "PID", "do not inherit"):
+            if token not in text:
+                f.error("docs/heavy-work.md", f"does not state {token!r}")
+    for skill in ("ship-cycle", "sc-implement", "sc-review", "sc-qa"):
+        path = root / SKILLS_DIR / skill / "SKILL.md"
+        if path.is_file() and "heavy-work.md" not in read(path):
+            f.error(shown(path.relative_to(root)), "does not reference docs/heavy-work.md")
+    review = root / SKILLS_DIR / "sc-review" / "SKILL.md"
+    if review.is_file() and "smaller batches" in read(review):
+        f.error(shown(review.relative_to(root)), "still carries ad-hoc 'smaller batches' advice")
+
+
 def check_skill_frontmatter(root: Path, f: Findings) -> None:
     """Every skill declares name + description, and name matches its directory."""
     base = root / SKILLS_DIR
@@ -656,6 +701,7 @@ def main(argv: list[str]) -> int:
     check_example_coverage(root, f)
     check_example_release_smoke(root, f)
     check_release_checklist(root, f)
+    check_heavy_work(root, f)
 
     for w in f.warnings:
         print(f"warning  {w}")

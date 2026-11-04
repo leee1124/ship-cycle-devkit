@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.11 — Serialize heavy stages on resource-constrained hosts (#74)
+
+- **New optional overlay `env` keys** `heavyLock` (lock-file path shared by every heavy command, across
+  sessions and worktrees), `maxConcurrentHeavy` (integer >= 1; N slot locks `<heavyLock>.1..N`, default 1
+  when a lock is set) and `heavyHeadroomMB` (free-memory floor, default off). All unset = today's behaviour.
+- **One rule, `docs/heavy-work.md`**: heavy = jobs (full suites, builds, emulators, dev servers, same-box CI),
+  not read-only reviewers. Orchestrator tags and queues heavy work, passes lock and worker caps into every
+  agent prompt (subagents do not inherit), kills runaways by PID. No-`flock` hosts use a `mkdir` lock or
+  degrade to sequential. A schema-invalid `env` (SC-DEGRADE-ENV) loses the lock: run heavy work sequentially.
+- **ship-cycle, sc-implement, sc-review and sc-qa point to it**; sc-review's ad-hoc "smaller batches" advice
+  is gone.
+- **Validator** guards the schema entries (types, minimum 1), the example env values, that the doc states its
+  fallbacks, that the four skills reference it and that "smaller batches" does not return; six self-test
+  mutations. It does not judge the prose.
+
 ## 0.3.10 — Overlay `releaseChecklist` for store-distributed apps (#73)
 
 - **New optional overlay field** `releaseChecklist: [{ id, when, check, evidence, manual? }]`, top-level
