@@ -27,6 +27,7 @@
         "command": ["cd apps/backend && ./gradlew test jacocoTestReport"],
         "reportPath": "apps/backend/build/reports/jacoco/test/jacocoTestReport.xml",
         "format": "jacoco",
+        "sourceRoots": ["apps/backend/src/main/java"],
         "corePaths": ["apps/backend/src/main/java/**/domain/**", "apps/backend/src/main/java/**/algorithm/**"],
         "threshold": 80
       }

@@ -45,8 +45,8 @@ Otherwise parse the JSON and print a compact, scannable status report:
   neither passing nor regressed. Never fold the two counts together: a quarantine is not a red test. Print
   each entry's `capturedAt` and **flag anything that is not `preflight` as added mid-cycle** — that is a
   finding to check, not a quarantine to trust.
-- **Coverage** from `coverage`, per nature: `percent` / `threshold` and `result`, or the
-  `"n/a: no coverage config"` string as written. Print `undetermined` loudly — G6 cannot pass on it.
+- **Coverage** from `coverage`, per nature: `result`, `percent` against `floor`, or the n/a string as
+  written. Print any `undetermined` loudly, and flag an entry whose `reportMtime ≤ runStartedAt` as stale.
 - **Review jobs** from `reviewJobs`: for each, the reviewer, lens, `status` and **age** (`startedAt` to
   now). Print a `running` job **loudly** — the cycle is not judgeable while one is in flight — and print a
   `timeout`/`failed` one with its id, since it owes a pre-merge manual-gate item.

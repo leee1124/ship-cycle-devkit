@@ -144,6 +144,8 @@ for that transformation's difficulty.
    `baseline.source` is `local` (default), `ci` (the base commit's CI report ingested into `failing`) or
    `ci-status-only` (green run, no report: **every failure blocks unless its suite was rechecked**);
    `baseline.run` records the run. Rules and trade-offs: `${CLAUDE_PLUGIN_ROOT}/docs/test-baseline.md`.
+   Where a nature declares `coverage`, measure it on the base too, into `baseline.coverage[<nature>]`
+   (§sc-implement G6).
    `baseline.unrunnableHere` records suites this environment **cannot start at all** (no database
    reachable, a service absent, a sandbox policy refusing it): neither a failure to diff against nor
    something that counts as passed. It is pre-committed against the base commit, may only shrink, and
@@ -197,7 +199,7 @@ an active `gitFreeze` or a `running` `reviewJobs` entry, and treat another cycle
 | G2/G3 | interfaces specified + 0 unresolved critic objections | re-design |
 | G4 | failing tests exist for the change's logic (Red evidence) — or, for layout/copy/config, the execution-based verification is named instead (§core 3) | reject |
 | G5 | build succeeds + new tests pass (Green) | build-fixer |
-| G6 | no failures **new vs `state.baseline`** (`unrunnableHere` suites are neither pass nor regression; `baseline.flaky` cases are not exempt; under `ci-status-only` every failure blocks unless its suite is in `run.rechecked`); core coverage ≥ `threshold` (default 80%) **read from the nature's coverage report** — no `coverage` config records `"n/a: no coverage config"` in `state.coverage`, a missing/unparseable report is `undetermined` and blocks | debugger → sc-implement (undetermined → fix the coverage run) |
+| G6 | no failures **new vs `state.baseline`** (`unrunnableHere` suites are neither pass nor regression; `baseline.flaky` cases are not exempt; under `ci-status-only` every failure blocks unless its suite is in `run.rechecked`); core coverage ≥ min(`threshold`, base) from the coverage **report**, or `"n/a: no coverage config"` (§sc-implement G6) | debugger → sc-implement (undetermined → fix the coverage run) |
 | G7 | (if an artifact ships) real build succeeds | build-fixer |
 | G7b | (if the nature declares `bootCheck`) full-context **eager** boot/context-load smoke passes on a non-inert change | build-fixer (env can't load → checklist) |
 | G8 | 0 Critical/High (authz, paywall, anemic, N+1); every finding has a disposition (fixed-here / filed `#NN`); no `reviewJobs` entry still `running`/`launching`, `gitFreeze` released; UI → designer passes | → sc-implement (design flaw → sc-design) |

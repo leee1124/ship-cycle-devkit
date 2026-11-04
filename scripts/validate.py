@@ -255,34 +255,61 @@ def check_manifests_and_versions(root: Path, f: Findings) -> None:
 def check_example_coverage(root: Path, f: Findings) -> None:
     """The example overlay's `changeNature[].coverage` satisfies the schema's coverage block.
 
-    The example is what users copy. A `format` outside the enum, or a missing required key, ships a config
+    The example is what users copy. A `format` outside the enum, a missing key or a stray one ships a config
     that G6 can only read as undetermined -- so the copied example would block every cycle it runs in.
-    Checked against the schema's own enum and `required`, not a second hard-coded list.
+    Every rule is read from the schema itself (enum, required, additionalProperties, threshold range), not
+    from a second hard-coded list that could drift from it.
     """
     schema = load_json(root, OVERLAY_SCHEMA, f)
     example = load_json(root, OVERLAY_EXAMPLE, f)
     if schema is None or example is None:
         return
+    if not isinstance(example, dict):
+        f.error(shown(OVERLAY_EXAMPLE), "root must be an object")
+        return
     try:
         spec = schema["properties"]["changeNature"]["items"]["properties"]["coverage"]
-        formats = set(spec["properties"]["format"]["enum"])
+        props = spec["properties"]
+        formats = set(props["format"]["enum"])
         required = spec["required"]
+        closed = spec.get("additionalProperties") is False
+        th = props["threshold"]
+        th_default, th_min, th_max = th["default"], th["minimum"], th["maximum"]
     except (KeyError, TypeError):
-        f.error(shown(OVERLAY_SCHEMA), "changeNature.items.properties.coverage (format enum, required) missing")
+        f.error(shown(OVERLAY_SCHEMA), "changeNature.items.properties.coverage is missing its format enum, "
+                                       "required list or threshold default/minimum/maximum")
         return
-    for i, nature in enumerate(example.get("changeNature", [])):
+    natures = example.get("changeNature", [])
+    if not isinstance(natures, list):
+        f.error(shown(OVERLAY_EXAMPLE), "changeNature must be an array")
+        return
+    for i, nature in enumerate(natures):
         cov = nature.get("coverage") if isinstance(nature, dict) else None
         if cov is None:
             continue
         where = f"{shown(OVERLAY_EXAMPLE)} changeNature[{i}].coverage"
+        if not isinstance(cov, dict):
+            f.error(where, "must be an object")
+            continue
         for key in required:
             if key not in cov:
                 f.error(where, f"missing required field '{key}'")
+        if closed:
+            for key in sorted(set(cov) - set(props)):
+                f.error(where, f"unknown field '{key}' (schema sets additionalProperties: false)")
+        for key, sub in props.items():
+            if key in cov and sub.get("type") == "array":
+                val = cov[key]
+                if (not isinstance(val, list) or not all(isinstance(x, str) for x in val)
+                        or len(val) < sub.get("minItems", 0)):
+                    f.error(where, f"'{key}' must be an array of strings with at least "
+                                   f"{sub.get('minItems', 0)} item(s)")
         if "format" in cov and cov["format"] not in formats:
             f.error(where, f"format '{cov['format']}' is not in the schema enum {sorted(formats)}")
-        threshold = cov.get("threshold", 80)
-        if not isinstance(threshold, (int, float)) or isinstance(threshold, bool) or not 0 <= threshold <= 100:
-            f.error(where, f"threshold {threshold!r} is not a number in 0..100")
+        threshold = cov.get("threshold", th_default)
+        if (not isinstance(threshold, (int, float)) or isinstance(threshold, bool)
+                or not th_min <= threshold <= th_max):
+            f.error(where, f"threshold {threshold!r} is not a number in {th_min}..{th_max}")
 
 
 def check_skill_frontmatter(root: Path, f: Findings) -> None:

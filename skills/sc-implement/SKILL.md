@@ -80,20 +80,39 @@ authz from the principal only, DTOs not entities, whitelist validation, no N+1, 
   that entry (`inheritedFrom`), and inheriting is not counting: **G5 does not treat it as Green**, and its
   criterion goes to `review-only (ci-deferred)` (§sc-ship G11).
 - **G6 coverage — measured from the report, or recorded as n/a, never skipped.** "Core coverage ≥80%"
-  with no named command, report or core set gets skipped silently, which is §core 2 failing quietly. Per
-  nature in `state.nature`, write one `state.coverage[<nature>]` entry:
-  - **Configured** (overlay `changeNature[].coverage`): run `command` as its own step, then parse the file
-    at `reportPath` as `format` — never the command's stdout summary. Line coverage = covered ÷ coverable
-    lines, summed over report entries whose path matches `corePaths`; pass at ≥ `threshold` (default 80).
-    Record `{ "result", "percent", "threshold", "report", "format" }`, `result` one of `pass` / `fail` /
-    `undetermined`. `fail` loops back like a new failure.
-  - **Undetermined, and it blocks**: the command errored before writing a report, the report is missing or
-    stale (older than this run), it does not parse as `format`, or **no entry matches `corePaths`** — zero
-    core lines is a vacuous 100%, not a pass. Paste the error, fix the coverage run, re-run (the
-    three-state rule below). `format: "other"` gets no built-in reading: record how you extracted the
-    per-file counts, or it is undetermined.
-  - **Not configured**: record the string `"n/a: no coverage config"`. G6 passes on that and sc-ship carries
-    it into the PR body — the gap stays visible instead of reading as measured.
+  with no named command, report or core set gets skipped silently, which is §core 2 failing quietly. This
+  bullet is the whole rule; the field docs are in `${CLAUDE_PLUGIN_ROOT}/docs/ship-cycle.config.schema.json`.
+  Per nature in `state.nature`, write one `state.coverage[<nature>]` entry:
+  - **Not configured** (no overlay `changeNature[].coverage`): the string `"n/a: no coverage config"`.
+    `gates.G6 = pass` with that entry is valid; sc-ship states it in the PR body.
+  - **Configured**: record `runStartedAt`, run `command` as its own step, record the report's `reportMtime`,
+    then read the file at `reportPath` as `format` — never the command's stdout summary.
+  - **Path matched against `corePaths`** = the file's normalised repo-relative path (forward slashes, no
+    `./`; a path outside the repo matches nothing). Per format: **JaCoCo** `<package name>/<sourcefile
+    name>`; **Cobertura** `<sources><source>` + `<class filename>`; **LCOV** `SF:`; **istanbul** the file
+    key. An absolute path drops the repo-root prefix; a relative one takes the first `sourceRoots` entry
+    under which that file exists (none configured: the repo root). JaCoCo records no source root, so a
+    JaCoCo nature needs `sourceRoots` unless its `corePaths` are written package-relative.
+  - **Counted, lines only — branch coverage is not gated**: JaCoCo `<sourcefile>`'s `<counter
+    type="LINE">` (`covered` ÷ `covered + missed`); Cobertura `<line hits>`, covered when `hits > 0`, never
+    an average of `line-rate`; LCOV `LH` ÷ `LF`; istanbul `coverage-summary.json` `lines.covered` ÷
+    `lines.total` (a `coverage-final.json` alone is `format: "other"`). Each file counts once,
+    deduplicated by normalised path — a multi-module or per-class listing does not double its lines, and
+    natures sharing a `reportPath` run the command once. `format: "other"` must record a `method` (how the
+    per-file counts were extracted), or the entry is undetermined.
+  - **Floor**: `floor = min(threshold, baseline.coverage[<nature>].percent)` (`threshold` default 80) —
+    a base already below the threshold must not get worse; it need not reach 80 in this change. When
+    PREFLIGHT could not measure the base, `baseline.coverage[<nature>]` is `"unmeasured: <reason>"` and the
+    floor is `threshold`. `percent ≥ floor` → `pass`; below → `fail`, which loops back like a new failure.
+  - **`undetermined`, which blocks**: the command errored before writing a report; the report is missing,
+    or `reportMtime ≤ runStartedAt` (left over from an earlier run); it does not parse as `format`; or **no
+    entry matches `corePaths`** — zero core lines is a vacuous 100%, not a pass. Paste the error, fix the
+    coverage run, re-run (the three-state rule below).
+  - **`undetermined (ci-deferred)`**: the command needs a suite in `state.baseline.unrunnableHere`, or
+    `baseline.source` is a CI source and this cycle does not run the coverage command locally. Not a pass
+    and not a dead end — sc-ship puts it on the pre-merge manual gate, like `review-only (ci-deferred)`.
+  - Entry shape: `{ result, percent, floor, threshold, report, format, runStartedAt, reportMtime }` (+
+    `method` for `other`).
 - **No false-green (how you read G5/G6)**: judge pass/fail from the command's **own exit status or its
   machine-readable report** (surefire/JUnit XML, runner JSON) — never from a piped/tailed/grepped stdout
   line. `mvn test | grep -i fail | tail` returns the *pipeline's last* exit code (the tail's `0`), so a red

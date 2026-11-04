@@ -204,6 +204,15 @@ CASES = [
         ),
         "is not in the schema enum",
     ),
+    (
+        "example overlay coverage missing a required key",
+        lambda r: mutate(
+            r / "docs" / "ship-cycle.config.example.json",
+            '"reportPath": "apps/backend/build/reports/jacoco/test/jacocoTestReport.xml",',
+            "",
+        ),
+        "missing required field 'reportPath'",
+    ),
 ]
 
 

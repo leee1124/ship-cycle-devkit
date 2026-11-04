@@ -2,16 +2,15 @@
 
 ## 0.3.4 — G6 coverage has a measurement path (#67)
 
-- **Overlay `changeNature[].coverage`** — `{ command, reportPath, format, corePaths, threshold? }`, `format`
-  one of `lcov` / `cobertura` / `jacoco` / `istanbul-json` / `other`, `threshold` default 80. "Core coverage
-  ≥80%" named no command, report or core set, so it was skipped silently.
-- **G6 reads the report, not stdout.** Line coverage over `corePaths` from the file at `reportPath`. A
-  missing, stale or unparseable report — or one with no entry matching `corePaths` — is `undetermined`
-  and blocks.
-- **No config is recorded, not skipped.** `state.coverage[<nature>] = "n/a: no coverage config"`;
-  sc-ship states it in the PR body and `/status` prints it.
-- The validator checks the example overlay's `coverage` against the schema's enum and `required`; the
-  self-test feeds it an out-of-enum `format`.
+- **Overlay `changeNature[].coverage`** (`command`, `reportPath`, `format`, `corePaths`, `sourceRoots?`,
+  `threshold?` = 80). "Core coverage ≥80%" named no command, report or core set, so it was skipped silently.
+- **G6 reads line coverage from the report file**, never stdout, and fails only below
+  `min(threshold, base)` — the base is measured at PREFLIGHT into `baseline.coverage`. A missing, stale or
+  unparseable report is `undetermined` and blocks; environment-gated coverage is `undetermined
+  (ci-deferred)` on the pre-merge manual gate. Rule: sc-implement G6.
+- **No config is recorded, not skipped**: `state.coverage[<nature>] = "n/a: no coverage config"`, carried
+  into the PR body.
+- The validator checks the example overlay's `coverage` against the schema; two self-test cases.
 
 ## 0.3.3 — A CI run on the base commit counts as baseline evidence (#66)
 

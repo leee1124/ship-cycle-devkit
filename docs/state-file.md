@@ -14,13 +14,14 @@ the mechanics that only matter when something unusual happens to its name or its
   "baseline": { "capturedOn": "<base-sha>", "source": "local",
                 "run": null,
                 "failing": ["suiteA#case", "..."], "flaky": [],
+                "coverage": { "backend": { "percent": 78.1 }, "mobile": "unmeasured: <reason>" },
                 "unrunnableHere": [{ "suite": "suiteB", "reason": "no database reachable",
                                      "startupError": "<the suite's own init error, before any test ran>",
                                      "probe": "<dependency ping> → connection refused",
                                      "capturedAt": "preflight" }] },
-  "coverage": { "backend": { "result": "pass", "percent": 84.2, "threshold": 80,
+  "coverage": { "backend": { "result": "pass", "percent": 84.2, "floor": 78.1, "threshold": 80,
                              "report": "apps/backend/build/reports/jacoco/test/jacocoTestReport.xml",
-                             "format": "jacoco" },
+                             "format": "jacoco", "runStartedAt": "<iso>", "reportMtime": "<iso>" },
                 "web": "n/a: no coverage config" },
   "models": { "brainstorm": "opus", "design": "opus", "tdd": "sonnet", "implement": "sonnet",
               "review": "opus", "qa": "sonnet", "ship": "sonnet" },
@@ -54,9 +55,8 @@ bare case id (captured at PREFLIGHT) or `{ "case", "capturedAt": "<stage>" }` (a
 `flaky` cases are never exempt — a recheck replaces a suite's `failing` entries, it does not exempt `flaky`.
 Shape and rules: `${CLAUDE_PLUGIN_ROOT}/docs/test-baseline.md`.
 
-`coverage` is written by G6, one entry per nature: an object whose `result` is `pass`, `fail` or
-`undetermined` (only `pass` clears G6), or the string `"n/a: no coverage config"` when the overlay
-declares no `changeNature[].coverage` for that nature. The rules are in sc-implement G6.
+`coverage` (written at G6) and `baseline.coverage` (written at PREFLIGHT) hold one entry per nature;
+values and rules are in sc-implement G6.
 
 ## The slug
 

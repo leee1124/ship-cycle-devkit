@@ -52,13 +52,14 @@
           },
           "coverage": {
             "type": "object",
-            "description": "How gate G6 measures core coverage for this nature (sc-implement G6). sc-implement runs `command` as its own step, then reads the file at `reportPath` as `format` \u2014 never the command's stdout. Line coverage is summed over report entries whose path matches `corePaths` and passes at >= `threshold`. A missing, stale or unparseable report, or one with no entry matching `corePaths`, is UNDETERMINED and blocks G6; it never passes. `format: other` has no built-in reading \u2014 the extraction method must be recorded or the result is undetermined. Omit this object and G6 records `n/a: no coverage config` in state.coverage, which sc-ship carries into the PR body.",
+            "description": "How gate G6 measures core LINE coverage for this nature from a report file, never stdout. The full rule \u2014 path matching and the counted element per format, the baseline-relative floor, undetermined and ci-deferred outcomes \u2014 is in sc-implement G6. Omit it and G6 records `n/a: no coverage config`.",
             "properties": {
-              "command": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
-              "reportPath": { "type": "string" },
-              "format": { "enum": ["lcov", "cobertura", "jacoco", "istanbul-json", "other"] },
-              "corePaths": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
-              "threshold": { "type": "number", "minimum": 0, "maximum": 100, "default": 80 }
+              "command": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Run as its own step; must (re)write reportPath." },
+              "reportPath": { "type": "string", "description": "Repo-relative path of the report the command writes." },
+              "format": { "enum": ["lcov", "cobertura", "jacoco", "istanbul-json", "other"], "description": "istanbul-json = coverage-summary.json. other = no built-in reading; the extraction method is recorded in state." },
+              "corePaths": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Globs over the normalised repo-relative source path of each report entry." },
+              "sourceRoots": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Prefixes for report paths given relative \u2014 needed for jacoco, whose report carries package + file name only." },
+              "threshold": { "type": "number", "minimum": 0, "maximum": 100, "default": 80, "description": "Percent. G6 fails below min(threshold, the base commit's measured coverage)." }
             },
             "required": ["command", "reportPath", "format", "corePaths"],
             "additionalProperties": false
