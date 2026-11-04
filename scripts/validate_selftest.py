@@ -330,22 +330,47 @@ CASES = [
     ),
     (
         "claim-evidence doc loses its rule block",
-        lambda r: mutate(r / "docs" / "claim-evidence.md", "path:line", "a location"),
+        lambda r: mutate(r / "docs" / "claim-evidence.md", "path:line", "a location", count=-1),
         "does not state 'path:line'",
     ),
     (
         "sc-design output drops the Claim evidence bullet",
-        lambda r: mutate(r / "skills" / "sc-design" / "SKILL.md", "- **Claim evidence**: each", "- Claim evidence: each"),
+        lambda r: mutate(
+            r / "skills" / "sc-design" / "SKILL.md", "- **Claim evidence**: each", "- Claim evidence: each"
+        ),
         "design output has no '**Claim evidence**' bullet",
     ),
     (
         "sc-design critic drops the Claim evidence bullet",
-        lambda r: mutate(r / "skills" / "sc-design" / "SKILL.md", "- **Claim evidence**: every", "- Claim evidence: every"),
+        lambda r: mutate(
+            r / "skills" / "sc-design" / "SKILL.md", "- **Claim evidence**: every", "- Claim evidence: every"
+        ),
         "critic review has no '**Claim evidence**' bullet",
     ),
     (
+        "claim-evidence rule loses the never-downgrade-for-missing-citation sentence",
+        lambda r: mutate(r / "docs" / "claim-evidence.md", "never by itself", "sometimes"),
+        "does not state 'never by itself'",
+    ),
+    (
+        "sc-review Claim evidence bullet allows downgrade",
+        lambda r: mutate(
+            r / "skills" / "sc-review" / "SKILL.md", "never by itself grounds", "grounds"
+        ),
+        "'never by itself' a downgrade",
+    ),
+    (
+        "sc-review refuter stops opening the cited evidence",
+        lambda r: mutate(
+            r / "skills" / "sc-review" / "SKILL.md", "opens the cited evidence", "reads the finding"
+        ),
+        "refuter open the cited evidence",
+    ),
+    (
         "sc-review output discipline drops the Claim evidence bullet",
-        lambda r: mutate(r / "skills" / "sc-review" / "SKILL.md", "- **Claim evidence** —", "- Claim evidence —"),
+        lambda r: mutate(
+            r / "skills" / "sc-review" / "SKILL.md", "- **Claim evidence** —", "- Claim evidence —"
+        ),
         "output & severity discipline has no '**Claim evidence**' bullet",
     ),
 ]

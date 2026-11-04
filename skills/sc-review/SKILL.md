@@ -53,7 +53,8 @@ as **separate agents in parallel** — each is blind to the others, so they catc
 - **cold / spec-blind** (adversarial — always run one on a non-trivial change): this lens gets **only the
   diff** — NOT the design doc, canonical spec, or acceptance criteria — and is told to *assume nothing the
   author claims* and find what's wrong from first principles, hunting hardest in the real-world states above
-  (legacy rows, N≥2, unsaved-id, re-run). Every other lens is anchored to the author's plan (right for
+  (legacy rows, N≥2, unsaved-id, re-run). It may read repo and dependency code and official docs to evidence
+  its claims, but still not the spec, design doc or author narrative. Every other lens is anchored to the author's plan (right for
   "built the right thing"); this one exists because **an author's own reviewers inherit the author's blind
   spots** — a wrong assumption baked into the spec gets rated "as-designed" by every spec-anchored lens, and
   only a reviewer with **no stake in the framing** catches it. It is the in-pipeline stand-in for an outside
@@ -193,9 +194,10 @@ Every lens returns, in this shape:
   severity (a problems-only reviewer inflates). "Solid" is a valid finding.
 - **Issues** — by **actual** severity (Critical/High/Medium/Low), with file:line, *why it matters*, and a
   fix. Don't mark nitpicks as Critical; don't bury a Critical as a nit.
-- **Claim evidence** — a load-bearing factual claim behind a finding (what the code or a library does, an
-  API contract) cites its evidence (`${CLAUDE_PLUGIN_ROOT}/docs/claim-evidence.md`); a Critical/High resting
-  on an unevidenced claim is not kept at that severity until it is.
+- **Claim evidence** — a load-bearing factual claim behind a finding (a library internal, code outside the
+  diff, an API contract) cites its evidence (`${CLAUDE_PLUGIN_ROOT}/docs/claim-evidence.md`). A missing
+  citation is never by itself grounds to lower severity: the finding is held at its claimed severity until
+  the refuter evidences or refutes it, and stays undetermined (blocking G8) if neither.
 - **Data-integrity floor**: a change that can persist **wrong / duplicate / lost / orphaned** data is at
   least **High** — even if it *matches the spec* or *replicates a legacy/upstream quirk*. "The old system
   did it too" is a parity note, **not** a severity downgrade; surface it as fix-or-explicit-owner-decision,

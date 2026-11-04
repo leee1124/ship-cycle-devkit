@@ -3,17 +3,21 @@
 ## 0.3.9 — Load-bearing factual claims in design and review reports carry evidence (#72)
 
 - **Rule, stated once** in `docs/claim-evidence.md`. A *load-bearing claim* is a factual claim a decision,
-  severity or acceptance criterion depends on (code behaviour, library/framework internal, API contract, data
-  shape). Evidence is a repo `path:line`, dependency source, official doc URL, or a command and its output;
-  memory and "I believe" are not. An unevidenced load-bearing claim is an objection for the critic (design) or
-  refuter (review), and a review finding resting on one is not kept as Critical/High until evidenced.
-  Non-load-bearing remarks need no citation. A subagent had misread a library internal and the orchestrator
-  passed it on unchallenged.
+  severity or acceptance criterion depends on that is not visible in the cited or changed lines (library
+  internal, code outside the diff, external API contract, persisted data shape; in designs, existing code
+  only). Evidence: repo `path:line`, dependency source, version-matched official doc URL, or a command and
+  its output; memory is not. In a design an unevidenced claim is a critic objection, as is any claim used to
+  dismiss or downgrade a finding. A review finding is never lowered for a missing citation (never lowers the
+  data-integrity or security floor; foreign-agent findings likewise): the refuter evidences or refutes it,
+  else it is undetermined and still blocks G8. A subagent had misread a library internal and the
+  orchestrator passed it on unchallenged.
 - **Consumers point to it**: sc-design's `## Design` checklist and critic section, and sc-review's output &
-  severity discipline each have a `**Claim evidence**` bullet; the refuter also opens the cited evidence.
+  severity discipline each have a `**Claim evidence**` bullet; the refuter also opens the cited evidence, and the cold lens may read code and docs to evidence claims
+  but not the spec.
 - **Validator** guards that the doc keeps its marked rule block (load-bearing, `path:line`, doc URL, command
-  output, objection) and that those three places keep a `**Claim evidence**` bullet naming
-  `claim-evidence.md`; one self-test mutation per anchor. It does not judge the prose.
+  output, objection, "never by itself") and that those three places keep a `**Claim evidence**` bullet naming
+  `claim-evidence.md`; sc-review's bullet must say "never by itself" and its Verify findings must name
+  "cited evidence"; one self-test mutation per anchor. It does not judge the prose.
 
 ## 0.3.8 — sc-design: changes that move an entry point inventory every entry path (#71)
 

@@ -511,7 +511,8 @@ def check_claim_evidence(root: Path, f: Findings) -> None:
     else:
         m = re.search(r"<!-- claim-evidence-rule -->(.*?)<!-- /claim-evidence-rule -->", read(doc), re.S)
         body = m.group(1) if m else ""
-        for token in ("Load-bearing", "path:line", "official doc URL", "command and its output", "objection"):
+        for token in ("Load-bearing", "path:line", "official doc URL", "command and its output",
+                      "objection", "never by itself"):
             if token.lower() not in body.lower():
                 f.error("docs/claim-evidence.md", f"claim-evidence rule block does not state {token!r}")
     design = root / SKILLS_DIR / "sc-design" / "SKILL.md"
@@ -520,7 +521,8 @@ def check_claim_evidence(root: Path, f: Findings) -> None:
         for label, prefix in (("design output", "Design (architect"), ("critic review", "Design review (critic")):
             sec = next((s for s in sections if s.startswith(prefix)), "")
             if not _claim_bullet(sec):
-                f.error(shown(design.relative_to(root)), f"{label} has no '**Claim evidence**' bullet naming claim-evidence.md")
+                f.error(shown(design.relative_to(root)),
+                        f"{label} has no '**Claim evidence**' bullet naming claim-evidence.md")
     review = root / SKILLS_DIR / "sc-review" / "SKILL.md"
     if review.is_file():
         sections = re.split(r"^## ", read(review), flags=re.M)
@@ -528,10 +530,16 @@ def check_claim_evidence(root: Path, f: Findings) -> None:
         if not _claim_bullet(sec):
             f.error(shown(review.relative_to(root)),
                     "output & severity discipline has no '**Claim evidence**' bullet naming claim-evidence.md")
+        elif "never by itself" not in sec.lower():
+            f.error(shown(review.relative_to(root)),
+                    "Claim evidence bullet does not say a missing citation is 'never by itself' a downgrade")
+        verify = next((s for s in sections if s.startswith("Verify findings")), "")
+        if "cited evidence" not in verify:
+            f.error(shown(review.relative_to(root)), "Verify findings does not have the refuter open the cited evidence")
 
 
 def _claim_bullet(section: str) -> bool:
-    m = re.search(r"^- \*\*Claim evidence\*\*(.*?)(?=^- |\Z)", section, re.M | re.S | re.I)
+    m = re.search(r"^- \*\*Claim evidence\*\*(.*?)(?=^- |\Z)", section, re.M | re.S)
     return bool(m and "claim-evidence.md" in m.group(1))
 
 
