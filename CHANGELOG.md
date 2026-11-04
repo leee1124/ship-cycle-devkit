@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.2 — sc-ship records G10–G12 (#63)
+
+- **sc-ship sets the gates it evaluates.** `gates.G10` after the docs check (or `"n/a: <reason>"` with the
+  no-docs reason), `gates.G11` once every acceptance criterion is mapped to evidence, and `gates.G12`
+  before merging (or `fail` with the condition named). Previously only G13 was recorded, so `/status`
+  showed G10–G12 as `—` for the whole run and a cycle interrupted inside sc-ship could not resume past the
+  steps it had already finished.
+- Values stay in the existing vocabulary — `pass`, or a bare `fail` with the failing condition in the
+  loop-back report — and G12's merge-cleanliness probe and `Closes`/`Refs` re-fetch are re-run right before
+  the merge even when G12 already reads `pass`, since a resumed run would otherwise trust a stale check.
+- **The validator now blocks on it.** A gate in the orchestrator's table that no stage skill records is an
+  error, not an advisory warning; the self-test mutates sc-ship to drop `gates.G10` and expects the failure.
+
 ## 0.3.1 — Delta re-review after fixes, and no auto-relaunch under memory pressure
 
 - **sc-review: the delta pass.** A re-review of fixes is scoped to the fix diff (`git diff <reviewed

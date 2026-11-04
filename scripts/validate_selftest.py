@@ -178,8 +178,12 @@ CASES = [
         "without ${CLAUDE_PLUGIN_ROOT}",
     ),
     (
-        "gate in the table that no skill sets is advisory, not an error",
-        lambda r: None,
+        "gate in the table that no skill sets",
+        lambda r: mutate(
+            r / "skills" / "sc-ship" / "SKILL.md",
+            "`gates.G10 = pass`",
+            "the docs gate",
+        ),
         "in the orchestrator's gate table but no stage skill sets it",
     ),
     (
@@ -204,15 +208,8 @@ def main() -> int:
     for name, mutation, expected in CASES:
         with tempfile.TemporaryDirectory(prefix="scdk self test ") as tmp:
             root = fresh_copy(Path(tmp) / "repo copy")
-            advisory = mutation(root) is None and name.endswith("advisory, not an error")
+            mutation(root)
             code, out = run_validator(root)
-            if advisory:
-                # This one asserts the *warning* direction: it must be reported and must NOT fail the build.
-                if code != 0 or expected not in out:
-                    failures.append(f"[{name}] expected an advisory warning and exit 0, got {code}:\n{out}")
-                else:
-                    print(f"ok   {name}")
-                continue
             if code == 0:
                 failures.append(f"[{name}] validator passed a repo that should fail")
             elif expected not in out:
