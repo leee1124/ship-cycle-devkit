@@ -55,6 +55,10 @@ INLINE_STAGE_RE = re.compile(r"(?<![\w.])" + STAGE_KEYS + r"\s*[:=]\s*[\"']" + S
 KEY_SPAN_STAGE_RE = re.compile(r"`(?:state\.|parked\.)?" + STAGE_KEYS + r"`\s*[:=]\s*`" + STAGE_VALUE + r"`")
 # Non-skill stage values every reader branches on; the seven stage skills come from the pipeline table.
 REQUIRED_NON_SKILL_STAGES = ("parked", "complete", "failed", "cancelled")
+SHIP_SKILL = Path("skills/sc-ship/SKILL.md")
+GATE_LOG_HEADING = "## Gate log"
+GATE_SUMMARY_PHRASE = "Gate summary"
+GATE_LOG_PATH_RE = re.compile(r"\.claude/ship-cycle/<branch-slug>\.log\.md")
 
 CLAUDE_REQUIRED = ("name", "version", "description", "skills")
 CODEX_REQUIRED = ("name", "version", "description", "author", "interface")
@@ -239,6 +243,26 @@ def stage_literals(text: str) -> list[str]:
         values += INLINE_STAGE_RE.findall(span)
         values += JSON_STAGE_RE.findall(span)
     return values
+
+
+def check_gate_summary(root: Path, f: Findings) -> None:
+    """The gate log is documented, and sc-ship's PR template renders a Gate summary from it.
+
+    #70: stage/gate passage lived only in the state file G13 deletes, so nothing after the merge showed the
+    cycle was followed. The rule is prose, so the cheap mechanical part is that both halves still exist.
+    """
+    doc = root / STATE_SHAPE_DOC
+    if doc.is_file() and GATE_LOG_HEADING not in read(doc):
+        f.error(shown(STATE_SHAPE_DOC), f"no '{GATE_LOG_HEADING}' section documenting the gate log")
+    ship = root / SHIP_SKILL
+    if not ship.is_file():
+        f.error(shown(SHIP_SKILL), "missing")
+        return
+    text = read(ship)
+    if GATE_SUMMARY_PHRASE not in text:
+        f.error(shown(SHIP_SKILL), f"PR template does not include the '{GATE_SUMMARY_PHRASE}'")
+    if not GATE_LOG_PATH_RE.search(text):
+        f.error(shown(SHIP_SKILL), "does not name the gate log it renders the summary from")
 
 
 def check_manifests_and_versions(root: Path, f: Findings) -> None:
@@ -432,6 +456,7 @@ def main(argv: list[str]) -> int:
     check_gate_coverage(root, f)
     check_stage_vocabulary(root, f)
     check_manifests_and_versions(root, f)
+    check_gate_summary(root, f)
     check_skill_frontmatter(root, f)
     check_example_coverage(root, f)
     check_example_release_smoke(root, f)

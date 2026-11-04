@@ -144,7 +144,9 @@ On init, if the target file already exists with a **different** `branch`, refuse
 clobber another cycle.
 
 Reusing one branch for a **new** goal overwrites its prior completed file. That is acceptable: state is
-gitignored run-state, and the PR plus git history hold the real record.
+gitignored run-state, and the PR plus git history hold the real record. The same guard applies to the gate
+log (§Gate log): its header names the exact `branch`, and a log whose header names a different branch is
+not appended to.
 
 ## Stage values
 
@@ -186,7 +188,8 @@ request:
    and set `holds.gitFreeze: true` if the freeze is still `active` (it can only be a snapshot-mode freeze
    mid-capture; a stale one is released here). A cycle must not park with a live job or an active freeze
    that `holds` does not name — an unrecorded hold is invisible to every other cycle's freeze scan.
-4. Write `parked = { reason, resumeStage: <the stage being left>, at, holds }`, then `stage = "parked"`.
+4. Write `parked = { reason, resumeStage: <the stage being left>, at, holds }`, then `stage = "parked"`,
+   and append a `parked` line to the gate log (§Gate log).
 
 A held freeze stays binding while parked, for this cycle and for every other cycle's freeze scan — with one
 release valve, because nobody may be around to release it: **another cycle may release a parked cycle's
@@ -226,7 +229,77 @@ evidence for a past attempt is gone, not that the work failed — counting it wo
 spend a cycle's retries.
 
 Output, printed and appended to `reconcile`: `recordedStage`, `continueFrom`, each mismatch with its
-evidence (path, sha, missing file), and the gates it `cleared` — or `no mismatches`.
+evidence (path, sha, missing file), and the gates it `cleared` — or `no mismatches`. The gate log gets one
+`cleared` line per cleared gate and one `resume` line (§Gate log).
+
+## Gate log
+
+The state file says where a cycle **is**; nothing in it says how it got there, and G13 deletes it. A
+reviewer, a hook or the user who wants to check that the cycle was actually followed needs a record that
+survives the merge. That record is an **append-only gate log** beside the state file:
+`.claude/ship-cycle/<branch-slug>.log.md` (same slug, same working directory, §The slug).
+
+**The state file stays authoritative.** The log is a history for humans, sc-ship's PR summary and
+`/resume`'s explanation; no gate, loop count, reconcile row or stage choice is ever *decided* from it. When
+the two disagree, the state file wins and the disagreement is reported — the log is not evidence for a
+`pass` (§Resume reconcile: inference only lowers).
+
+### Format
+
+PREFLIGHT's init creates the file with a header line naming the exact branch and a table header; every
+transition after that appends **one row**:
+
+```markdown
+<!-- ship-cycle gate log · branch: feat/rate-limit · goal: add rate limiting to login -->
+| at (UTC) | stage | gate | result | evidence |
+|---|---|---|---|---|
+| 2026-11-04T09:02:11Z | sc-brainstorm | — | enter | PREFLIGHT: size M, nature backend, risk auth |
+| 2026-11-04T09:20:40Z | sc-brainstorm | G1 | pass | acceptance criteria: <artifact dir>/criteria.md |
+| 2026-11-04T09:21:05Z | sc-design | G2/G3 | n/a: config bump, nothing to design | — |
+| 2026-11-04T10:02:13Z | sc-implement | G6 | fail (loop 1/3) | 2 new failures: RateLimitTest#burst |
+| 2026-11-04T10:40:56Z | sc-implement | G6 | pass | coverage 84.2% ≥ floor 78.1 · tree 4b1e… |
+| 2026-11-04T11:15:00Z | parked | — | parked | waiting on product for the limits · resume sc-review |
+| 2026-11-05T08:00:12Z | sc-review | G8 | cleared | reconcile: tree changed since G8 |
+```
+
+- **at** — UTC ISO-8601 with `Z`, second precision.
+- **stage** — the stage recorded in state when the line is written (one of §Stage values).
+- **gate** — the gate id as the gate table writes it (`G7b`, `G2/G3`), or `—` for a stage change.
+- **result** — exactly the value written to `gates` (`pass`, `fail`, `degrade`, `checklist`, `skip`,
+  `n/a: <reason>` with the reason verbatim), plus `(loop n/3)` on a `fail`; for a stage change `enter`,
+  `parked`, `resume` or the terminal value; `cleared` for a reconcile clear; `deferred: <part>` for each
+  manual-gate deferral as it is recorded.
+- **evidence** — a short pointer, never the evidence itself: a path, a test id, a tree id prefix, a job id,
+  a CI link. One line, no `|` (write `/` instead) and no newline; `—` when there is none.
+
+### Who appends
+
+**Whoever writes a gate value or a stage change appends its line in the same step** — the stage skill
+setting `gates.<G>`, PREFLIGHT entering the first stage, a stage handing over to the next, the loop-back
+that records a `fail`, parking (§Parking step 4), a resume (one `resume` line plus one `cleared` line per
+gate the reconcile cleared), and a terminal `stage`. Write the state first, then the line: a crash between
+the two leaves the log one row short, never ahead of the state.
+
+**Never rewrite, reorder or delete a past line** — a cleared gate is a new `cleared` row, a retry is a new
+row, a corrected mistake is a new row that says so. The log is the only place a cleared or retried pass is
+still visible after the state moved on.
+
+A cycle started before 0.3.7 has no log. Do not reconstruct one from the state; create the file at the next
+transition with a first row `| <at> | <stage> | — | resume | log started mid-cycle (pre-0.3.7 state) |`.
+
+### Lifetime, archive and git
+
+The log sits under `.claude/ship-cycle/`, which is gitignored run-state like the state file — never commit
+it (the PR body's Gate summary is the committed, reviewable record). It is outside the tree identity for
+the same reason the state file is (§Tree identity), so appending never invalidates a gate.
+
+At G13 the log is **archived, not deleted**: sc-ship moves it to the **main checkout's**
+`.claude/ship-cycle/archive/<branch-slug>-<YYYY-MM-DD>.log.md` (the first entry of `git worktree list` —
+when the cycle ran in a worktree, the worktree is about to be removed with the live log inside it), adding
+`-2`, `-3`, … if that name exists — an archive is never overwritten. The move happens **before** the
+worktree removal, and the final G13 row is appended to the archived copy. The kit **never prunes**
+`archive/`; it lives until the user deletes it. The freeze scan and `/status`'s cycle list read
+`*.json` only, so neither a live log nor an archive is ever mistaken for a cycle.
 
 ## Migration (PREFLIGHT-only, one-time)
 

@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.3.7 — Append-only gate log and a Gate summary in the PR (#70)
+
+- **Gate log** `.claude/ship-cycle/<branch-slug>.log.md`, created at PREFLIGHT init. One table row per
+  transition — UTC time, stage, gate, result (the value written to `gates`, `(loop n/3)` on a fail,
+  `enter`/`parked`/`resume`/terminal for stage changes, `cleared` for a reconcile clear), short evidence
+  pointer. Whoever writes a gate value or a stage change appends the row in the same step, state first;
+  parking and the resume reconcile log too. Past rows are never rewritten. Stage and gate passage lived
+  only in the state file G13 deletes, so nothing after the merge showed the cycle was followed.
+- **The state file stays authoritative.** The log is history: no gate, loop or stage is decided from it,
+  and a log row is never evidence for a `pass`.
+- **sc-ship renders a "Gate summary" table into the PR body** from the log: latest result and evidence per
+  gate (n/a reasons and deferrals verbatim), loop counts from `state.loops`, `log≠state` where they
+  disagree; no log → rendered from `state.gates`, said so. The G12 gate requires it.
+- **G13 archives the log instead of deleting it**, to the main checkout's
+  `.claude/ship-cycle/archive/<slug>-<date>.log.md` (never overwritten), before the worktree removal. The
+  kit never prunes the archive; the log is gitignored run-state like the state file and outside the tree
+  identity.
+- `/status` prints the log's last rows; `/resume` uses them to explain the interruption.
+- Rule: `docs/state-file.md` — Gate log. The validator checks that section exists and that sc-ship's PR
+  template names the Gate summary and the log; two self-test cases.
+
 ## 0.3.6 — G9 requires a release-artifact smoke for build-config/native changes (#69)
 
 - **Overlay `changeNature[].releaseSmoke`** (`appliesTo`, `artifact`, `flows`, `device?`). Per nature,

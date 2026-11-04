@@ -79,6 +79,12 @@ def mutate(path: Path, old: str, new: str) -> None:
     path.write_text(text.replace(old, new, 1), encoding="utf-8")
 
 
+def replace_all(path: Path, old: str, new: str) -> None:
+    text = path.read_text(encoding="utf-8")
+    assert old in text, f"self-test fixture is stale: {old[:50]!r} not in {path.name}"
+    path.write_text(text.replace(old, new), encoding="utf-8")
+
+
 # (name, mutate_fn, substring that must appear in the output)
 CASES = [
     (
@@ -263,6 +269,16 @@ CASES = [
             '"artifact": "cd apps/mobile/android && ./gradlew assembleRelease",',
         ),
         "'artifact' must be an array of strings",
+    ),
+    (
+        "sc-ship PR template drops the Gate summary",
+        lambda r: replace_all(r / "skills" / "sc-ship" / "SKILL.md", "Gate summary", "Summary"),
+        "does not include the 'Gate summary'",
+    ),
+    (
+        "state-file.md loses its Gate log section",
+        lambda r: mutate(r / "docs" / "state-file.md", "## Gate log", "## History"),
+        "no '## Gate log' section",
     ),
 ]
 
