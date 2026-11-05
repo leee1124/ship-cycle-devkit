@@ -71,7 +71,7 @@ the mechanics that only matter when something unusual happens to its name or its
                     "refutedItems": [{ "item": "<finding>", "where": "src/b.py:12",
                                        "refutation": "<evidence: path:line or command → output>" }],
                     "refutedCarried": { "critical": 0, "high": 1 }, "routedTo": null, "superseded": false,
-                    "unresolved": [{ "item": "<finding or cannot-verify item>", "severity": "medium",
+                    "unresolved": [{ "item": "<finding>", "severity": "medium",
                                      "where": "src/a.py:41", "design": false }] }],
   "reviewFocus": [{ "id": "RF1", "input": "<this feature's concrete input or state>",
                     "impliedBy": "<the criterion or design line that implies it>",
@@ -85,6 +85,15 @@ the mechanics that only matter when something unusual happens to its name or its
                                 "outcome": "covered: <pinnedBy>",
                                 "evidence": "<assertion path:line> · <construction call path:line>",
                                 "pinFixedBy": null, "pinFixEvidence": null } }],
+  "unverifiable": [{ "id": "UV1", "source": "cold", "tree": "<tree id the reader read>",
+                     "item": "<the doubt, one sentence>", "where": "src/a.py:41",
+                     "needs": "<spec line, cross-task fact or runtime observation that settles it>",
+                     "whyNotChecked": "spec-only | spans-tasks | needs-running-system",
+                     "postList": false, "sameAs": null,
+                     "disposition": { "by": "triage (orchestrator)", "model": "opus", "effort": "high",
+                                      "outcome": "cleared: <cited reason>",
+                                      "evidence": "<path:line, spec line, or command → output>",
+                                      "parked": false } }],
   "bakeOff": { "stances": ["mvp-first", "risk-first", "performance-first"],
                "criteria": [{ "name": "reversibility", "weight": "high" }],
                "judgeLenses": ["algorithm", "cold"],
@@ -200,10 +209,21 @@ outcome, and a fixed pin's failing-first evidence); sc-ship maps each entry at G
 Rules:
 `${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md`.
 
-`route.ownerPresent` (UI natures) says whether the owner will watch the live visual loop. Only `true`
-permits an `owner-confirmed` visual check; absent or `false` fails closed. It has its own rule, not the
-growth-only one: `false → true` is allowed only by asking the owner, and a nature that grows to a UI nature
-re-asks it (or sets `false`).
+`unverifiable` (appended by sc-review from the cold lens and the delta pass, and by sc-implement from a wave
+check) holds the doubts a blind reader could not settle from what it may read — not findings, no severity.
+sc-review writes each item's `disposition` (`confirmed → finding #<n>`, `cleared: <cited reason>` or
+`owner-decision: <the owner's words>` with `by: "owner"`, or `manual-gate: <why no owner>`) before G8, which
+requires one on every item; sc-ship re-asserts it at G11 and sc-retro reads them. Rules:
+`${CLAUDE_PLUGIN_ROOT}/docs/unverifiable-from-diff.md`. **Older state:** a wave check's "cannot verify" entry
+recorded before 0.3.22 sits in `waveReviews[].unresolved` and keeps that path — it is not migrated into
+`unverifiable` and not counted twice; it is dispositioned as an unresolved wave item, as it was.
+
+`route.ownerPresent` (asked for UI natures; non-UI natures may set it later by asking — an
+unverifiable-from-diff `owner-decision`) says whether the owner will watch the live visual loop or answer.
+Only `true` permits an `owner-confirmed` visual check; absent or `false` fails closed. Growth via an
+owner decision does not reverse a UI owner's explicit `false` for the visual loop. It has its own rule,
+not the growth-only one: `false → true` is allowed only by asking the owner, and a nature that grows to a UI
+nature re-asks it (or sets `false`).
 
 `debug` (written by sc-implement from each fix report, for a red G5–G7b, a red wave barrier or a G9
 `fail`) is append-only, one entry per hypothesis tested: the `gate` and `failure` it belongs to, the

@@ -76,7 +76,12 @@ is an outcome, never dialed away by Tier S or a route (`${CLAUDE_PLUGIN_ROOT}/do
   entries, the cold lens's findings are frozen verbatim into the review artifact first; only then does it
   receive the list and report, per entry, whether it had raised it and whether the pinned test covers it
   (recorded as the entry's `cold`; findings it adds then are `postList: true`).
-  Rule: `${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md`.
+  Rule: `${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md`. **What it cannot settle** from what it may read — an
+  intent only the spec states, a behaviour spanning tasks, a fact only a running system shows — it returns as
+  `unverifiable-from-diff[]` items (`{item, where, needs, whyNotChecked}`), not as findings: the bucket is
+  how it says "I'd need X", not a licence to read the spec
+  (`${CLAUDE_PLUGIN_ROOT}/docs/unverifiable-from-diff.md`). Its items are frozen with its findings, before
+  the review-focus list is sent; items it adds after are `postList: true`.
 
 ## Running the lenses (agent mapping + fallback)
 Lens names are **roles, not fixed agent types**. Map each to whatever your environment provides, and
@@ -228,6 +233,11 @@ Every lens returns, in this shape:
   "looks fine" in isolation — the cost is cumulative fragmentation, paid invisibly one diff at a time.
   Surface it as **reuse-or-justify**, never a silent pass. This is the review-side backstop for
   sc-design's reuse-before-create gate.
+- **Unverifiable from diff** (blind readers only — the G8 cold lens, the delta pass and the wave check's two
+  passes) — the third bucket, `{item, where, needs, whyNotChecked}` each: no severity, never a finding until a
+  disposition confirms it (§Triage). `whyNotChecked` is `spec-only`, `spans-tasks` or `needs-running-system` —
+  never "unchanged code": a doubt that reading the repo would settle is read and raised or dropped, not parked
+  here.
 - **Verdict** — a clear merge call: **Yes / No / With-Fixes**, plus 1–2 sentences of reasoning.
 - No verdict without having actually read the code.
 
@@ -274,6 +284,20 @@ too, as "previously flagged, refuted at wave N — confirm": a refutation from a
 never drops a Critical/High, which also stays unresolved for G8. A wave check that found nothing,
 or was skipped by the route, reduces no lens: G8 runs the full fleet either way.
 
+**Unverifiable-from-diff items are dispositioned before G8.** Every `state.unverifiable` item — from the
+cold lens, the delta pass or a wave check (§`${CLAUDE_PLUGIN_ROOT}/docs/unverifiable-from-diff.md`) — is
+settled with evidence after the lenses ran: by this triage at `high` effort, or by a scoped pass of a
+spec-anchored lens on the same model and effort as that lens at G8 (the review-focus Verify rule).
+The outcome is recorded in the item's `disposition` and the review artifact: `confirmed → finding #<n>` (a
+finding with a severity — refuter, floors and triage as usual), `cleared: <cited reason>`, or, when neither
+can be evidenced, `owner-decision: <the owner's words>` — only with `state.route.ownerPresent === true` and
+the owner's answer verbatim as a human user turn, after stating whether the item falls under the
+data-integrity or security floor (if so, "treated as High until shown otherwise"); no owner fails closed (a
+floor item blocks G8, any other goes on the pre-merge manual gate as `manual-gate`). An item whose `needs`
+the reader could have read from the repo is a lens miss: `confirmed`, `parked: true`. Passes ride on
+`loops[G8]`. Never silently dropped, never auto-promoted; no
+disposition goes back into the cold lens's context.
+
 **Review-focus items are verified after the compare.** Every `state.reviewFocus` entry whose `cold` reads
 `raised: false` or `pinHolds: false` (§`${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md`) surfaces after the
 parallel lenses ran, so it never waits for their brief: a scoped second pass of a spec-anchored lens
@@ -302,6 +326,8 @@ of a cycle's review spend goes once the first pass has landed. Scope it to what 
 - **Two questions, one lens:** (1) is each prior Critical/High, and each finding dispositioned
   *fixed here* (§Triage), **actually resolved** by the fix, not just touched? (Findings *filed as #NN*
   have nothing to verify here.) (2) did the fix **introduce a regression** in the lines it changed or the paths it reaches?
+  What it cannot settle from the fix diff it returns as unverifiable-from-diff items (`source: "delta"`),
+  dispositioned before G8 is re-judged (§Triage).
   Run it as the **cold lens** (diff-only, assumes nothing) — fixes are written by the author who missed the
   original defect, so the independent view matters more here, not less.
 - **Review-focus items reach it as code locations only** — the `path:line` of the pin or the fix, never
@@ -335,6 +361,9 @@ of a cycle's review spend goes once the first pass has landed. Scope it to what 
 - **Every implementer concern handed to review has a disposition** — the `DONE_WITH_CONCERNS` items from
   `state.telemetry.implStatus` that skipped the fix round (§Triage); one without a disposition fails G8.
   The same holds for every unresolved wave-check item in `state.waveReviews` (§Triage).
+- **Every `state.unverifiable` item has a `disposition`** — confirmed (and then a finding like any other),
+  cleared with a cited reason, an owner decision from an owner present, or (non-floor, no owner)
+  `manual-gate` (§Triage); one without fails G8, and a floor item with no owner answer keeps G8 blocked.
 - **Every missed or uncovered `state.reviewFocus` entry has a `verify` outcome** (§Triage) — and a
   fixed-here one its `pinFixedBy` with failing-first evidence; when the cold lens ran on a non-empty list,
   every entry has its `cold` record, taken after the frozen blind pass.
