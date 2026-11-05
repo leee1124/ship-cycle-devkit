@@ -171,7 +171,8 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   A `gates.G9: degrade` goes here too, with its reason — and each deferred flow or part of a
   `state.releaseSmoke` entry as its own item, to be run on the release-form artifact (§sc-qa
   Release-artifact smoke). Every `state.unverifiable` item whose outcome is `manual-gate` goes here as its
-  own entry — its `item`, `where`, `needs` and the check a reviewer runs to settle it. If none were
+  own entry — its `item`, `where`, `needs` and the check a reviewer runs, as one observable check: a
+  command and its expected result, or the spec line to compare against the code at `where`. If none were
   recorded, say so.
 - **Release checklist (overlay `releaseChecklist`).** Release steps tracked in someone's head get skipped
   on the one PR that needs them (version bump, signing-key registration, release notes, backend-first

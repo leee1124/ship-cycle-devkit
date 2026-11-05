@@ -61,6 +61,10 @@ Disposition passes ride on `loops[G8]`, under the orchestrator's loop cap. Outco
 - **No owner fails closed.** Without that owner answer, a floor item keeps G8 blocked; any other item is
   recorded `manual-gate: <why no owner>` and goes on the pre-merge manual gate (§sc-ship G12). If nobody
   answers a floor item, it stays blocked and the loop-cap rule applies: stop, park, ask the user.
+- **Growth is scoped.** Growth via an owner decision does not reverse a UI owner's explicit `false` for the
+  visual loop; that answer still holds for `owner-confirmed`.
+- **Re-cite on edit.** A cleared item whose `where` a fix round touched is re-cited on the new tree before G8
+  is re-judged.
 
 **A parked item is a lens miss.** When the disposer finds that `needs` could have been read from the repo
 by the reader itself, the item was parked, not unverifiable: it is `confirmed` at the severity the gap

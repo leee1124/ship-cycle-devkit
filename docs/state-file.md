@@ -220,7 +220,8 @@ recorded before 0.3.22 sits in `waveReviews[].unresolved` and keeps that path �
 
 `route.ownerPresent` (asked for UI natures; non-UI natures may set it later by asking — an
 unverifiable-from-diff `owner-decision`) says whether the owner will watch the live visual loop or answer.
-Only `true` permits an `owner-confirmed` visual check; absent or `false` fails closed. It has its own rule,
+Only `true` permits an `owner-confirmed` visual check; absent or `false` fails closed. Growth via an
+owner decision does not reverse a UI owner's explicit `false` for the visual loop. It has its own rule,
 not the growth-only one: `false → true` is allowed only by asking the owner, and a nature that grows to a UI
 nature re-asks it (or sets `false`).
 
