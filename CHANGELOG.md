@@ -25,11 +25,15 @@
     `cleared: <cited reason>` (a load-bearing claim — uncited is no clearing), or
     `owner-decision: <the owner's words>` — only with `state.route.ownerPresent === true` and the answer
     verbatim as a human user turn (the #83 rule, `by: "owner"`), after the disposer states whether the item
-    falls under the data-integrity or security floor (then "treated as High until shown otherwise"). No
-    owner fails closed: a floor item blocks G8, any other is `manual-gate` on the pre-merge manual gate; at
-    the loop cap an open item goes to the owner the same way.
+    falls under the data-integrity or security floor (then "treated as High until shown otherwise"). On any
+    nature `ownerPresent` may grow to `true` here, only by actually asking the owner — so non-UI cycles can
+    use it. No owner fails closed: a floor item blocks G8 (unanswered: stop, park, ask the user), any other
+    is `manual-gate`, listed item by item on sc-ship's pre-merge manual gate; at the loop cap an open item
+    goes to the owner the same way.
   - **A parked item is a lens miss**: when `needs` was readable from the repo, it is `confirmed` at the
-    severity the gap implies with `parked: true`. Duplicates (same `where` and `needs`) carry `sameAs`.
+    severity the gap implies — never below its floor (data-integrity or security ⇒ at least High) — with
+    `parked: true`; lowering it later needs a refuter's evidence. Duplicates (same `where`, `needs` and
+    `tree`) carry `sameAs`; on another tree a `cleared` reason is re-cited, not inherited.
     Never silently dropped, never auto-promoted; G8 needs every item dispositioned.
 - **Consumers.** sc-review (the bucket in the cold lens and output shape, the triage step, the delta pass,
   G8), the orchestrator's G8 row, sc-implement's wave check, `docs/claim-evidence.md` (an item is not an
@@ -40,7 +44,7 @@
 - **Validator.** `check_unverifiable` guards the doc's three blocks, every producer and consumer section,
   the G8 row, the state shape's entry and `disposition` keys and the closed `whyNotChecked` set, and in
   eight files forbids the old "cannot-verify item" term, "unchanged code" as an item's subject and wording
-  that would let an item be dropped or auto-promoted; 38 self-test mutations fail it.
+  that would let an item be dropped or auto-promoted; 48 self-test mutations fail it.
 
 ## 0.3.21 — Review focus: the inputs the spec implies and no test exercises (#90)
 

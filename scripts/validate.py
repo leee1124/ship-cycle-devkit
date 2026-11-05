@@ -2003,7 +2003,15 @@ UV_BLOCK_TOKENS = {
         "a floor item keeps G8 blocked", "`manual-gate: <why no owner>`", "pre-merge manual gate",
         "**A parked item is a lens miss.**", "could have been read from the repo",
         "`confirmed` at the severity the gap implies", "`parked: true`", "sc-retro counts it as parked",
-        "**One disposition per gap.**", "same `where` and `needs`", "`sameAs: \"UV<n>\"`",
+        "**One disposition per gap.**", "same `where`, `needs` **and `tree`**", "`sameAs: \"UV<n>\"`",
+        "On a different tree the later item gets its own disposition",
+        "not inherited without re-citing its evidence on the later tree",
+        "**no lower than its floor severity**", "at least High", "the rationale in `disposition.evidence`",
+        "Lowering it later needs a refuter's evidence",
+        "on any nature it may grow from `false` or absent to `true` here",
+        "**only by actually asking the owner**",
+        "the loop-cap rule applies: stop, park, ask the user",
+        "asking them grows `ownerPresent` on any nature",
         "**Never silently dropped, never auto-promoted.**",
         "**G8 does not pass while any item has no disposition**",
         "at the loop cap an item still open goes to the owner", "still cleared with its evidence"),
@@ -2019,7 +2027,7 @@ UV_BLOCK_TOKENS = {
 # owner decision without the owner, or bring back the old wave-check term.
 UV_FORBIDDEN = ("the cold lens may read the spec to settle", "an item is a finding", "items may be dropped",
                 "auto-promoted to a finding", "cannot-verify item", "owner-decision without the owner",
-                "a requirement that lives in unchanged code")
+                "a requirement that lives in unchanged code", "unchanged code,")
 UV_FORBIDDEN_FILES = (UV_DOC, Path("docs/wave-check.md"), Path("docs/claim-evidence.md"), STATE_SHAPE_DOC,
                       Path("skills/sc-review/SKILL.md"), Path("skills/sc-ship/SKILL.md"),
                       Path("skills/sc-implement/SKILL.md"), Path("skills/ship-cycle/SKILL.md"))
@@ -2035,7 +2043,8 @@ UV_FILE_TOKENS = (
         "Its items are frozen with its findings, before the review-focus list is sent",
         "items it adds after are `postList: true`")),
     ("skills/sc-review/SKILL.md", "Output & severity discipline", (
-        "**Unverifiable from diff** (blind readers only", "no severity",
+        "**Unverifiable from diff** (blind readers only",
+        "the G8 cold lens, the delta pass and the wave check's two passes", "no severity",
         "never a finding until a disposition confirms it",
         "`spec-only`, `spans-tasks` or `needs-running-system`", "not parked here")),
     ("skills/sc-review/SKILL.md", "Triage", (
@@ -2060,7 +2069,12 @@ UV_FILE_TOKENS = (
                                                  "`ownerPresent === true`", "found as a user turn",
                                                  "a `manual-gate` item goes on the pre-merge manual gate")),
     ("skills/sc-ship/SKILL.md", "PR (G12)", ("one **Unverifiable**", "counts by outcome", "`manual-gate`",
-                                             "every `owner-decision` in the owner's words")),
+                                             "every `owner-decision` in the owner's words",
+                                             "Every `state.unverifiable` item whose outcome is "
+                                             "`manual-gate` goes here as its own entry",
+                                             "`item`, `where`, `needs` and the check a reviewer runs")),
+    ("skills/ship-cycle/SKILL.md", "Route plan", ("Non-UI natures may set it later by asking",
+                                                 "docs/unverifiable-from-diff.md")),
     ("skills/sc-retro/SKILL.md", "Dimensions", ("`state.unverifiable`", "\"what blind lenses couldn't see\"",
                                                 "items `confirmed`", "items `parked`",
                                                 "where a cleared item pointed")),

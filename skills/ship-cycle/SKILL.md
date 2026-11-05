@@ -114,7 +114,9 @@ re-deriving its own skip.
 - **UI natures**: the route may name the **live visual loop** inside `sc-implement` (the owner settles the
   looks on the running app; `${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md`) and records whether the owner will
   be present as `state.route.ownerPresent` (only `true` permits an `owner-confirmed` visual check; a nature
-  that grows to a UI nature re-asks it). The loop is part
+  that grows to a UI nature re-asks it). Non-UI natures may set it later by asking — an unverifiable-from-diff
+  `owner-decision` (§`${CLAUDE_PLUGIN_ROOT}/docs/unverifiable-from-diff.md`) grows it to `true` only on the
+  owner's recorded answer. The loop is part
   of sc-implement, not a stage, so it is never skipped as one; the designer lens and its a11y floor join the
   lens floor for a UI nature and no route or Tier S drops them.
 - **Growth only.** Once confirmed, a stage or lens can be added, never removed. Growth comes from: scope or

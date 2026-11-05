@@ -233,10 +233,11 @@ Every lens returns, in this shape:
   "looks fine" in isolation — the cost is cumulative fragmentation, paid invisibly one diff at a time.
   Surface it as **reuse-or-justify**, never a silent pass. This is the review-side backstop for
   sc-design's reuse-before-create gate.
-- **Unverifiable from diff** (blind readers only — the cold lens and the delta pass) — the third bucket,
-  `{item, where, needs, whyNotChecked}` each: no severity, never a finding until a disposition confirms it
-  (§Triage). `whyNotChecked` is `spec-only`, `spans-tasks` or `needs-running-system` — never "unchanged
-  code": a doubt that reading the repo would settle is read and raised or dropped, not parked here.
+- **Unverifiable from diff** (blind readers only — the G8 cold lens, the delta pass and the wave check's two
+  passes) — the third bucket, `{item, where, needs, whyNotChecked}` each: no severity, never a finding until a
+  disposition confirms it (§Triage). `whyNotChecked` is `spec-only`, `spans-tasks` or `needs-running-system` —
+  never "unchanged code": a doubt that reading the repo would settle is read and raised or dropped, not parked
+  here.
 - **Verdict** — a clear merge call: **Yes / No / With-Fixes**, plus 1–2 sentences of reasoning.
 - No verdict without having actually read the code.
 

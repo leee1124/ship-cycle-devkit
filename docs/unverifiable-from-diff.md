@@ -52,25 +52,32 @@ Disposition passes ride on `loops[G8]`, under the orchestrator's loop cap. Outco
   load-bearing claim: the reason cites a `path:line`, a spec line or a command and its output. An uncited
   clearing is no clearing.
 - **`owner-decision: <the owner's words>`** — neither could be evidenced. Allowed **only when
-  `state.route.ownerPresent === true`** and the top-level session finds the owner's answer, quoted verbatim,
-  as a human user turn in its own conversation — the visual-check rule
+  `state.route.ownerPresent === true`** — on any nature it may grow from `false` or absent to `true` here, but
+  **only by actually asking the owner** (the visual-check growth rule) — and the top-level session finds the
+  owner's answer, quoted verbatim, as a human user turn in its own conversation — the visual-check rule
   (§`${CLAUDE_PLUGIN_ROOT}/docs/visual-check.md`); `disposition.by` is `"owner"`. **Before asking**, the
-  disposer states whether the item, if real, falls under the data-integrity or security floor; if it does,
-  the owner decides it as "treated as High until shown otherwise".
+  disposer states whether the item, if real, falls under the data-integrity or security floor; if it does, the
+  owner decides it as "treated as High until shown otherwise".
 - **No owner fails closed.** Without that owner answer, a floor item keeps G8 blocked; any other item is
-  recorded `manual-gate: <why no owner>` and goes on the pre-merge manual gate (§sc-ship G12).
+  recorded `manual-gate: <why no owner>` and goes on the pre-merge manual gate (§sc-ship G12). If nobody
+  answers a floor item, it stays blocked and the loop-cap rule applies: stop, park, ask the user.
 
 **A parked item is a lens miss.** When the disposer finds that `needs` could have been read from the repo
 by the reader itself, the item was parked, not unverifiable: it is `confirmed` at the severity the gap
-implies, with `parked: true`, and sc-retro counts it as parked.
+implies — **no lower than its floor severity** (data-integrity or security ⇒ at least High) — with
+`parked: true` and the rationale in `disposition.evidence`, and sc-retro counts it as parked. Lowering it
+later needs a refuter's evidence, as for any finding (§`${CLAUDE_PLUGIN_ROOT}/docs/claim-evidence.md`).
 
-**One disposition per gap.** An item with the same `where` and `needs` as an earlier one gets
-`sameAs: "UV<n>"` and shares that item's disposition instead of a second one.
+**One disposition per gap.** An item with the same `where`, `needs` **and `tree`** as an earlier one gets
+`sameAs: "UV<n>"` and shares that item's disposition instead of a second one. On a different tree the later
+item gets its own disposition: a `cleared` reason is not inherited without re-citing its evidence on the
+later tree.
 
-**Never silently dropped, never auto-promoted.** An item is not a finding until a disposition confirms it,
-and not gone until one clears it. **G8 does not pass while any item has no disposition**; at the loop cap an
-item still open goes to the owner under the rule above. An item whose `where` a fix removed is still cleared
-with its evidence, not forgotten.
+**Never silently dropped, never auto-promoted.** An item is not a finding until a disposition confirms it, and
+not gone until one clears it. **G8 does not pass while any item has no disposition**; at the loop cap an item
+still open goes to the owner under the rule above — asking them grows `ownerPresent` on any nature, and an
+unanswered floor item stays blocked (stop, park, ask the user). An item whose `where` a fix removed is still
+cleared with its evidence, not forgotten.
 <!-- /unverifiable-disposition -->
 
 ## Record and readers

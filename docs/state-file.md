@@ -87,7 +87,7 @@ the mechanics that only matter when something unusual happens to its name or its
                                 "pinFixedBy": null, "pinFixEvidence": null } }],
   "unverifiable": [{ "id": "UV1", "source": "cold", "tree": "<tree id the reader read>",
                      "item": "<the doubt, one sentence>", "where": "src/a.py:41",
-                     "needs": "<unchanged code, spec line or runtime fact that settles it>",
+                     "needs": "<spec line, cross-task fact or runtime observation that settles it>",
                      "whyNotChecked": "spec-only | spans-tasks | needs-running-system",
                      "postList": false, "sameAs": null,
                      "disposition": { "by": "triage (orchestrator)", "model": "opus", "effort": "high",
@@ -218,10 +218,11 @@ requires one on every item; sc-ship re-asserts it at G11 and sc-retro reads them
 recorded before 0.3.22 sits in `waveReviews[].unresolved` and keeps that path — it is not migrated into
 `unverifiable` and not counted twice; it is dispositioned as an unresolved wave item, as it was.
 
-`route.ownerPresent` (UI natures) says whether the owner will watch the live visual loop. Only `true`
-permits an `owner-confirmed` visual check; absent or `false` fails closed. It has its own rule, not the
-growth-only one: `false → true` is allowed only by asking the owner, and a nature that grows to a UI nature
-re-asks it (or sets `false`).
+`route.ownerPresent` (asked for UI natures; non-UI natures may set it later by asking — an
+unverifiable-from-diff `owner-decision`) says whether the owner will watch the live visual loop or answer.
+Only `true` permits an `owner-confirmed` visual check; absent or `false` fails closed. It has its own rule,
+not the growth-only one: `false → true` is allowed only by asking the owner, and a nature that grows to a UI
+nature re-asks it (or sets `false`).
 
 `debug` (written by sc-implement from each fix report, for a red G5–G7b, a red wave barrier or a G9
 `fail`) is append-only, one entry per hypothesis tested: the `gate` and `failure` it belongs to, the

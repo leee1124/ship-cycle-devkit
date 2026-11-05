@@ -170,7 +170,9 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   look at.
   A `gates.G9: degrade` goes here too, with its reason — and each deferred flow or part of a
   `state.releaseSmoke` entry as its own item, to be run on the release-form artifact (§sc-qa
-  Release-artifact smoke). If none were recorded, say so.
+  Release-artifact smoke). Every `state.unverifiable` item whose outcome is `manual-gate` goes here as its
+  own entry — its `item`, `where`, `needs` and the check a reviewer runs to settle it. If none were
+  recorded, say so.
 - **Release checklist (overlay `releaseChecklist`).** Release steps tracked in someone's head get skipped
   on the one PR that needs them (version bump, signing-key registration, release notes, backend-first
   deploy order, symbol-map upload). Not releaseSmoke (G9: does the release artifact run); this is

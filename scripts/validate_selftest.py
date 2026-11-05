@@ -2924,7 +2924,8 @@ CASES = [
     (
         'state shape unverifiable lacks needs',
         lambda r: mutate(r / "docs" / "state-file.md",
-                         '"needs": "<unchanged code, spec line or runtime fact that settles it>",', ''),
+                         '"needs": "<spec line, cross-task fact or runtime observation that settles it>",',
+                         ''),
         "unverifiable entry lacks 'needs'",
     ),
     (
@@ -2949,8 +2950,8 @@ CASES = [
     (
         'floor not stated before asking the owner',
         lambda r: mutate(r / "docs" / "unverifiable-from-diff.md",
-                         'the owner decides it as "treated as High until shown otherwise"',
-                         'the owner decides'),
+                         'owner decides it as "treated as High until shown otherwise"',
+                         'owner decides'),
         "does not state '\"treated as High until shown otherwise\"'",
     ),
     (
@@ -3045,6 +3046,67 @@ CASES = [
         lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md",
                          '(`ownerPresent === true`, the words found as a user turn)', ''),
         "'## Verify (G11)' does not state '`ownerPresent === true`'",
+    ),
+    (
+        'non-UI owner never asked at disposition',
+        lambda r: mutate(r / "docs" / "unverifiable-from-diff.md",
+                         '**only by actually asking the owner**', 'never'),
+        "does not state '**only by actually asking the owner**'",
+    ),
+    (
+        'unanswered floor item has no cap rule',
+        lambda r: mutate(r / "docs" / "unverifiable-from-diff.md",
+                         'the loop-cap rule applies: stop, park, ask the user', 'it waits'),
+        "does not state 'the loop-cap rule applies: stop, park, ask the user'",
+    ),
+    (
+        'orchestrator keeps ownerPresent UI-only',
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md",
+                         'Non-UI natures may set it later by asking', 'Only UI natures set it'),
+        "'## Route plan' does not state 'Non-UI natures may set it later by asking'",
+    ),
+    (
+        'G12 manual gate omits manual-gate items',
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md",
+                         'Every `state.unverifiable` item whose outcome is `manual-gate` goes here',
+                         'Nothing else goes here'),
+        "'## PR (G12)' does not state 'Every `state.unverifiable` item whose outcome is `manual-gate`",
+    ),
+    (
+        'sameAs links across trees',
+        lambda r: mutate(r / "docs" / "unverifiable-from-diff.md", ' **and `tree`**', ''),
+        "does not state 'same `where`, `needs` **and `tree`**'",
+    ),
+    (
+        'cleared reason inherited across trees',
+        lambda r: mutate(r / "docs" / "unverifiable-from-diff.md",
+                         'not inherited without re-citing its evidence on the\nlater tree', 'inherited'),
+        "does not state 'not inherited without re-citing its evidence on the later tree'",
+    ),
+    (
+        'parked item below its floor',
+        lambda r: mutate(r / "docs" / "unverifiable-from-diff.md",
+                         '**no lower than its floor severity**', 'at any severity'),
+        "does not state '**no lower than its floor severity**'",
+    ),
+    (
+        'parked severity lowered without a refuter',
+        lambda r: mutate(r / "docs" / "unverifiable-from-diff.md",
+                         'Lowering it\nlater needs a refuter\'s evidence', 'It may be lowered freely'),
+        "does not state \"Lowering it later needs a refuter's evidence\"",
+    ),
+    (
+        'state shape needs names unchanged code',
+        lambda r: mutate(r / "docs" / "state-file.md",
+                         '"<spec line, cross-task fact', '"<unchanged code, spec line, cross-task fact'),
+        "states 'unchanged code,'",
+    ),
+    (
+        'sc-review output bucket drops the wave check',
+        lambda r: mutate(r / "skills" / "sc-review" / "SKILL.md",
+                         'the G8 cold lens, the delta pass and the wave check\'s two\n  passes',
+                         'the cold lens and the delta pass'),
+        "does not state \"the G8 cold lens, the delta pass and the wave check's two passes\"",
     ),
 ]
 
