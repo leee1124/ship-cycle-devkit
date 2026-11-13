@@ -815,6 +815,64 @@ def check_route_plan(root: Path, f: Findings) -> None:
                                           "with config n/a exempt")
 
 
+DESIGN_DELTA_TOKENS = ("design.r<n>.md", "finished critic report", "Every round after the first",
+                       "are not to be", "user's own turn", "`decisionQuestions`", "`withdrawn`",
+                       "against the unchanged ones", "more than 40%", "--numstat", "Same model and effort",
+                       "re-entered", "`state.designReview.decisions`", "critic round <n> · delta|full")
+
+
+def check_design_delta(root: Path, f: Findings) -> None:
+    """#109: critic rounds after the first review the design diff, not the whole design again.
+
+    Guards the sc-design rule (snapshot per round, the three delta inputs, confirmed decisions not reopened,
+    the unchanged-vs-changed contradiction check, the full-round triggers, same model, the log evidence),
+    that G3 counts `disputed` as blocking, the documented `designReview` shape, and that /status shows it.
+    """
+    design = root / SKILLS_DIR / "sc-design" / "SKILL.md"
+    if design.is_file():
+        where = shown(design.relative_to(root))
+        text = read(design)
+        sec = re.search(r"^### Repeated critic rounds(.*?)(?=^## )", text, re.M | re.S)
+        if not sec:
+            f.error(where, "no '### Repeated critic rounds' section")
+        else:
+            for token in DESIGN_DELTA_TOKENS:
+                if token not in sec.group(1):
+                    f.error(where, f"Repeated critic rounds does not state {token!r}")
+        gate = re.search(r"^## Gate G2/G3(.*?)(?=^## )", text, re.M | re.S)
+        if not gate or "finished critic round with no `open` item" not in gate.group(1) \
+                or "`disputed` answer counts as `open`" not in gate.group(1):
+            f.error(where, "Gate G2/G3 does not block on a `disputed` objection")
+    doc = root / STATE_SHAPE_DOC
+    if doc.is_file():
+        blocks = re.findall(r"```json\n(.*?)\n```", read(doc), re.S)
+        try:
+            review = json.loads(blocks[0]).get("designReview") if blocks else None
+        except json.JSONDecodeError:
+            review = None
+        rounds = review.get("rounds") if isinstance(review, dict) else None
+        if not isinstance(rounds, list) or not rounds or not isinstance(rounds[0], dict):
+            f.error(shown(STATE_SHAPE_DOC), "state shape has no 'designReview.rounds' entry")
+        else:
+            missing = [k for k in ("round", "mode", "why", "snapshot", "diffFrom", "changedShare", "objections")
+                       if k not in rounds[0]]
+            if missing:
+                f.error(shown(STATE_SHAPE_DOC), f"designReview.rounds[] lacks {missing}")
+            objections = rounds[0].get("objections")
+            if not isinstance(objections, list) or not objections or not all(
+                    k in objections[0] for k in ("status", "answer")):
+                f.error(shown(STATE_SHAPE_DOC), "designReview.rounds[].objections[] lacks status/answer")
+            decisions = review.get("decisions")
+            if not isinstance(decisions, list) or not decisions or not all(
+                    k in decisions[0] for k in ("by", "words")):
+                f.error(shown(STATE_SHAPE_DOC), "designReview lacks 'decisions' with by/words")
+        if "A G2/G3 row written after a finished critic round" not in read(doc):
+            f.error(shown(STATE_SHAPE_DOC), "Gate log does not say a G2/G3 row names the critic round")
+    status = root / "commands" / "status.md"
+    if status.is_file() and "`designReview`" not in read(status):
+        f.error("commands/status.md", "does not show the critic rounds (`designReview`)")
+
+
 ROUTING_RULE_TOKENS = ("Model and effort per stage", "`state.route.routing`", "documented tier",
                        "stated reason", "`state.route.tierMap`", "logs a `route` row", "re-confirmation")
 ROUTING_DOC_TOKENS = ("Documented tier per stage", "`belowTier`", "`upgrade`", "`\"overlay\"`",
@@ -2261,6 +2319,7 @@ def main(argv: list[str]) -> int:
     check_release_checklist(root, f)
     check_heavy_work(root, f)
     check_route_plan(root, f)
+    check_design_delta(root, f)
     check_route_routing(root, f)
     check_visual_check(root, f)
     check_retro(root, f)

@@ -54,6 +54,10 @@ Otherwise parse the JSON and print a compact, scannable status report:
 - **Gate table** — for **G1–G13**, show the value in `gates`: `pass` / `fail` / `—` (not yet reached) /
   a three-way value (`degrade`, `checklist`, `skip`) / `"n/a: <reason>"` (a stage deliberately skipped —
   print the reason, and never fold it in with `fail`).
+- **Design review** from `designReview`, when present: one line per critic round — round, mode (`full` or
+  `delta`, with the reason a later round ran full), `changedShare`, and the count of `open`, `resolved` and
+  `withdrawn` objections — then the confirmed decisions' count and any `decisionQuestions`. Flag a last
+  round with an `open` item while G3 is `pass`.
 - **Route plan** from `route`, when present: one line per stage — `run` or `skip` with its reason — then
   the lenses, the QA form, `confirmedAt` and `basis`, and per stage the routing row from `route.routing`
   (tier → `models` value · `effort` value, the reason, any `upgrade` or `belowTier`) with `route.tierMap`. Absent (a cycle started before 0.3.13, or G1 not yet

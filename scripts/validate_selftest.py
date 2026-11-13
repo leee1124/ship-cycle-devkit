@@ -703,6 +703,68 @@ CASES = [
         "route.basis lacks 'nature'",
     ),
     (
+        "design delta (#109): confirmed decisions may be reopened",
+        lambda r: mutate(r / "skills" / "sc-design" / "SKILL.md", "are not to be", "may be"),
+        "Repeated critic rounds does not state 'are not to be'",
+    ),
+    (
+        "design delta (#109): no check of changed parts against unchanged ones",
+        lambda r: mutate(r / "skills" / "sc-design" / "SKILL.md", "against the unchanged ones", "in isolation"),
+        "Repeated critic rounds does not state 'against the unchanged ones'",
+    ),
+    (
+        "design delta (#109): no full-round threshold",
+        lambda r: mutate(r / "skills" / "sc-design" / "SKILL.md", "more than 40%", "much"),
+        "Repeated critic rounds does not state 'more than 40%'",
+    ),
+    (
+        "design delta (#109): G3 passes with a disputed objection",
+        lambda r: mutate(r / "skills" / "sc-design" / "SKILL.md", "`disputed` answer counts as `open`",
+                         "`disputed` answer is fine"),
+        "Gate G2/G3 does not block on a `disputed` objection",
+    ),
+    (
+        "design delta (#109): the round record loses its mode",
+        lambda r: mutate(r / "docs" / "state-file.md", '"round": 2, "mode": "delta", ', '"round": 2, '),
+        "designReview.rounds[] lacks ['mode']",
+    ),
+    (
+        "design delta (#109): a round may be recorded before the critic returns",
+        lambda r: mutate(r / "skills" / "sc-design" / "SKILL.md", "finished critic report", "critic report"),
+        "Repeated critic rounds does not state 'finished critic report'",
+    ),
+    (
+        "design delta (#109): a full round loses the decisions and prior objections",
+        lambda r: mutate(r / "skills" / "sc-design" / "SKILL.md", "Every round after the first", "A delta round"),
+        "Repeated critic rounds does not state 'Every round after the first'",
+    ),
+    (
+        "design delta (#109): decisions may come from an agent summary",
+        lambda r: mutate(r / "skills" / "sc-design" / "SKILL.md", "user's own turn", "conversation"),
+        "Repeated critic rounds does not state \"user's own turn\"",
+    ),
+    (
+        "design delta (#109): decision records lose the owner's words",
+        lambda r: mutate(r / "docs" / "state-file.md", '"by": "owner", "words": "<the owner\'s words>" }] },',
+                         '"by": "owner" }] },'),
+        "designReview lacks 'decisions' with by/words",
+    ),
+    (
+        "design delta (#109): the gate log no longer names the round",
+        lambda r: mutate(r / "docs" / "state-file.md", "A G2/G3 row written after a finished critic round", "A G2/G3 row"),
+        "Gate log does not say a G2/G3 row names the critic round",
+    ),
+    (
+        "design delta (#109): the section is gone",
+        lambda r: mutate(r / "skills" / "sc-design" / "SKILL.md", "### Repeated critic rounds", "### Rounds"),
+        "no '### Repeated critic rounds' section",
+    ),
+    (
+        "design delta (#109): /status does not show the rounds",
+        lambda r: mutate(r / "commands" / "status.md", "`designReview`", "the rounds"),
+        "does not show the critic rounds",
+    ),
+    (
         "route routing (#111): the orchestrator drops the below-tier reason rule",
         lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "stated reason", "note"),
         "Route plan section does not state 'stated reason'",
