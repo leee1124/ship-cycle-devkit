@@ -23,6 +23,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 VALIDATOR = REPO / "scripts" / "validate.py"
 HOOK_TEST = REPO / "scripts" / "hook_test.py"
+PROMPT_HOOK_TEST = REPO / "scripts" / "prompt_hook_test.py"
 COPY_SKIP = {".git", "__pycache__", ".github"}
 
 
@@ -53,6 +54,29 @@ def run_hook_test(hook: Path) -> tuple[int, str]:
     )
     return proc.returncode, proc.stdout + proc.stderr
 
+
+def run_prompt_hook_test(hook: Path) -> tuple[int, str]:
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
+    proc = subprocess.run(
+        [sys.executable, str(PROMPT_HOOK_TEST), str(hook)],
+        capture_output=True, text=True, encoding="utf-8", errors="replace", env=env,
+    )
+    return proc.returncode, proc.stdout + proc.stderr
+
+
+# Broken copies of the prompt triage hook its behaviour test must reject (#107): (name, old, new, expected).
+PROMPT_HOOK_MUTATIONS = [
+    ("prompt hook is on by default", "if (ON_VALUES.has(flag)) {", "if (true) {", "expected silence"),
+    ("prompt hook drops the visible-decision line", "State the result first, in one line the user can override: ",
+     "", "triage text complete"),
+    ("prompt hook exits non-zero", "process.exitCode = 0;", "process.exitCode = 1;", "silent when"),
+    ("prompt hook echoes the prompt", "  let out = null;\n",
+     "  let out = null;\n  try { out = require(\"fs\").readFileSync(0, \"utf8\"); } catch (_) {}\n",
+     "stdin never closed does not stall"),
+    ("prompt hook names the wrong event", 'hookEventName: "UserPromptSubmit"', 'hookEventName: "SessionStart"',
+     "JSON triage when"),
+    ("prompt hook drops the standalone outcome", "(c) one stage's job", "(c) other work", "triage text complete"),
+]
 
 # Broken copies of the SessionStart hook its behaviour test must reject (#86): (name, old, new, expected).
 HOOK_MUTATIONS = [
@@ -757,6 +781,33 @@ CASES = [
         "design-only (#108): the route bullet is gone",
         lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "- **Design-only route.**", "- Design-only."),
         "Route plan has no Design-only route bullet",
+    ),
+    (
+        "entry triage (#107): a small code change may skip the cycle",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "not a reason to skip", "a reason to skip"),
+        "Entry triage does not state 'not a reason to skip'",
+    ),
+    (
+        "entry triage (#107): the decision is not said out loud",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "Never a silent skip", "Skip quietly"),
+        "Entry triage does not state 'Never a silent skip'",
+    ),
+    (
+        "entry triage (#107): the prompt hook is not registered",
+        lambda r: mutate(r / "hooks" / "hooks.json", '"UserPromptSubmit"', '"UserPromptSubmitted"'),
+        "no hooks.UserPromptSubmit entry",
+    ),
+    (
+        "entry triage (#107): the prompt hook reads the prompt",
+        lambda r: mutate(r / "hooks" / "prompt-triage.cjs", "function main() {",
+                         "function main() {\n  process.stdin.resume();"),
+        "reads stdin, files, the network or a child process",
+    ),
+    (
+        "entry triage (#107): the prompt hook is not opt-in",
+        lambda r: mutate(r / "hooks" / "prompt-triage.cjs", "if (ON_VALUES.has(flag)) {",
+                         "if (ON_VALUES.has(flag) || true) {"),
+        "is not opt-in on SHIP_CYCLE_AUTOSTART",
     ),
     (
         "cross-artifact (#110): the writer may check its own sync alone",
@@ -3422,6 +3473,28 @@ def main() -> int:
                     failures.append(f"[{name}] hook test passed a broken hook")
                 elif expected not in out:
                     failures.append(f"[{name}] expected {expected!r} in hook test output, got:\n{out}")
+                else:
+                    print(f"ok   {name}")
+
+    # The prompt triage hook (#107): its behaviour test passes on the real script and fails on each broken copy.
+    code, out = run_prompt_hook_test(REPO / "hooks" / "prompt-triage.cjs")
+    if code != 0:
+        failures.append(f"scripts/prompt_hook_test.py fails on the real hook:\n{out}")
+    elif out.startswith("skip"):
+        print(out.strip())
+    else:
+        print("ok   prompt triage hook behaviour test passes on the real hook")
+        for name, old, new, expected in PROMPT_HOOK_MUTATIONS:
+            with tempfile.TemporaryDirectory(prefix="scdk self test ") as tmp:
+                hook = Path(tmp) / "hook copy" / "prompt-triage.cjs"
+                hook.parent.mkdir()
+                shutil.copy2(REPO / "hooks" / "prompt-triage.cjs", hook)
+                mutate(hook, old, new)
+                code, out = run_prompt_hook_test(hook)
+                if code == 0:
+                    failures.append(f"[{name}] prompt hook test passed a broken hook")
+                elif expected not in out:
+                    failures.append(f"[{name}] expected {expected!r} in prompt hook test output, got:\n{out}")
                 else:
                     print(f"ok   {name}")
 

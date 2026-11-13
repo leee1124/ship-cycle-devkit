@@ -889,6 +889,56 @@ def check_design_only(root: Path, f: Findings) -> None:
             f.error(shown(STATE_SHAPE_DOC), "state shape has no 'handoff'")
 
 
+PROMPT_HOOK_SCRIPT = Path("hooks/prompt-triage.cjs")
+PROMPT_HOOK_OPT_IN = "SHIP_CYCLE_AUTOSTART"
+ENTRY_TRIAGE_TOKENS = ("## Entry triage", "before PREFLIGHT", "**code change**", "**design-only**",
+                       "**question / research / writing**", "**one stage's job**",
+                       "`triage: <class> → <cycle|standalone <skill>|no cycle> — <reason>`",
+                       "Never a silent skip", "not a reason to skip", "prompt-triage.cjs", PROMPT_HOOK_OPT_IN)
+
+
+def check_entry_triage(root: Path, f: Findings) -> None:
+    """#107: before PREFLIGHT the request is triaged out loud, and the opt-in prompt hook is wired safely.
+
+    Guards the orchestrator's Entry triage section (three classes, the one-line visible decision, no silent
+    skip, small is not a reason to skip), the `UserPromptSubmit` registration (script exists, short timeout),
+    that the script is opt-in on SHIP_CYCLE_AUTOSTART and never reads stdin, and the docs. Behaviour is
+    scripts/prompt_hook_test.py's.
+    """
+    orchestrator = root / SKILLS_DIR / "ship-cycle" / "SKILL.md"
+    if orchestrator.is_file():
+        text = read(orchestrator)
+        for token in ENTRY_TRIAGE_TOKENS:
+            if token not in text:
+                f.error(shown(orchestrator.relative_to(root)), f"Entry triage does not state {token!r}")
+    hooks = load_json(root, HOOKS_JSON, f)
+    entries = hooks.get("hooks", {}).get("UserPromptSubmit") if isinstance(hooks, dict) and \
+        isinstance(hooks.get("hooks"), dict) else None
+    if not isinstance(entries, list) or not entries:
+        f.error(shown(HOOKS_JSON), "no hooks.UserPromptSubmit entry (entry triage)")
+    else:
+        cmds = [h for e in entries if isinstance(e, dict) for h in (e.get("hooks") or []) if isinstance(h, dict)]
+        if not any(PROMPT_HOOK_SCRIPT.as_posix() in HOOK_COMMAND_RE.findall(str(h.get("command", "")))
+                   and h.get("type") == "command"
+                   and isinstance(h.get("timeout"), (int, float)) and 0 < h["timeout"] <= 10 for h in cmds):
+            f.error(shown(HOOKS_JSON), f"UserPromptSubmit does not run {PROMPT_HOOK_SCRIPT} with a timeout <= 10s")
+    script = root / PROMPT_HOOK_SCRIPT
+    if not script.is_file():
+        f.error(shown(PROMPT_HOOK_SCRIPT), "missing")
+    else:
+        body = read(script)
+        if PROMPT_HOOK_OPT_IN not in body or not re.search(r"if \(ON_VALUES\.has\(flag\)\) \{", body) \
+                or "process.exit(" in body:
+            f.error(shown(PROMPT_HOOK_SCRIPT), f"is not opt-in on {PROMPT_HOOK_OPT_IN} (or calls process.exit)")
+        if re.search(r"process\.(stdin|openStdin)|readFileSync|\bimport\(|require\(\s*['\"](node:)?"
+                     r"(fs|child_process|net|http|https|readline)['\"]\s*\)", body):
+            f.error(shown(PROMPT_HOOK_SCRIPT), "reads stdin, files, the network or a child process")
+    for doc in (Path("docs/runtime-adapters.md"), Path("README.md")):
+        text = read(root / doc) if (root / doc).is_file() else ""
+        if "UserPromptSubmit" not in text or PROMPT_HOOK_OPT_IN not in text:
+            f.error(shown(doc), "does not document the opt-in prompt triage hook")
+
+
 CROSS_ARTIFACT_DOC = Path("docs/cross-artifact-check.md")
 CROSS_ARTIFACT_TOKENS = ("more than one\nartifact in scope", "No\nentry is not a pass", "short claim",
                          "path:line", "`consistent`", "`contradicting`", "`stale`",
@@ -2461,6 +2511,7 @@ def main(argv: list[str]) -> int:
     check_release_checklist(root, f)
     check_heavy_work(root, f)
     check_route_plan(root, f)
+    check_entry_triage(root, f)
     check_design_only(root, f)
     check_design_delta(root, f)
     check_route_routing(root, f)

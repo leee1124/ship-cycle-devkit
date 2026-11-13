@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.3.27 — Entry triage: decide out loud whether a request needs a cycle (#107)
+
+- **Why.** Nothing decided whether a request should enter a cycle: it started only on "ship it", and the
+  SessionStart hook reports only a cycle that already exists. Code changes were started outside the kit
+  because the agent judged a cycle unnecessary — bypassing the G1 confirmation the route plan requires.
+- **Entry triage** (§ship-cycle, before PREFLIGHT): classify the request as a **code change** (any commit
+  for review — small is what Tier S is for, not a reason to skip), **design-only** (start a cycle and
+  propose the design-only route, #108), **one stage's job** (that skill standalone — no cycle started and
+  cancelled) or **question / research / writing** (no cycle). Say it first in one line the user can
+  override — `triage: <class> → <cycle|standalone <skill>|no cycle> — <reason>` — never a silent skip; "no
+  cycle" for a code change needs the user's say-so. An active cycle, or an answer to the agent's own
+  question, is not re-triaged. The skill description now asks to be consulted before any code change, so
+  triage runs without the hook too.
+- **Opt-in auto-start hook.** `hooks/prompt-triage.cjs`, registered as `UserPromptSubmit`, adds the triage
+  instruction (naming `ship-cycle-devkit:ship-cycle`) to each prompt when `SHIP_CYCLE_AUTOSTART=on`; silent
+  otherwise. It never reads the prompt, files, the network or a child process, echoes nothing, exits 0 via
+  `exitCode` (no early exit that could cut off the pipe), and decides nothing itself. It is registered for
+  every plugin user, so node starts per prompt even when silent (documented). Codex: `--host codex` prints
+  plain text (not wired by the plugin; `docs/runtime-adapters.md`).
+- **Tests.** `scripts/prompt_hook_test.py` (opt-in values, JSON and plain output, silence when off, no echo,
+  ASCII, huge or never-closed stdin — every run bounded by a timeout), run by the self-test with 6
+  broken-hook copies; `check_entry_triage` (POSIX-safe on Windows) + 5 validator mutations.
+
 ## 0.3.26 — Design-only route: work that ends in a design document (#108)
 
 - **Why.** A data model for another team, a review of an existing design, an interface contract — work that
