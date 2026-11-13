@@ -20,6 +20,7 @@ a review responsibility until the migration lands.
 | cycle state | `.claude/ship-cycle/<branch-slug>.json` | `.codex/ship-cycle/<branch-slug>.json` *(intent — see §Known gaps)* |
 | design-tool adapter (`visualCheck.designTool`) | an installed design skill hooked into UI stages (`visual-check.md`) | not wired: the plain fallbacks apply |
 | session-start reminder (#86) | `hooks/hooks.json` → `SessionStart` (`startup\|clear\|compact`) runs `hooks/session-start.cjs` | not wired by the plugin — see §Session-start hook |
+| prompt triage (#107, opt-in) | `hooks/hooks.json` → `UserPromptSubmit` runs `hooks/prompt-triage.cjs`; silent unless `SHIP_CYCLE_AUTOSTART=on` | not wired by the plugin — add a prompt hook running `node hooks/prompt-triage.cjs --host codex` |
 | host transcript (read by `sc-retro`) | search `~/.claude/projects/*/<session-id>.jsonl` (the cwd slug can change on a directory rename), subagents in `<session-id>/subagents/` | `~/.codex/sessions/<YYYY>/<MM>/<DD>/rollout-<time>-<id>.jsonl` (under `$CODEX_HOME` if set) |
 
 Everything in the skills that reads `${CLAUDE_PLUGIN_ROOT}/docs/…` means "this kit's own `docs/`
@@ -178,3 +179,19 @@ both manifests expose one directory.
 What the script deliberately does not check is whether the *lifecycle* means the same thing on both hosts —
 that is what keeping host-specific detail confined to this file buys. A change that adds a host-specific
 rule to a stage skill is the thing to catch in review.
+
+## Prompt triage hook
+
+**What it does.** With `SHIP_CYCLE_AUTOSTART=on` (also `1`, `true`, `yes`, `enabled`) in the environment
+or a settings `env` block, `hooks/prompt-triage.cjs` adds one fixed instruction to every prompt: classify
+the request (code change → cycle, design-only → design-only route, question/research/writing → no cycle) and
+state the result in one line the user can override (§ship-cycle — Entry triage). Unset or any other value:
+silent. It is opt-in because it adds text to every prompt; the hook itself is registered for every plugin
+user, so node starts on each prompt (about 50–100 ms) even when it stays silent. It tells the model to skip
+the line when a cycle is active or the message answers its own question.
+
+**Contract.** Exit 0 on every path; it never reads stdin (the prompt), files, the network or a child
+process, and its output is a fixed ASCII string — nothing from the prompt or the repo reaches the model
+through it. Claude Code gets `{"hookSpecificOutput": {"hookEventName": "UserPromptSubmit",
+"additionalContext": ...}}`; `--host codex` prints the plain text. `scripts/prompt_hook_test.py` checks it.
+

@@ -34,6 +34,7 @@ Composable skills — a thin orchestrator that chains one short skill per stage 
 | Impl prompt templates | `prompts/impl-{backend,web,mobile}.md` | Stack-specific implementation prompts (adapt to your stack) |
 | Overlay config + schema | `docs/ship-cycle.config.{example,schema}.json` | The per-project config and its JSON Schema |
 | Observability commands | `commands/` | User-invokable `/status` · `/resume` · `/ship` slash commands (read-only by default) |
+| Prompt triage (opt-in) | `hooks/` | `UserPromptSubmit` hook: with `SHIP_CYCLE_AUTOSTART=on`, asks for a one-line entry triage (cycle, standalone skill or none, and why) on each prompt; silent otherwise (node still starts per prompt) |
 | Session-start reminder | `hooks/` | Optional `SessionStart` hook: after startup/`/clear`/compaction, states an active or parked cycle on this branch in three quiet lines (silent otherwise; `SHIP_CYCLE_HOOK=off` disables) |
 
 ## Install

@@ -1,5 +1,5 @@
 {
-  "description": "ship-cycle: on startup/clear/compact, state an active or parked cycle on this branch (silent otherwise). Opt out with SHIP_CYCLE_HOOK=off.",
+  "description": "ship-cycle: on startup/clear/compact, state an active or parked cycle on this branch (silent otherwise; opt out with SHIP_CYCLE_HOOK=off). On each prompt, an opt-in entry triage instruction (SHIP_CYCLE_AUTOSTART=on; silent otherwise).",
   "hooks": {
     "SessionStart": [
       {
@@ -8,6 +8,17 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/session-start.cjs\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/prompt-triage.cjs\"",
             "timeout": 5
           }
         ]

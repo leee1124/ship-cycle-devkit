@@ -1,6 +1,6 @@
 ---
 name: ship-cycle
-description: Orchestrator for a gated development lifecycle. Runs PREFLIGHT (branch guard, size tier, worktree isolation, overlay load, change-nature + risk classification, model/effort routing) then chains the stage skills sc-brainstorm → sc-design → sc-tdd → sc-implement → sc-review → sc-qa → sc-ship, enforcing gates and a loop cap via a per-cycle state file. Framework-agnostic via a project overlay. Triggers "ship it", "run the lifecycle", "ship-cycle", "design to PR".
+description: Orchestrator for a gated development lifecycle. Runs PREFLIGHT (branch guard, size tier, worktree isolation, overlay load, change-nature + risk classification, model/effort routing) then chains the stage skills sc-brainstorm → sc-design → sc-tdd → sc-implement → sc-review → sc-qa → sc-ship, enforcing gates and a loop cap via a per-cycle state file. Framework-agnostic via a project overlay. Triggers "ship it", "run the lifecycle", "ship-cycle", "design to PR"; also consult it before starting any code change, for the entry triage (does this request need a cycle?).
 ---
 
 # ship-cycle — orchestrator
@@ -181,6 +181,31 @@ LLM step: files carry artifacts whole, with no summarizing, token spend or drift
 can silently drop an unresolved critic objection, a gate blocker or failing evidence. Put a model in a
 handoff only for a genuine transformation (extract acceptance criteria, reformat for the next tool), priced
 for that transformation's difficulty.
+
+## Entry triage — does this request need a cycle?
+
+The route plan decides *which* stages run, but only once a cycle has started; before it, nothing decided
+*whether* to start one, and in practice code changes began outside the kit because the agent judged a cycle
+unnecessary — skipping the very confirmation the route plan exists for. So before PREFLIGHT, classify the
+request:
+
+| class | what it is | decision |
+|---|---|---|
+| **code change** | anything that ends in a commit for review — however small | start a cycle (PREFLIGHT); Tier S is how a small one stays cheap, not a reason to skip |
+| **design-only** | the result is a design document, not code | start a cycle and propose the design-only route at G1 (§Route plan) |
+| **one stage's job** | review this branch, critique a design without a sign-off, a parity audit | that skill standalone — no cycle is started and cancelled |
+| **question / research / writing** | an answer, an investigation, a text that is not a repo change | no cycle |
+
+**Say the decision in one line, before acting**, so the user can override it:
+`triage: <class> → <cycle|standalone <skill>|no cycle> — <reason>`. Never a silent skip: "no cycle" for a code change needs the
+user's own say-so, and a request that turns into a code change mid-answer is re-triaged. A cycle already
+active on this branch is continued, not re-triaged, and an answer to a question you asked is not a new request.
+Triage runs when this skill is loaded — on its triggers, or on any code-change request it is consulted for;
+the hook below makes it run on every prompt.
+
+**Auto-start, opt-in.** The plugin ships a `UserPromptSubmit` hook (`hooks/prompt-triage.cjs`) that adds this
+triage instruction to each prompt when `SHIP_CYCLE_AUTOSTART=on`; it is silent otherwise, echoes nothing and
+decides nothing. It is registered for every plugin user, so node starts on each prompt even when it stays silent (§`${CLAUDE_PLUGIN_ROOT}/docs/runtime-adapters.md` — Prompt triage hook).
 
 ## Stage 0 — PREFLIGHT
 
