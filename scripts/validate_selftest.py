@@ -703,6 +703,57 @@ CASES = [
         "route.basis lacks 'nature'",
     ),
     (
+        "route routing (#111): the orchestrator drops the below-tier reason rule",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "stated reason", "note"),
+        "Route plan section does not state 'stated reason'",
+    ),
+    (
+        "route routing (#111): the route table loses its model and effort columns",
+        lambda r: mutate(
+            r / "skills" / "sc-brainstorm" / "SKILL.md",
+            "| stage | plan | why | model · effort | routing why |",
+            "| stage | plan | why |",
+        ),
+        "route plan table has no model and effort columns",
+    ),
+    (
+        "route routing (#111): the documented shape has no routing rows",
+        lambda r: mutate(r / "docs" / "state-file.md", '"routing": {', '"routes": {'),
+        "route has no 'routing' rows",
+    ),
+    (
+        "route routing (#111): a routing row loses belowTier",
+        lambda r: mutate(r / "docs" / "state-file.md", '"upgrade": "schema", "belowTier": null',
+                         '"upgrade": "schema"'),
+        "lacks ['belowTier']",
+    ),
+    (
+        "route routing (#111): no tierMap record when the orchestrator picks models",
+        lambda r: mutate(r / "docs" / "state-file.md", '"tierMap": "overlay" },', '"map": "overlay" },'),
+        "route lacks 'tierMap'",
+    ),
+    (
+        "route routing (#111): the documented-tier table drops the design row",
+        lambda r: mutate(r / "docs" / "model-routing.md", "| design | high (top", "| planning | high (top"),
+        "documented-tier table has no row for 'design'",
+    ),
+    (
+        "route routing (#111): the documented tier for design drifts from sc-design",
+        lambda r: mutate(r / "docs" / "model-routing.md", "| design | high (top", "| design | mid (top"),
+        "documented tier for 'design' is 'mid'",
+    ),
+    (
+        "route routing (#111): the route table drops the routing-why column",
+        lambda r: mutate(r / "skills" / "sc-brainstorm" / "SKILL.md",
+                         "| model · effort | routing why |", "| model · effort | notes |"),
+        "route plan table has no model and effort columns",
+    ),
+    (
+        "route routing (#111): /status does not show the routing rows",
+        lambda r: mutate(r / "commands" / "status.md", "route.routing", "the routing"),
+        "does not show the routing rows",
+    ),
+    (
         "route plan: cancel cleanup deletes a branch PREFLIGHT did not create",
         lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "(`state.branchCreated`) ", ""),
         "Route plan section does not state '`state.branchCreated`'",

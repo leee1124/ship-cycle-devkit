@@ -13,12 +13,51 @@ orchestrator carries only what it needs at resolve time.
   the *kind* of risk rather than always upgrading the same role. Usually 0–1 upgrades per run.
 - **Tier → model bridge (required to execute)**: overlay `modelRouting.tierMap`, e.g.
   `{"top":"opus","high":"opus","mid":"sonnet","low":"haiku"}`. PREFLIGHT resolves each stage's tier into
-  `state.models` and every agent call passes `model = state.models[<stage>]`. Without a tierMap, tiers are
-  advisory only.
+  `state.models` and every agent call passes `model = state.models[<stage>]`. Without a tierMap, PREFLIGHT
+  still writes `state.models`: it maps each tier onto a model the host offers, uses that mapping for every
+  stage, and G1 shows it for the user to confirm (§Shown at G1) — the choice is the orchestrator's, but
+  never unseen.
 - **Bigger levers than tier choice**: prompt caching (cache the repo/diff/design doc), the effort dial, and
   "cheap path first" for implementation — mid tier, verify, escalate only the failing fix. Exception: for
   inherently complex work (novel algorithms, intricate SVG/canvas UI) start at the higher tier, where
   cheap-path-first only buys a wasted failed attempt.
+
+## Shown at G1 — the routing rows of the route plan
+
+PREFLIGHT resolves models and effort before the requirements exist, so nobody has confirmed them yet. The
+route plan's table shows them per stage (§sc-brainstorm, §ship-cycle — Route plan) and the one G1 answer
+confirms them with the criteria. A choice copied from an earlier cycle is exactly what this catches: the
+user sees "design → sonnet" on a schema change and asks before the architects run, not after.
+
+**Documented tier per stage** — the base pyramid; a row below it needs a stated reason (on Tier S, the
+Tier S path is that reason for every row it lowers):
+
+| stage | documented tier | why |
+|---|---|---|
+| brainstorm | high | a wrong problem statement propagates to every later stage |
+| design | high (top on a schema, API-contract or architecture-boundary change) | an interface defect is paid for by every stage after it |
+| tdd | mid | tests are checked by running them; a wrong test fails visibly |
+| implement | mid | verified by build, tests and review; escalate only the failing fix |
+| review | high (top for the matching lens on auth/payment, complex algorithm; style/designer may run lower) | the last independent check before merge |
+| qa | mid | exploration checked against the running system |
+| ship | low (verifier high for the G11 evidence mapping, git-master mid) | mechanics, except the evidence judgment |
+
+Each row of `state.route.routing` is keyed like the stage entries of `state.models` (`design` for
+`sc-design`; `review.security` and `review.wave` ride on the `review` row) — one per stage the route runs,
+brainstorm included — and holds `tier` (as resolved, upgrade
+included), `why` (one line, tied to the cost of being wrong there), `upgrade` (the risk tag that fired, or
+`null`) and `belowTier` (`null`, or the reason a row sits below the documented tier). The concrete model and
+effort stay in `state.models` / `state.effort` — the route row explains them, it does not copy them.
+`state.route.tierMap` is `"overlay"` when overlay `modelRouting.tierMap` resolved the models, and otherwise
+the tier → model object the orchestrator chose and showed, so the confirmation covers it.
+
+A model or effort change after G1 is a route change: re-show the changed rows, update `state.models` /
+`state.effort` and `state.route.routing`, and log a `route` row with the keys it changed as evidence
+(`models.design: sonnet → opus`, `effort.design: high → xhigh`). Raising a row — a higher tier, or the same
+tier at higher effort — is `grew` and only needs telling. Anything else is lowering, the one deliberate
+exception to the route's growth-only rule: `reconfirmed` only on the user's answer; declined, the confirmed
+row stays. `upgrade` mirrors `telemetry.upgrades` for that stage; a basis rise that fires a new upgrade, or
+makes a `belowTier` reason stale, re-shows the row.
 
 ## Why `model=` is passed explicitly
 

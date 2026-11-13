@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.3.23 — Route plan shows the model and effort per stage (#111)
+
+- **Why.** Models and effort were resolved at PREFLIGHT, before the criteria existed, and the route plan the
+  user confirms at G1 showed only `stage | plan | why`. Nobody saw which model ran which stage. A Tier L
+  cycle with a new table and a cross-stack contract ran its design architects on a mid-tier model copied
+  from an earlier cycle, against the kit's own rule (design = high, top on a schema or boundary change); the
+  user caught it only by asking, and the architects were restarted.
+- **The route table grows two columns** (§sc-brainstorm): `model · effort` (`tier → model · effort`, copied
+  from `state.models` / `state.effort`) and `routing why`, one line tied to the cost of being wrong at that
+  stage. A risk upgrade that fired is named on its row; the one G1 answer confirms the routing too.
+- **Below the documented tier needs a stated reason**, the same way a skipped stage does (on Tier S the
+  Tier S path is the reason). `docs/model-routing.md` — Shown at G1 holds the per-stage documented-tier
+  table the rows are read against; the validator keeps it equal to each stage skill's own tier. One row per
+  stage the route runs, brainstorm included, keyed like `state.models`; a `securityReviewModel` pin shows on
+  the review row; a stage that grows to `run` adds its row.
+- **No `tierMap`, no silent pick.** Without overlay `modelRouting.tierMap` tiers were "advisory only" and
+  the orchestrator picked models unseen. Now PREFLIGHT chooses one tier → model mapping from the host's
+  models, writes `state.models` with it, and the table heading shows it for confirmation; it is recorded as
+  `state.route.tierMap` (`"overlay"` when the overlay resolved them). Without an `effortMap`, effort stays
+  advisory.
+- **State.** `route.routing` (keyed like `models`: `tier`, `why`, `upgrade`, `belowTier`) and
+  `route.tierMap`; the models and effort stay in `models` / `effort`. Absent on older cycles.
+- **After G1.** A model or effort change re-shows the changed rows and logs a `route` row naming the
+  `models.<k>` / `effort.<k>` keys: a higher tier, or the same tier at higher effort, is growth; anything
+  else is lowering — the one exception to growth-only — and needs the user's re-confirmation (declined, the
+  row stays). A basis rise re-checks `belowTier` reasons and re-shows a new upgrade. `/status` prints the
+  rows.
+- **Validator.** `check_route_routing` + 9 self-test mutations.
+
 ## 0.3.22 — Unverifiable from diff: the blind lens's third bucket (#91)
 
 - **Why.** A reader that cannot settle a doubt from what it may read meets questions its inputs cannot

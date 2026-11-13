@@ -23,16 +23,25 @@ expensive outcome. This stage ends when the user accepts a design direction — 
    (what may be skipped, what never is, growth-only, standalone) are §ship-cycle — Route plan:
 
    ```markdown
-   Route · size M (PREFLIGHT) · nature web · confirm together with the criteria
-   | stage | plan | why |
-   |---|---|---|
-   | sc-design | skip | copy change; no interface, entry path or contract moves |
-   | sc-tdd | skip | verified by execution: render the screen at 320 dp and read the label |
-   | sc-implement | run | — |
-   | sc-review | run · security, designer, cold | §core 1 — never skipped |
-   | sc-qa | skip | no seam; release smoke still runs if `appliesTo` is touched |
-   | sc-ship | run | — |
+   Route · size M (PREFLIGHT) · nature web · tierMap: overlay · confirm together with the criteria
+   | stage | plan | why | model · effort | routing why |
+   |---|---|---|---|---|
+   | sc-design | skip | copy change; no interface, entry path or contract moves | — | — |
+   | sc-tdd | skip | verified by execution: render the screen at 320 dp and read the label | — | — |
+   | sc-brainstorm | run | — | high → opus · medium | a wrong problem statement reaches every stage |
+   | sc-implement | run | — | mid → sonnet · low | one-file copy edit; a wrong edit shows at review |
+   | sc-review | run · security, designer, cold | §core 1 — never skipped | high → opus · high | the last check before merge; a miss ships |
+   | sc-qa | skip | no seam; release smoke still runs if `appliesTo` is touched | — | — |
+   | sc-ship | run | — | low → haiku · low | mechanics; the G11 verifier runs high from the same map |
    ```
+
+   The **model · effort** column copies `state.models` / `state.effort` as PREFLIGHT resolved them
+   (`tier → model · effort`); **routing why** ties the choice to the cost of being wrong at that stage. Name
+   a risk upgrade that fired on its row (`top → opus (schema)`) and a `securityReviewModel` pin on the review
+   row, and give a reason on any row below the stage's documented tier (on Tier S: "tier S path") (`${CLAUDE_PLUGIN_ROOT}/docs/model-routing.md` — Shown at G1). With no overlay
+   `tierMap`, put the tier → model mapping you chose in the heading line (`tierMap: high→opus,
+   mid→sonnet, low→haiku (chosen here)`) — the user confirms it with the rest. Record the rows as
+   `state.route.routing` and the mapping as `state.route.tierMap`.
 
    `sc-tdd` may be skipped only for a layout, copy or config change. When the criteria reduce to one
    stage's job, say so instead and recommend that skill standalone. For a UI nature, ask whether the owner
@@ -46,7 +55,7 @@ expensive outcome. This stage ends when the user accepts a design direction — 
 
 ## Gate G1 (to advance to `sc-design`)
 - Acceptance criteria are stated **verifiably**, and the user has agreed the direction **and the route
-  plan** — one confirmation for both, not two.
+  plan**, its model and effort rows included — one confirmation for both, not two.
 - Record the agreed problem + acceptance criteria in this cycle's state file
   (`.claude/ship-cycle/<branch-slug>.json`), the route plan as `state.route` with its `confirmedAt` and
   `basis` (the current `size`, `risk` and `nature`), and a `route` / `confirmed` row in the gate log; set

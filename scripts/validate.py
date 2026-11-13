@@ -815,6 +815,88 @@ def check_route_plan(root: Path, f: Findings) -> None:
                                           "with config n/a exempt")
 
 
+ROUTING_RULE_TOKENS = ("Model and effort per stage", "`state.route.routing`", "documented tier",
+                       "stated reason", "`state.route.tierMap`", "logs a `route` row", "re-confirmation")
+ROUTING_DOC_TOKENS = ("Documented tier per stage", "`belowTier`", "`upgrade`", "`\"overlay\"`",
+                      "log a `route` row")
+ROUTING_STAGES = ("brainstorm", "design", "tdd", "implement", "review", "qa", "ship")
+ROUTING_SKILLS = {s: "sc-" + s for s in ROUTING_STAGES}
+
+
+def check_route_routing(root: Path, f: Findings) -> None:
+    """#111: the route plan the user confirms at G1 shows each stage's model and effort with a reason.
+
+    Guards the rule in the orchestrator's Route plan section, sc-brainstorm's route table header (model and
+    effort columns) and its recording into `state.route.routing`, the documented `routing` / `tierMap` shape,
+    the per-stage documented-tier table in model-routing.md (a row per stage, each matching the tier the stage
+    skill's own Model routing section states), and
+    that /status prints it. Whether a given cycle's reasons are good is the user's call at G1.
+    """
+    orchestrator = root / SKILLS_DIR / "ship-cycle" / "SKILL.md"
+    if orchestrator.is_file():
+        where = shown(orchestrator.relative_to(root))
+        sec = re.search(r"^## Route plan(.*?)(?=^## )", read(orchestrator), re.M | re.S)
+        body = sec.group(1) if sec else ""
+        for token in ROUTING_RULE_TOKENS:
+            if token not in body:
+                f.error(where, f"Route plan section does not state {token!r}")
+    brainstorm = root / SKILLS_DIR / "sc-brainstorm" / "SKILL.md"
+    if brainstorm.is_file():
+        where = shown(brainstorm.relative_to(root))
+        text = read(brainstorm)
+        header = re.search(r"^\s*\|\s*stage\s*\|\s*plan\s*\|(.*)\|\s*$", text, re.M)
+        cols = [c.strip() for c in header.group(1).split("|")] if header else []
+        if not any("model" in c and "effort" in c for c in cols) or "routing why" not in cols:
+            f.error(where, "route plan table has no model and effort columns")
+        if "`state.route.routing`" not in text or "`state.route.tierMap`" not in text:
+            f.error(where, "does not record the routing rows as `state.route.routing` / `state.route.tierMap`")
+    doc = root / STATE_SHAPE_DOC
+    if doc.is_file():
+        blocks = re.findall(r"```json\n(.*?)\n```", read(doc), re.S)
+        try:
+            route = json.loads(blocks[0]).get("route") if blocks else None
+        except json.JSONDecodeError:
+            route = None
+        if isinstance(route, dict):
+            routing = route.get("routing")
+            if not isinstance(routing, dict) or not routing:
+                f.error(shown(STATE_SHAPE_DOC), "route has no 'routing' rows")
+            else:
+                for key, row in routing.items():
+                    missing = [k for k in ("tier", "why", "upgrade", "belowTier")
+                               if not isinstance(row, dict) or k not in row]
+                    if missing:
+                        f.error(shown(STATE_SHAPE_DOC), f"route.routing['{key}'] lacks {missing}")
+            if "tierMap" not in route:
+                f.error(shown(STATE_SHAPE_DOC), "route lacks 'tierMap'")
+    routing_doc = root / "docs" / "model-routing.md"
+    if routing_doc.is_file():
+        text = read(routing_doc)
+        sec = re.search(r"^## Shown at G1(.*?)(?=^## )", text, re.M | re.S)
+        body = sec.group(1) if sec else ""
+        if not sec:
+            f.error("docs/model-routing.md", "no '## Shown at G1' section")
+        for token in ROUTING_DOC_TOKENS:
+            if sec and token not in body:
+                f.error("docs/model-routing.md", f"Shown at G1 does not state {token!r}")
+        rows = dict(re.findall(r"^\|\s*([a-z]+)\s*\|\s*([a-z]+)", body, re.M))
+        for stage in ROUTING_STAGES:
+            if sec and stage not in rows:
+                f.error("docs/model-routing.md", f"documented-tier table has no row for '{stage}'")
+                continue
+            skill = root / SKILLS_DIR / ROUTING_SKILLS[stage] / "SKILL.md"
+            if not sec or not skill.is_file():
+                continue
+            model_sec = re.search(r"^## Model routing(.*?)(?=^## |\Z)", read(skill), re.M | re.S)
+            stated = re.search(r"at the \*\*([a-z]+)\*\* tier", model_sec.group(1)) if model_sec else None
+            if stated and stated.group(1) != rows[stage]:
+                f.error("docs/model-routing.md", f"documented tier for '{stage}' is {rows[stage]!r} but "
+                        f"{ROUTING_SKILLS[stage]} says {stated.group(1)!r}")
+    status = root / "commands" / "status.md"
+    if status.is_file() and "route.routing" not in read(status):
+        f.error("commands/status.md", "does not show the routing rows (`route.routing`)")
+
+
 # --- entry point -------------------------------------------------------------------------------
 
 
@@ -2179,6 +2261,7 @@ def main(argv: list[str]) -> int:
     check_release_checklist(root, f)
     check_heavy_work(root, f)
     check_route_plan(root, f)
+    check_route_routing(root, f)
     check_visual_check(root, f)
     check_retro(root, f)
     check_evals(root, f)
