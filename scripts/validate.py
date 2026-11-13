@@ -815,6 +815,80 @@ def check_route_plan(root: Path, f: Findings) -> None:
                                           "with config n/a exempt")
 
 
+DESIGN_ONLY_DOC = Path("docs/design-only-route.md")
+DESIGN_ONLY_TOKENS = ("Chosen at G1, never by the agent alone", '`state.route.kind = "design-only"`',
+                      '"critic-only"', "skip: design-only route", "**straight to sc-ship**",
+                      "`n/a: route — design-only route`", "Critic-only objections", "Document sign-off",
+                      "their words", "Where the docs live", "never removed", "Hand-off to a code cycle",
+                      "`state.handoff", "unpinned")
+DESIGN_ONLY_POINTERS = ("ship-cycle", "sc-brainstorm", "sc-design", "sc-tdd", "sc-implement", "sc-review",
+                        "sc-ship")
+
+
+def check_design_only(root: Path, f: Findings) -> None:
+    """#108: work that ends in a design document has a confirmed route through the kit, not a silent skip.
+
+    Guards the marked rule block (chosen at G1, the two modes, which stages skip, the kept and dropped
+    floors, the sign-off accepted in the user's words, the hand-off), that the orchestrator, sc-brainstorm,
+    sc-design and sc-ship point to it, the G12 row's sign-off clause, and the documented state shape.
+    """
+    doc = root / DESIGN_ONLY_DOC
+    if not doc.is_file():
+        f.error(shown(DESIGN_ONLY_DOC), "missing")
+    else:
+        m = re.search(r"<!-- design-only-rule -->(.*?)<!-- /design-only-rule -->", read(doc), re.S)
+        body = m.group(1) if m else ""
+        for token in DESIGN_ONLY_TOKENS:
+            if token not in body:
+                f.error(shown(DESIGN_ONLY_DOC), f"design-only rule block does not state {token!r}")
+        kept = re.search(r"\*\*Floors that still apply\*\*(.*?)\*\*Floors dropped", body, re.S)
+        dropped = re.search(r"\*\*Floors dropped, because they need code\*\*(.*?)(?=\n\n)", body, re.S)
+        if not kept or "claim evidence" not in kept.group(1) or "critic run until" not in kept.group(1):
+            f.error(shown(DESIGN_ONLY_DOC), "kept floors do not include claim evidence and the critic to zero")
+        if dropped and ("claim evidence" in dropped.group(1) or "critic" in dropped.group(1)):
+            f.error(shown(DESIGN_ONLY_DOC), "dropped floors include claim evidence or the critic")
+    for skill in DESIGN_ONLY_POINTERS:
+        path = root / SKILLS_DIR / skill / "SKILL.md"
+        if not path.is_file():
+            f.error(shown(path.relative_to(root)), "missing (design-only route consumer)")
+        elif "design-only-route.md" not in read(path):
+            f.error(shown(path.relative_to(root)), "does not point to the design-only route")
+    for cmd, token in (("ship.md", "**Design-only route**"), ("resume.md", "On a design-only route")):
+        path = root / "commands" / cmd
+        if path.is_file() and token not in read(path):
+            f.error(f"commands/{cmd}", "has no design-only route branch")
+    orchestrator = root / SKILLS_DIR / "ship-cycle" / "SKILL.md"
+    if orchestrator.is_file():
+        text = read(orchestrator)
+        row = G12_ROW_RE.search(text)
+        if not row or "document sign-off" not in row.group(1):
+            f.error(shown(orchestrator.relative_to(root)), "G12 row has no design-only document sign-off")
+        sec = re.search(r"^## Route plan(.*?)(?=^## )", text, re.M | re.S)
+        bullet = re.search(r"^- \*\*Design-only route\.\*\*(.*?)(?=^- )", sec.group(1), re.M | re.S) if sec else None
+        if not bullet or "design-only-route.md" not in bullet.group(1) or "and keeps `sc-ship`" not in sec.group(1):
+            f.error(shown(orchestrator.relative_to(root)), "Route plan has no Design-only route bullet")
+    shape = root / STATE_SHAPE_DOC
+    if shape.is_file():
+        blocks = re.findall(r"```json\n(.*?)\n```", read(shape), re.S)
+        try:
+            data = json.loads(blocks[0]) if blocks else {}
+        except json.JSONDecodeError:
+            data = {}
+        route = data.get("route") if isinstance(data.get("route"), dict) else {}
+        if route.get("kind") not in ("code", "design-only"):
+            f.error(shown(STATE_SHAPE_DOC), "route.kind is not 'code' or 'design-only'")
+        sign = data.get("signOff")
+        if not isinstance(sign, dict):
+            f.error(shown(STATE_SHAPE_DOC), "state shape has no 'signOff'")
+        else:
+            missing = [k for k in ("docs", "where", "reviewed", "criticRounds", "unresolved", "by", "words")
+                       if k not in sign]
+            if missing:
+                f.error(shown(STATE_SHAPE_DOC), f"signOff lacks {missing}")
+        if not isinstance(data.get("handoff"), dict):
+            f.error(shown(STATE_SHAPE_DOC), "state shape has no 'handoff'")
+
+
 CROSS_ARTIFACT_DOC = Path("docs/cross-artifact-check.md")
 CROSS_ARTIFACT_TOKENS = ("more than one\nartifact in scope", "No\nentry is not a pass", "short claim",
                          "path:line", "`consistent`", "`contradicting`", "`stale`",
@@ -2387,6 +2461,7 @@ def main(argv: list[str]) -> int:
     check_release_checklist(root, f)
     check_heavy_work(root, f)
     check_route_plan(root, f)
+    check_design_only(root, f)
     check_design_delta(root, f)
     check_route_routing(root, f)
     check_visual_check(root, f)

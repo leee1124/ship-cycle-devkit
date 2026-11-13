@@ -102,6 +102,9 @@ pin's passing run at G11, not by the delta lens.
 <!-- /review-focus-cold -->
 
 <!-- review-focus-tier -->
+**Design-only route.** The list is written at G2 into the design doc, unpinned, and is not mapped at G11 —
+no tests run on that route (`${CLAUDE_PLUGIN_ROOT}/docs/design-only-route.md`).
+
 **Tier S and route skips.** When sc-design does not run — a route skip or the Tier S collapse — sc-tdd,
 which runs for any change with a contract, writes the list itself: **at most two** entries, same shape,
 `source: "sc-tdd"`, listed in the G4 report to the user, or `[]` when it checked and found none. When sc-tdd

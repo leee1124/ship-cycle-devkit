@@ -16,7 +16,7 @@ the mechanics that only matter when something unusual happens to its name or its
              "stages": { "sc-design": "skip: config bump, nothing to design", "sc-tdd": "run",
                          "sc-implement": "run", "sc-review": "run", "sc-qa": "run", "sc-ship": "run" },
              "lenses": ["security", "quality", "cold"], "qa": "full bring-up + seam checks",
-             "waveCheck": "run", "ownerPresent": true,
+             "waveCheck": "run", "ownerPresent": true, "kind": "code",
              "routing": { "design": { "tier": "top", "why": "schema change; a wrong interface costs every later stage",
                                       "upgrade": "schema", "belowTier": null } },
              "tierMap": "overlay" },
@@ -34,6 +34,10 @@ the mechanics that only matter when something unusual happens to its name or its
                       "hits": [{ "claim": "C1", "where": "db/comments.sql:42", "verdict": "stale",
                                  "disposition": null }],
                       "writtenBy": "executor (delegated)", "checkedBy": "separate-agent", "result": "blocked" }],
+  "signOff": { "docs": ["docs/design/orders-model.md"], "where": "branch:design/orders-model", "reviewed": "existing design (critic-only)",
+               "criticRounds": 3, "unresolved": 0, "by": "owner", "words": "<the owner's words>", "at": "<iso>" },
+  "handoff": { "from": "<archived gate log path>", "designDocs": ["docs/design/orders-model.md"],
+               "reviewFocus": [] },
   "sizeEvidence": ["src/a.py:41", "src/b.py:88"],
   "baseline": { "capturedOn": "<base-sha>", "source": "local",
                 "run": null,
@@ -229,6 +233,16 @@ trigger did not apply). G2/G3, G5 and G10 need their stage's latest entry, on th
 be `clear` or `n/a: <reason>`; no entry is not a pass. Each run also writes a `cross-artifact` gate-log row. Rules:
 `${CLAUDE_PLUGIN_ROOT}/docs/cross-artifact-check.md`. Absent on a cycle started before 0.3.25.
 
+`route.kind` is `"code"` (the default; absent means the same) or `"design-only"`, with `route.designMode`
+(`"architect+critic"` or `"critic-only"`) on the latter. On a design-only route the code stages are
+`skip: design-only route`, and `sc-implement` and `sc-review` are the two always-run entries it may skip.
+`signOff` (written by sc-ship on a design-only route — `docs` and `where` at G10, the rest at G12) is the
+document sign-off that replaces the PR: the `docs` paths, `where` (`outside`, `branch:<name>` or
+`merge-wanted`), what was `reviewed`, the `criticRounds`, `unresolved` (must be 0) and the user's acceptance in
+their `words` (`by: "owner"`). `handoff` (written at G1 of a code cycle that starts from a signed-off design)
+points at the archived log, the carried `designDocs` and `reviewFocus`. Rules:
+`${CLAUDE_PLUGIN_ROOT}/docs/design-only-route.md`.
+
 `route.waveCheck` is `"run"` or `"skip: <reason>"` on Tier L waved or multi-stack work and absent
 otherwise; it follows the growth-only rule.
 
@@ -394,9 +408,9 @@ compares worktree evidence with it and with `gates`:
 
 | evidence | mismatch it reports | effect |
 |---|---|---|
-| a tree-dependent gate (G5–G9) with any value — `pass`, `degrade`, `checklist`, `fail`, or a diff-dependent `n/a` such as `n/a: Tier S — <reason>` — whose `gateTrees[G]` is missing, or differs from the current tree identity outside the docs globs (§Tree identity). Only a config-based `n/a` (e.g. `n/a: no releaseSmoke config`) is exempt | the gate judged a different tree | clear the gate (clearing G9 also clears every `releaseSmoke` entry, `"n/a"` included — applicability depends on the diff); continue at its owner |
+| a tree-dependent gate (G5–G9) with any value — `pass`, `degrade`, `checklist`, `fail`, or a diff-dependent `n/a` such as `n/a: Tier S — <reason>` — whose `gateTrees[G]` is missing, or differs from the current tree identity outside the docs globs (§Tree identity). Only a config-based `n/a` (e.g. `n/a: no releaseSmoke config`) and, with `route.kind = "design-only"`, `n/a: route — design-only route` are exempt | the gate judged a different tree | clear the gate (clearing G9 also clears every `releaseSmoke` entry, `"n/a"` included — applicability depends on the diff); continue at its owner |
 | uncommitted or untracked files (`git status --porcelain`) | changes while the recorded stage is before `sc-tdd` | report only — tree-dependent gates are judged by the row above |
-| commits since the base (`git log <base>..HEAD`) | code committed while the recorded stage is before `sc-tdd`; a G4/G5 `pass` with no change at all | report; clear a pass that lost its evidence |
+| commits since the base (`git log <base>..HEAD`) | code committed while the recorded stage is before `sc-tdd` (not on a design-only route, whose commits are design docs); a G4/G5 `pass` with no change at all | report; clear a pass that lost its evidence |
 | test files in the diff vs the base | **tests exist but G4 not recorded** | continue at `sc-tdd`, which confirms Red (against the base if code is already there) before recording G4 |
 | a recorded `pass` whose other evidence is gone — a missing artifact path, coverage report or test file | the gate and what vanished | clear the gate; continue at its owner |
 | a gate recorded `pass` for a stage **after** the recorded stage (G8 `pass` while it reads `sc-tdd`) | a pass the pipeline could not have produced yet | clear the gate |

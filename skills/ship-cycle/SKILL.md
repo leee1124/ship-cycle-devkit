@@ -98,7 +98,8 @@ re-deriving its own skip.
 - **Below the tier only for ceremony stages, with a reason the user saw.** `sc-design` and `sc-qa` may be
   skipped; `sc-tdd` only when the change is layout, copy or config (§core 3, the same condition G4
   accepts), with the reason naming its execution-based verification. `sc-implement`, `sc-review` and
-  `sc-ship` always run. No route drops a §core outcome or a fail-closed floor: branch guard, the pre-PR
+  `sc-ship` always run (the design-only route below is the one exception, and keeps `sc-ship`; with no code and
+  no PR, its pre-PR floors have nothing to apply to). No route drops a §core outcome or a fail-closed floor: branch guard, the pre-PR
   independent review, real-output pass/fail, the conflict check, root-cause analysis before a defect fix,
   triage, the G7b boot smoke, a touched release smoke (§sc-qa). The stage reached records
   `gates.<G> = "n/a: route — <reason>"`, so G12 counts it like any other `n/a`.
@@ -152,6 +153,14 @@ re-deriving its own skip.
   criteria or the tests. A clear does not count against `loops`. G12 refuses an `n/a: route` gate whose
   route entry is now `run`, and any other whole-stage `n/a` (G2/G3, G4, G9) whose entry is `run`, unless
   it is a config `n/a` (`n/a: no <x> config`) — §sc-ship G12 and the G12 row below.
+- **Design-only route.** When the criteria end in a design document rather than a PR — a data model for
+  another team, a review of an existing design, an interface contract — the route may be
+  `state.route.kind = "design-only"`, confirmed at G1 like any route: `sc-design` runs (architect + critic,
+  or critic only on an existing design), the code stages are `skip: design-only route`, and `sc-ship`
+  replaces the PR with a document sign-off. It is the one route where `sc-implement` and `sc-review` do not
+  run — the critic, a separate agent run to zero objections, is the independent review — and it keeps every
+  floor that does not need code (§`${CLAUDE_PLUGIN_ROOT}/docs/design-only-route.md`). Choosing it is never
+  the agent's call alone: "it is design only" outside a confirmed route is the skip this rule exists to stop.
 - **One stage's job → no cycle.** When the criteria reduce to a single stage's work ("just review this
   branch", "just critique the design", a parity audit), recommend that skill standalone — `sc-review`,
   `sc-design`, `sc-audit` — over a pipeline. If the user takes it, end the cycle `cancelled` with a log row
@@ -323,8 +332,8 @@ release valve, §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Parking) — and
 | G9 | 0 new defects in integration/E2E vs `state.baseline` (ignoring `unrunnableHere`; `flaky` not exempt; under `ci-status-only` every defect blocks unless its suite is in `run.rechecked`); seams reproduced; ITs that **can** run here actually ran; release-artifact smoke when `appliesTo` is touched (§sc-qa Release-artifact smoke) | → sc-implement, red-gate protocol |
 | G10 | docs matching the change exist + cross-artifact check `clear` or `n/a` (§`${CLAUDE_PLUGIN_ROOT}/docs/cross-artifact-check.md`) | writer (a hit outside the docs globs → sc-implement) |
 | G11 | every claim mapped 1:1 to a test/build/QA log; a UI nature's looks → `state.visualCheck`: appearance only; not stale; `ownerPresent` true (owner-confirmed on a profile; otherwise the pre-merge manual gate) | rework |
-| G12 | build+test+review+QA passed, and every matched overlay `releaseChecklist` item ran green or (`manual`) is on the pre-merge manual gate — a `degrade` G9 / `checklist` G7b or G6 counts **only** when its item is on the pre-merge manual gate (a `deferred` release smoke included), and an `"n/a: <reason>"` gate counts with its reason carried to the PR body (not a whole-stage G2/G3, G4 or G9 `n/a` whose route entry is `run`, unless it is a config `n/a`); **branch merges cleanly into** overlay `vcs.defaultBase` (merge-tree probe + host `mergeable`); PR body's **Gate summary** matches a fresh render from state + log, re-checked right before merge | merge base + resolve, re-verify |
-| G13 | merged branch deleted (local + remote); feature worktree removed if created (**linked dep stores unlinked first**, never deleted through); cycle state file deleted; gate log archived, not deleted; base synced | — |
+| G12 | build+test+review+QA passed, and every matched overlay `releaseChecklist` item ran green or (`manual`) is on the pre-merge manual gate — a `degrade` G9 / `checklist` G7b or G6 counts **only** when its item is on the pre-merge manual gate (a `deferred` release smoke included), and an `"n/a: <reason>"` gate counts with its reason carried to the PR body (not a whole-stage G2/G3, G4 or G9 `n/a` whose route entry is `run`, unless it is a config `n/a`); **branch merges cleanly into** overlay `vcs.defaultBase` (merge-tree probe + host `mergeable`); PR body's **Gate summary** matches a fresh render from state + log, re-checked right before merge; on a design-only route the whole condition is replaced by the document sign-off accepted in the user's words (§`${CLAUDE_PLUGIN_ROOT}/docs/design-only-route.md`) | merge base + resolve, re-verify |
+| G13 | merged branch deleted (local + remote); feature worktree removed if created (**linked dep stores unlinked first**, never deleted through); cycle state file deleted; gate log archived, not deleted; base synced; on a design-only route a kept docs branch is not deleted and a worktree holding uncommitted sign-off docs is not removed | — |
 
 **Red-gate protocol** — every build-fixer or debugger the "On failure" column sends reproduces first, then
 tests one evidenced hypothesis per minimal change and records each in `state.debug`; fix rounds count

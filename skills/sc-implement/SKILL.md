@@ -5,6 +5,9 @@ description: Stage 4 of ship-cycle. Implement minimal code to pass the failing t
 
 # sc-implement — Green + build (Stage 4)
 
+On a design-only route (`state.route.kind = "design-only"`) this stage is never entered: the orchestrator
+records G5–G7b `n/a: route — design-only route` (`${CLAUDE_PLUGIN_ROOT}/docs/design-only-route.md`).
+
 Make the failing tests pass with the **minimum** code, then refactor. Update docs in the same change. Where
 §core 3 chose execution-based verification over test-first — a layout, copy or config change arriving with
 no failing tests — implement it and run that named verification instead; the rest of the stage is unchanged.

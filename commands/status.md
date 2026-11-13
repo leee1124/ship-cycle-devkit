@@ -62,6 +62,10 @@ Otherwise parse the JSON and print a compact, scannable status report:
   claim count, `writtenBy` / `checkedBy` and every undispositioned `contradicting` or `stale` hit with its
   `path:line`. Flag a stage whose gate (G2/G3, G5, G10) is `pass` while its latest entry is `blocked`,
   missing, from another tree, or checked by its writer.
+- **Design-only route**: when `route.kind` is `"design-only"`, say so first with `route.designMode`, and
+  show `signOff` (docs, where, rounds, unresolved; "pending acceptance" until `words` is set) where G12 would
+  be, and G4–G9 as the route's `n/a`, not as unreached. Show `handoff` when a code
+  cycle started from a signed-off design.
 - **Route plan** from `route`, when present: one line per stage — `run` or `skip` with its reason — then
   the lenses, the QA form, `confirmedAt` and `basis`, and per stage the routing row from `route.routing`
   (tier → `models` value · `effort` value, the reason, any `upgrade` or `belowTier`) with `route.tierMap`. Absent (a cycle started before 0.3.13, or G1 not yet
