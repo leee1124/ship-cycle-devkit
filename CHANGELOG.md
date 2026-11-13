@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.3.25 — Cross-check delegated document outputs before a stage reports done (#110)
+
+- **Why.** One decision sometimes has to land in several documents — requirements, design notes, generated
+  table comments, the Q&A record. A delegated agent synced them and reported done, but left wording in some
+  that contradicted the decision (a rule stated one way in the design notes, the reverse in a table
+  comment). The orchestrator found them later by hand.
+- **`docs/cross-artifact-check.md`** states the rule once. Trigger: the stage changed a fact and more than
+  one artifact in scope states it (edited, delegated, or an untouched copy). Then: list each changed decision
+  as a short claim; grep every artifact in scope — the changed files plus every artifact of the same kinds
+  the cycle owns, on the integrated tree across stacks — for its terms and the old wording; report each hit
+  `consistent`, `contradicting` or `stale` with `path:line`.
+- **Blocking.** A contradicting or stale hit blocks the stage like an unresolved objection; the writer fixes
+  it and a re-run must read it consistent (`fixed`), or it is `filed: #NN` when the artifact is not the
+  cycle's. **No entry is not a pass**: the stage records `n/a: <reason>` when the trigger did not apply.
+- **Not by the writer.** An agent other than the writer runs it (a separate agent, or the orchestrator
+  checking a delegated writer); a same-agent pass does not count; with no second agent the owner checks the
+  hit list, else the manual gate. It is an outcome — Tier S does not drop it.
+- **Where.** sc-design before G2/G3 (after the critic's last round; G1's criteria and Q&A record included —
+  sc-implement owns them when sc-design is skipped), sc-implement before G5, sc-ship before G10 (a hit outside
+  the docs globs routes back to sc-implement, keeping tree identity). The gate rows name it. Each entry in
+  `state.crossArtifact` carries its `tree` (another tree's entry is no entry), `writtenBy` and `checkedBy`,
+  plus a gate-log sub-check row; `/status` flags a passed gate with a missing, blocked, stale-tree or
+  self-checked entry.
+- **Validator.** `check_cross_artifact` + 13 self-test mutations.
+
 ## 0.3.24 — sc-design: delta mode for repeated critic rounds (#109)
 
 - **Why.** A large design took several critic rounds before G3 passed, and each round re-reviewed the whole

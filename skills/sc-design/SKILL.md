@@ -145,6 +145,9 @@ against the section it points to.
 - G3: the critic's unresolved-objection list is **empty** (not "addressed later" — resolved): the last
   entry of `state.designReview.rounds` is a finished critic round with no `open` item — an unruled
   `disputed` answer counts as `open`.
+- **Cross-artifact check**: after the critic's last round, sc-design's latest `state.crossArtifact` entry
+  is `clear` or `n/a: <reason>` — design notes, acceptance criteria and G1's Q&A record, checked by someone
+  other than the writer; a fix after G3 re-opens the critic (`${CLAUDE_PLUGIN_ROOT}/docs/cross-artifact-check.md`).
 - Set `gates.G2 = pass`, `gates.G3 = pass`. On unresolved objections, loop within this stage
   (respect the orchestrator's loop cap).
 

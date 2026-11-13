@@ -9,6 +9,9 @@ description: Stage 7 of ship-cycle. Documentation + evidence-based verification 
 Update README/CHANGELOG/API docs/comments to match the change **in this same change**. G10 passes when
 `git diff --name-only <base>...HEAD` includes a doc file, or the PR body gives an explicit
 "no docs needed" reason.
+G10 also needs this stage's latest `state.crossArtifact` entry, on the current tree, to be `clear` or
+`n/a: <reason>` — the cross-artifact check, by its trigger, run by someone other than the writer; a blocking
+hit outside the docs globs routes back to sc-implement (`${CLAUDE_PLUGIN_ROOT}/docs/cross-artifact-check.md`).
 Record it: `gates.G10 = pass` in state before moving on (a no-docs reason is a pass — the reason lives in the
 PR body) — a cycle interrupted later in sc-ship then resumes past the docs check instead of re-deciding it.
 Keep G10 edits inside the docs globs: they are the only change the recorded `gateTrees` of G5–G9 tolerate;

@@ -27,6 +27,13 @@ the mechanics that only matter when something unusual happens to its name or its
                                                     "answer": "fixed: §Data model", "where": "§Data model" }],
                                    "decisionQuestions": [] }],
                     "decisions": [{ "id": "D1", "decision": "<short>", "by": "owner", "words": "<the owner's words>" }] },
+  "crossArtifact": [{ "stage": "sc-design", "at": "<iso>", "tree": "<tree id it read>",
+                      "claims": [{ "id": "C1", "claim": "refresh tokens are deleted on password reset",
+                                   "terms": ["refresh token", "password reset", "revoke"] }],
+                      "scope": ["<artifact dir>/design.md", "docs/**", "db/comments.sql"],
+                      "hits": [{ "claim": "C1", "where": "db/comments.sql:42", "verdict": "stale",
+                                 "disposition": null }],
+                      "writtenBy": "executor (delegated)", "checkedBy": "separate-agent", "result": "blocked" }],
   "sizeEvidence": ["src/a.py:41", "src/b.py:88"],
   "baseline": { "capturedOn": "<base-sha>", "source": "local",
                 "run": null,
@@ -211,6 +218,16 @@ reopen, with the answer). `designReview.decisions` lists what the user confirmed
 only from the user's own turn with their words verbatim (`by: "owner"`, `ownerPresent` true); no round
 reopens them. G3 needs the last entry to have no `open` objection. A snapshot file that is gone makes the
 next round full. Rules: §sc-design — Repeated critic rounds. Absent on a cycle started before 0.3.24.
+
+`crossArtifact` (written by sc-design, sc-implement and sc-ship, one entry per run of the check or per
+recorded non-trigger) is append-only: the `stage`, the `tree` it read (§Tree identity), the `claims` with
+their grep `terms`, the `scope` grepped, every `hit` with `where` (`path:line`), `verdict` (`consistent`,
+`contradicting` or `stale`) and `disposition` (`null`, `fixed` after a re-run read it consistent, or
+`filed: #NN` for an artifact the cycle does not own), `writtenBy`, `checkedBy` (`separate-agent`,
+`orchestrator` or `owner` — never the writer) and `result` (`clear`, `blocked`, or `n/a: <reason>` when the
+trigger did not apply). G2/G3, G5 and G10 need their stage's latest entry, on the tree the gate passes on, to
+be `clear` or `n/a: <reason>`; no entry is not a pass. Each run also writes a `cross-artifact` gate-log row. Rules:
+`${CLAUDE_PLUGIN_ROOT}/docs/cross-artifact-check.md`. Absent on a cycle started before 0.3.25.
 
 `route.waveCheck` is `"run"` or `"skip: <reason>"` on Tier L waved or multi-stack work and absent
 otherwise; it follows the growth-only rule.
@@ -441,7 +458,8 @@ header; every transition after that appends **one row**:
 - **stage** — the stage recorded in state when the line is written (one of §Stage values).
 - **gate** — the gate id as the gate table writes it (`G7b`, `G2/G3`), `—` for a stage change, or `route`
   for a route-plan change (written by sc-brainstorm at G1, and by whoever grows or re-confirms the route —
-  the orchestrator, a stage's "Route first" check, sc-tdd finding a contract).
+  the orchestrator, a stage's "Route first" check, sc-tdd finding a contract), or `cross-artifact` for a run
+  of the cross-artifact check (result `clear`, `blocked` or `n/a: <reason>`).
 - **result** — exactly the value written to `gates` (`pass`, `fail`, `degrade`, `checklist`, `skip`,
   `n/a: <reason>` with the reason verbatim), plus `(loop n/3)` on a `fail`; for a stage change `enter`,
   `parked`, `resume` or the terminal value; for a `route` row `confirmed`, `grew` or `reconfirmed`
@@ -465,7 +483,9 @@ means verbatim up to the cap.
 <!-- /gate-log-cell-escaping -->
 
 **Route rows** (gate `route`) are not a gate: the Gate summary and the reconcile skip them, and sc-ship
-renders the latest one as a line under the summary table.
+renders the latest one as a line under the summary table. **Cross-artifact rows** (gate `cross-artifact`,
+one per run of the check — `${CLAUDE_PLUGIN_ROOT}/docs/cross-artifact-check.md`) are not a gate either and
+are skipped the same way; the gate they feed reads `state.crossArtifact`.
 
 **Sub-check rows.** sc-ship's release checklist (overlay `releaseChecklist`) appends one row per item
 with `gate` = `G12` and evidence `releaseChecklist.<id>: exit 0 · tree <prefix>`. These are sub-check rows,
