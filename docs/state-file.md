@@ -20,6 +20,13 @@ the mechanics that only matter when something unusual happens to its name or its
              "routing": { "design": { "tier": "top", "why": "schema change; a wrong interface costs every later stage",
                                       "upgrade": "schema", "belowTier": null } },
              "tierMap": "overlay" },
+  "designReview": { "rounds": [{ "round": 2, "mode": "delta", "why": null,
+                                   "snapshot": "<artifact dir>/design.r2.md", "diffFrom": "<artifact dir>/design.r1.md",
+                                   "changedShare": 0.12,
+                                   "objections": [{ "id": "O3", "text": "<short>", "status": "resolved",
+                                                    "answer": "fixed: §Data model", "where": "§Data model" }],
+                                   "decisionQuestions": [] }],
+                    "decisions": [{ "id": "D1", "decision": "<short>", "by": "owner", "words": "<the owner's words>" }] },
   "sizeEvidence": ["src/a.py:41", "src/b.py:88"],
   "baseline": { "capturedOn": "<base-sha>", "source": "local",
                 "run": null,
@@ -192,6 +199,18 @@ keyed like the stage entries of `models` — `tier`,
 overlay `tierMap` (§`${CLAUDE_PLUGIN_ROOT}/docs/model-routing.md` — Shown at G1). The models and effort
 themselves stay in `models` and `effort`. A change after G1 logs a `route` row naming the `models.<k>` /
 `effort.<k>` keys it changed; lowering a row needs the user's re-confirmation. Absent on a cycle started before 0.3.23.
+
+`designReview` (written by sc-design from each **finished** critic report — never before the critic
+returns) is append-only, one entry per round: `round` (numbered on across loop-backs), `mode` (`full` or
+`delta`) with `why` (the reason a later round ran full, else `null`), the `snapshot` the critic read and the
+one it was diffed from (`diffFrom`, `null` on a full round), `changedShare` (added + deleted lines over the
+larger snapshot's line count, `null` on round 1), the round's `objections` — `status` as the critic ruled
+(`open`, `resolved` or `withdrawn`) and the architect's `answer` (`fixed: <where>` or `disputed: <evidence>`,
+input to the next round) — and `decisionQuestions` (a confirmed decision the critic asked the user to
+reopen, with the answer). `designReview.decisions` lists what the user confirmed during design, written
+only from the user's own turn with their words verbatim (`by: "owner"`, `ownerPresent` true); no round
+reopens them. G3 needs the last entry to have no `open` objection. A snapshot file that is gone makes the
+next round full. Rules: §sc-design — Repeated critic rounds. Absent on a cycle started before 0.3.24.
 
 `route.waveCheck` is `"run"` or `"skip: <reason>"` on Tier L waved or multi-stack work and absent
 otherwise; it follows the growth-only rule.
@@ -430,7 +449,8 @@ header; every transition after that appends **one row**:
   routing change the `models.<k>` / `effort.<k>` keys); `cleared` for
   a reconcile clear; `deferred: <part>` for each manual-gate deferral as it is recorded.
 - **evidence** — a short pointer, never the evidence itself: a path, a test id, a tree id prefix, a job id,
-  a CI link; `—` when there is none.
+  a CI link; `—` when there is none. A G2/G3 row written after a finished critic round names the round and
+  its mode: `critic round <n> · delta|full · <k> open` (§sc-design — Repeated critic rounds).
 
 <!-- gate-log-cell-escaping -->
 **Cell escaping — one rule, applied exactly once, by whoever writes a cell from raw text:** first each

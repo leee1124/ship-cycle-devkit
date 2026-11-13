@@ -96,9 +96,55 @@ A separate agent attacks the design (the **union** of all architect docs when th
   + model routing (Stage 0.4) and add the missing implementer axis, then finish the design for the true scope.
 - Return a list of objections. Iterate design ↔ review until the list is **empty**.
 
+### Repeated critic rounds — the delta mode
+A round after the first re-reviews **what changed**, not the whole design again. Re-reading every section
+re-pays round 1 for text nobody touched, and a critic with no memory of the last round re-raises points the
+user already settled. Each round is recorded in `state.designReview.rounds` (shape:
+`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md`). Unlike sc-review's delta pass, this critic does see the
+architect's answers — a design has no test to settle a fix, so the answer is the claim under test, checked
+against the section it points to.
+
+- **Snapshot every round.** Before the critic reads round *n*, copy the design doc to
+  `<artifact dir>/design.r<n>.md` and record the path, so the diff is mechanical, not remembered. A split
+  design's union is concatenated in a fixed order — round 1's architect slice order, each slice under its
+  heading — so the order alone never makes a diff. Rounds are numbered on from the last one, a loop-back
+  included.
+- **A round is recorded only from a finished critic report.** The critic's output is authoritative for its
+  round: every objection it lists is `open`. Between rounds the architect answers each one —
+  `fixed: <where>` or `disputed: <evidence>` — and those answers are input to the next round, never a status
+  written into the round being gated.
+- **Every round after the first gets three inputs**, whatever its mode: the design diff since the last round;
+  the last round's objections with the architect's answers; and the decisions the user confirmed
+  (`state.designReview.decisions`), which **are not to be reopened**. A decision is recorded only from the
+  user's own turn, their words verbatim (`by: "owner"`), with `state.route.ownerPresent === true` (asked, as
+  any route may, by asking); an agent's summary is not one, and with no owner present no decision is
+  recorded — the critic's objection stays. A critic that believes a confirmed decision is wrong asks the user
+  once (`decisionQuestions` in the round record): "reopen" turns it into an `open` objection, "keep" closes
+  the question, and no owner answer leaves the decision standing and the question on the record.
+- **Three jobs, one critic**: (1) rule each prior objection against its answer — `resolved` only when the
+  fix holds in the changed section (open it, not the account), `withdrawn` with the reason when a dispute
+  holds, else it stays `open`; (2) attack the changed parts as a first read would; (3) check the changed
+  parts **against the unchanged ones** for new contradictions — a renamed field, a moved boundary, a scope
+  assumption one section now breaks.
+- **Same model and effort** as round 1 (`state.models['design']`, `state.effort['design']`). Delta narrows
+  scope, never judgment.
+- **Run a full round instead** — the critic re-reads the whole doc, still with the three inputs — when: the
+  user or orchestrator asks; the diff changes **more than 40% of the design doc's lines**
+  (`changedShare` = added + deleted lines from `git diff --no-index --numstat` of the two snapshots, over the
+  larger snapshot's line count); the change reaches an axis or seam no previous round read, or changes a seam
+  signature or contract another axis relies on; a bake-off synthesis replaced the doc; the stage is re-entered
+  after G3 passed (a loop-back); or the previous snapshot is missing. The reason goes in the round record.
+- **G3 reads the last finished round**: zero `open` objections in the critic's own output — an architect's
+  `fixed` or `disputed` answer that no later round ruled on is still `open`.
+- **Log every finished round** as a G2/G3 row whose evidence is `critic round <n> · delta|full · <k> open`:
+  `pass` at zero, otherwise `fail (loop n/3)`, counted against the gate's loop cap as before
+  (§`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Gate log).
+
 ## Gate G2/G3 (to advance to `sc-tdd`)
 - G2: interfaces are specified concretely, and `state.reviewFocus` is written (`[]` when checked and empty).
-- G3: the critic's unresolved-objection list is **empty** (not "addressed later" — resolved).
+- G3: the critic's unresolved-objection list is **empty** (not "addressed later" — resolved): the last
+  entry of `state.designReview.rounds` is a finished critic round with no `open` item — an unruled
+  `disputed` answer counts as `open`.
 - Set `gates.G2 = pass`, `gates.G3 = pass`. On unresolved objections, loop within this stage
   (respect the orchestrator's loop cap).
 

@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.3.24 — sc-design: delta mode for repeated critic rounds (#109)
+
+- **Why.** A large design took several critic rounds before G3 passed, and each round re-reviewed the whole
+  design. Later rounds cost the most while only a few sections had changed, and the critic re-raised points
+  the user had already settled.
+- **Snapshot per round.** The critic reads `<artifact dir>/design.r<n>.md` (a split design's union in a
+  fixed slice order), so the diff between rounds is mechanical; rounds number on across loop-backs.
+- **A round is the critic's.** It is recorded only from a finished critic report, which is authoritative:
+  its objections are `open`. The architect's answers (`fixed: <where>` / `disputed: <evidence>`) are input
+  to the next round, and only that critic rules an item `resolved` or `withdrawn` — so G3 cannot pass on the
+  architect's own marks.
+- **Every round after the first gets three inputs**, full or delta: the design diff since the last round, the
+  last objections with their answers, and the decisions the user confirmed (`state.designReview.decisions`).
+  Those are not reopened; a decision is recorded only from the user's own turn, verbatim, with
+  `ownerPresent` true. A critic that disagrees asks the user once (`decisionQuestions`).
+- **Three jobs**: rule each prior objection against its answer (open the section, not the account), attack
+  the changed parts, and check them against the unchanged ones for new contradictions.
+- **Full round instead** on request; when `changedShare` (added + deleted lines from `--numstat` over the
+  larger snapshot) is above 40%; when the change reaches a new axis or seam or changes a seam signature;
+  after a bake-off synthesis; on re-entry after G3; or with no snapshot. Same model and effort either way.
+- **G3 and the log.** G3 reads the last finished round: zero `open`, an unruled `disputed` answer counting
+  as `open`. Every finished round logs a G2/G3 row `critic round <n> · delta|full · <k> open` — `pass`, or
+  `fail (loop n/3)` under the same loop cap. `/status` prints the rounds.
+- **Validator.** `check_design_delta` + 12 self-test mutations.
+
 ## 0.3.23 — Route plan shows the model and effort per stage (#111)
 
 - **Why.** Models and effort were resolved at PREFLIGHT, before the criteria existed, and the route plan the
