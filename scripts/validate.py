@@ -815,6 +815,73 @@ def check_route_plan(root: Path, f: Findings) -> None:
                                           "with config n/a exempt")
 
 
+CROSS_ARTIFACT_DOC = Path("docs/cross-artifact-check.md")
+CROSS_ARTIFACT_TOKENS = ("more than one\nartifact in scope", "No\nentry is not a pass", "short claim",
+                         "path:line", "`consistent`", "`contradicting`", "`stale`",
+                         "A `contradicting` or `stale` hit blocks the stage", "integrated tree",
+                         "an agent other than the one that wrote the change", "does not count",
+                         "not evidence", "`checkedBy: \"owner\"`", "Tier S does not drop it")
+CROSS_ARTIFACT_CONSUMERS = (("sc-design", "Gate G2/G3"), ("sc-implement", "Verify (this stage"),
+                            ("sc-ship", "Docs (G10)"))
+
+
+def check_cross_artifact(root: Path, f: Findings) -> None:
+    """#110: a decision applied across several artifacts is grepped for contradictions before a stage is done.
+
+    Guards the marked rule block (claims, grep, three verdicts with path:line, blocking, not the writer
+    alone), that the three consuming stages name the doc in the section that sets their gate, the gate-table
+    rows, and the documented `crossArtifact` shape.
+    """
+    doc = root / CROSS_ARTIFACT_DOC
+    if not doc.is_file():
+        f.error(shown(CROSS_ARTIFACT_DOC), "missing")
+    else:
+        m = re.search(r"<!-- cross-artifact-rule -->(.*?)<!-- /cross-artifact-rule -->", read(doc), re.S)
+        body = m.group(1) if m else ""
+        for token in CROSS_ARTIFACT_TOKENS:
+            if token not in body:
+                f.error(shown(CROSS_ARTIFACT_DOC), f"cross-artifact rule block does not state {token!r}")
+    for skill, heading in CROSS_ARTIFACT_CONSUMERS:
+        path = root / SKILLS_DIR / skill / "SKILL.md"
+        if not path.is_file():
+            f.error(shown(path.relative_to(root)), "missing (cross-artifact consumer)")
+            continue
+        sec = re.search(r"^## " + re.escape(heading) + r"(.*?)(?=^## |\Z)", read(path), re.M | re.S)
+        body = sec.group(1) if sec else ""
+        if "cross-artifact-check.md" not in body or "state.crossArtifact" not in body:
+            f.error(shown(path.relative_to(root)),
+                    f"'{heading}' does not require the cross-artifact check (`state.crossArtifact`)")
+    orchestrator = root / SKILLS_DIR / "ship-cycle" / "SKILL.md"
+    if orchestrator.is_file():
+        text = read(orchestrator)
+        for gate in ("G2/G3", "G5", "G10"):
+            row = re.search(r"^\|\s*" + re.escape(gate) + r"\s*\|([^|]*)\|", text, re.M)
+            if not row or "cross-artifact check `clear` or `n/a`" not in row.group(1):
+                f.error(shown(orchestrator.relative_to(root)), f"{gate} row does not require the cross-artifact check")
+    shape = root / STATE_SHAPE_DOC
+    if shape.is_file():
+        blocks = re.findall(r"```json\n(.*?)\n```", read(shape), re.S)
+        try:
+            entries = json.loads(blocks[0]).get("crossArtifact") if blocks else None
+        except json.JSONDecodeError:
+            entries = None
+        if not isinstance(entries, list) or not entries or not isinstance(entries[0], dict):
+            f.error(shown(STATE_SHAPE_DOC), "state shape has no 'crossArtifact' entry")
+        else:
+            missing = [k for k in ("stage", "tree", "claims", "scope", "hits", "writtenBy", "checkedBy", "result")
+                       if k not in entries[0]]
+            if missing:
+                f.error(shown(STATE_SHAPE_DOC), f"crossArtifact[] lacks {missing}")
+            entry = entries[0]
+            if entry.get("checkedBy") not in ("separate-agent", "orchestrator", "owner"):
+                f.error(shown(STATE_SHAPE_DOC), "crossArtifact[].checkedBy is not an independent checker")
+            hits = entry.get("hits") if isinstance(entry.get("hits"), list) else []
+            for hit in hits:
+                if not isinstance(hit, dict) or hit.get("verdict") not in ("consistent", "contradicting", "stale") \
+                        or "disposition" not in hit:
+                    f.error(shown(STATE_SHAPE_DOC), "crossArtifact[].hits[] needs a verdict and a disposition")
+
+
 DESIGN_DELTA_TOKENS = ("design.r<n>.md", "finished critic report", "Every round after the first",
                        "are not to be", "user's own turn", "`decisionQuestions`", "`withdrawn`",
                        "against the unchanged ones", "more than 40%", "--numstat", "Same model and effort",
@@ -2313,6 +2380,7 @@ def main(argv: list[str]) -> int:
     check_gate_summary(root, f)
     check_entry_path_inventory(root, f)
     check_claim_evidence(root, f)
+    check_cross_artifact(root, f)
     check_skill_frontmatter(root, f)
     check_example_coverage(root, f)
     check_example_release_smoke(root, f)

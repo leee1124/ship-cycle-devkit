@@ -169,7 +169,10 @@ compare against a working example, then one hypothesis with evidence and one min
 ## Verify (this stage owns build + tests, separate from review)
 - **G5**: build succeeds and the **new tests pass** (Green) — or, where G4 recorded an execution-based
   verification instead, that verification ran and its output was read. Run the nature's build/test commands
-  and read the output (§core 2).
+  and read the output (§core 2). G5 also needs sc-implement's latest `state.crossArtifact` entry, taken on
+  this tree (integrated across stacks), to be `clear` or `n/a: <reason>` — generated table/column comments,
+  schema docs, i18n strings and comments that restate a changed decision, checked by someone other than
+  the writer (`${CLAUDE_PLUGIN_ROOT}/docs/cross-artifact-check.md`).
 - **G6**: no failures **new vs `state.baseline`** (the base-branch reds captured at PREFLIGHT don't
   block — don't make each implementer re-derive "mine or pre-existing?" by stash-and-compare; diff the
   run against `state.baseline.failing`), and core coverage clears its threshold (next bullet). On a

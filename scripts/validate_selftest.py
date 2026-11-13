@@ -703,6 +703,76 @@ CASES = [
         "route.basis lacks 'nature'",
     ),
     (
+        "cross-artifact (#110): the writer may check its own sync alone",
+        lambda r: mutate(r / "docs" / "cross-artifact-check.md", "does not count", "counts"),
+        "cross-artifact rule block does not state 'does not count'",
+    ),
+    (
+        "cross-artifact (#110): a stale hit no longer blocks",
+        lambda r: mutate(r / "docs" / "cross-artifact-check.md", "A `contradicting` or `stale` hit blocks the stage",
+                         "A `consistent` hit blocks the stage"),
+        "does not state 'A `contradicting` or `stale` hit blocks the stage'",
+    ),
+    (
+        "cross-artifact (#110): hits lose the stale verdict",
+        lambda r: mutate(r / "docs" / "cross-artifact-check.md", "`stale`", "`old`", count=-1),
+        "cross-artifact rule block does not state '`stale`'",
+    ),
+    (
+        "cross-artifact (#110): sc-ship G10 no longer runs it",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "`state.crossArtifact`", "the record"),
+        "'Docs (G10)' does not require the cross-artifact check",
+    ),
+    (
+        "cross-artifact (#110): sc-implement G5 no longer runs it",
+        lambda r: mutate(r / "skills" / "sc-implement" / "SKILL.md", "`state.crossArtifact`", "the record"),
+        "'Verify (this stage' does not require the cross-artifact check",
+    ),
+    (
+        "cross-artifact (#110): the G10 gate row drops it",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md",
+                         "docs matching the change exist + cross-artifact check `clear` or `n/a`",
+                         "docs matching the change exist"),
+        "G10 row does not require the cross-artifact check",
+    ),
+    (
+        "cross-artifact (#110): no entry passes the gate",
+        lambda r: mutate(r / "docs" / "cross-artifact-check.md", "No\nentry is not a pass", "No\nentry is fine"),
+        "entry is not a pass",
+    ),
+    (
+        "cross-artifact (#110): the writer may check itself",
+        lambda r: mutate(r / "docs" / "state-file.md", '"checkedBy": "separate-agent"', '"checkedBy": "writer"'),
+        "crossArtifact[].checkedBy is not an independent checker",
+    ),
+    (
+        "cross-artifact (#110): sc-design G2/G3 no longer runs it",
+        lambda r: mutate(r / "skills" / "sc-design" / "SKILL.md", "`state.crossArtifact`", "the record"),
+        "'Gate G2/G3' does not require the cross-artifact check",
+    ),
+    (
+        "cross-artifact (#110): the G5 gate row moves it to the on-failure cell",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md",
+                         "(Green) + cross-artifact check `clear` or `n/a` | build-fixer",
+                         "(Green) | build-fixer, cross-artifact check `clear` or `n/a`"),
+        "G5 row does not require the cross-artifact check",
+    ),
+    (
+        "cross-artifact (#110): the rule markers are gone",
+        lambda r: mutate(r / "docs" / "cross-artifact-check.md", "<!-- cross-artifact-rule -->", ""),
+        "cross-artifact rule block does not state",
+    ),
+    (
+        "cross-artifact (#110): an entry is not tied to a tree",
+        lambda r: mutate(r / "docs" / "state-file.md", '"tree": "<tree id it read>",', ""),
+        "crossArtifact[] lacks ['tree']",
+    ),
+    (
+        "cross-artifact (#110): the record loses who checked",
+        lambda r: mutate(r / "docs" / "state-file.md", '"checkedBy": "separate-agent", ', ""),
+        "crossArtifact[] lacks ['checkedBy']",
+    ),
+    (
         "design delta (#109): confirmed decisions may be reopened",
         lambda r: mutate(r / "skills" / "sc-design" / "SKILL.md", "are not to be", "may be"),
         "Repeated critic rounds does not state 'are not to be'",

@@ -58,6 +58,10 @@ Otherwise parse the JSON and print a compact, scannable status report:
   `delta`, with the reason a later round ran full), `changedShare`, and the count of `open`, `resolved` and
   `withdrawn` objections — then the confirmed decisions' count and any `decisionQuestions`. Flag a last
   round with an `open` item while G3 is `pass`.
+- **Cross-artifact checks** from `crossArtifact`, when present: per stage, the latest run's result, its
+  claim count, `writtenBy` / `checkedBy` and every undispositioned `contradicting` or `stale` hit with its
+  `path:line`. Flag a stage whose gate (G2/G3, G5, G10) is `pass` while its latest entry is `blocked`,
+  missing, from another tree, or checked by its writer.
 - **Route plan** from `route`, when present: one line per stage — `run` or `skip` with its reason — then
   the lenses, the QA form, `confirmedAt` and `basis`, and per stage the routing row from `route.routing`
   (tier → `models` value · `effort` value, the reason, any `upgrade` or `belowTier`) with `route.tierMap`. Absent (a cycle started before 0.3.13, or G1 not yet
