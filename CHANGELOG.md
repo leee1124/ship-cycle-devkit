@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.3.26 — Design-only route: work that ends in a design document (#108)
+
+- **Why.** A data model for another team, a review of an existing design, an interface contract — work that
+  ends in a document, not a PR — had no path: `sc-review` and `sc-ship` always ran and `sc-ship` opened a PR.
+  In practice a multi-round critique was run by invoking `sc-design` by hand as "critic-only", and later the
+  agent skipped the kit on its own because "it is design only" — outside the route plan's confirmation.
+- **`docs/design-only-route.md`** states the rule once. sc-brainstorm proposes it at G1 when the criteria end
+  in a document; the user confirms it like any route (`state.route.kind = "design-only"`,
+  `state.route.designMode`: architect + critic, or critic-only on an existing design).
+- **Stages.** sc-design runs; sc-tdd, sc-implement, sc-review and sc-qa are `skip: design-only route` — the
+  one route where implement and review may skip, because the critic, a separate agent run to zero
+  objections, is the independent review. When G3 passes the orchestrator writes G4–G9
+  `n/a: route — design-only route` and hands over straight to sc-ship; those stages, `/ship`, `/resume` and the
+  resume reconcile all know the route. A critique request takes this route when the user wants a sign-off or
+  hand-off, else sc-design runs standalone.
+- **Critic-only.** Reviewing someone else's design, each objection ends with the owner's disposition in their
+  words — `accepted`, `rejected: <reason>` or `resolved` — and G3 means none is left without one.
+- **Document sign-off** (replaces G12's PR condition): G10 names where the docs live — outside the repo,
+  committed and pushed on a kept branch, or "merge wanted" (then the merge is a normal docs cycle); G11 maps
+  criteria to doc sections or critic rounds; G12 shows docs, what was reviewed, rounds, zero unresolved, the
+  Gate summary and route line, and passes only on the user's words (`state.signOff`). G13 keeps a docs branch
+  and never removes a worktree holding uncommitted sign-off docs.
+- **Floors.** Kept: branch guard when docs go into the repo, claim evidence, the critic to zero objections,
+  G11's claim map, the gate log. Dropped (no code, no PR): G4–G9 and the PR conflict check. Review focus is
+  written into the design doc, unpinned, and not mapped at G11.
+- **Hand-off.** A later code cycle can start from the signed-off design (`state.handoff`), branching from the
+  kept docs branch or from the base after merge: its sc-design reads the carried design as round 1 and the
+  carried review focus seeds its own; its gates still run.
+- **Validator.** `check_design_only` + 11 self-test mutations.
+
 ## 0.3.25 — Cross-check delegated document outputs before a stage reports done (#110)
 
 - **Why.** One decision sometimes has to land in several documents — requirements, design notes, generated

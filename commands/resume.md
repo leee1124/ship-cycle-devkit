@@ -46,6 +46,8 @@ Otherwise, resume via the `ship-cycle` skill's PREFLIGHT resume path:
    `size` is absent (a run started before it was recorded), classify it now per §Stage 0.2 (Change-size
    tier) — but only **upward** from what the completed stages imply: resuming is not an occasion to re-tier
    a cycle downward.
+   On a design-only route (`route.kind` is `"design-only"`), a stage after `sc-design` other than `sc-ship`
+   is never continued: after G3, continue at `sc-ship` (`${CLAUDE_PLUGIN_ROOT}/docs/design-only-route.md`).
 4. Do **not** restart stages still recorded `pass` after the reconcile — or `"n/a: <reason>"`, which is a
    decision the resumed run inherits rather than re-makes — and do **not** re-initialize the state file; pick
    up exactly where the run left off.

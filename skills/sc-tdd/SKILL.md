@@ -14,7 +14,9 @@ bump or most UI tweaks are verified by running the thing, and a red-then-green u
 little. Name the execution-based verification instead — it is what G4 accepts in place of Red evidence. When
 it is genuinely unclear which case you are in, write the test: it costs little and settles it.
 
-**Route first.** When `state.route.stages['sc-tdd']` is `skip: <reason>`, check two things before honouring it
+**Route first.** On a design-only route (`state.route.kind = "design-only"`) this stage is not entered — the
+orchestrator records G4 `n/a: route — design-only route` and goes to sc-ship
+(`${CLAUDE_PLUGIN_ROOT}/docs/design-only-route.md`). Otherwise, when `state.route.stages['sc-tdd']` is `skip: <reason>`, check two things before honouring it
 (§ship-cycle — Route plan): no basis rise against `state.route.basis` (larger `state.size`, or a `state.risk`
 tag or `state.nature` not in it), and the change really is layout, copy or config. If it has a contract after
 all — a function, an endpoint, a state machine — grow the entry to `run` (a `route` log row, the user told)

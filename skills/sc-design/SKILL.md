@@ -14,6 +14,14 @@ skip was confirmed at G1, so this stage does not re-judge it. A rise re-shows th
 grows this stage to `run` (§ship-cycle — Route plan). Skipped, the review focus is sc-tdd's to write
 (`${CLAUDE_PLUGIN_ROOT}/docs/review-focus.md` — Tier S and route skips).
 
+**Design-only route.** Under `state.route.kind = "design-only"` this stage is the cycle's work
+(`${CLAUDE_PLUGIN_ROOT}/docs/design-only-route.md`). With `state.route.designMode = "critic-only"` there is no
+architect: the critic attacks the existing design named in the criteria, and each objection ends with the
+owner's disposition in their words (`accepted`, `rejected: <reason>`, or `resolved` after a fix the critic
+ruled holds); G2 means the existing design's interfaces are stated in the doc, G3 means no objection is left
+without a disposition. When G3 passes the stage hands over straight to sc-ship. A code cycle handed off from one (`state.handoff`) reads the
+carried design as round 1's input.
+
 ## Design (architect — READ-ONLY, no code)
 Produce a design doc, not an implementation:
 - **Interfaces & boundaries**: the contracts (APIs/DTOs/module seams) the change introduces or touches.

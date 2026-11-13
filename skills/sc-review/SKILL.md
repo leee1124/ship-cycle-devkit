@@ -5,6 +5,10 @@ description: Stage 5 of ship-cycle. Multi-lens parallel code review — security
 
 # sc-review — multi-lens code review (Stage 5)
 
+On a design-only route (`state.route.kind = "design-only"`) there is no code and no PR: this stage is never
+entered, G8 is `n/a: route — design-only route`, and the critic is the independent review
+(`${CLAUDE_PLUGIN_ROOT}/docs/design-only-route.md`).
+
 **No PR without a passing review (§core 1).** Run the **effective lenses** = `state.route.lenses` ∪ the
 Tier S floor (security + one lens matched to the nature + cold on a non-trivial change) ∪ every
 risk-matched lens (`state.risk`) ∪ the overlay `changeNature[].reviews` of every nature in the current

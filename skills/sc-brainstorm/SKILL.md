@@ -43,6 +43,10 @@ expensive outcome. This stage ends when the user accepts a design direction — 
    mid→sonnet, low→haiku (chosen here)`) — the user confirms it with the rest. Record the rows as
    `state.route.routing` and the mapping as `state.route.tierMap`.
 
+   When the criteria end in a design document, not a code change, propose the **design-only route** instead
+   (`state.route.kind = "design-only"`, `state.route.designMode`; `${CLAUDE_PLUGIN_ROOT}/docs/design-only-route.md`)
+   — the user confirms it like any route; never drop the cycle because the work "is design only".
+
    `sc-tdd` may be skipped only for a layout, copy or config change. When the criteria reduce to one
    stage's job, say so instead and recommend that skill standalone. For a UI nature, ask whether the owner
    will watch the live visual loop and record it as `state.route.ownerPresent` (`true` only on a yes)

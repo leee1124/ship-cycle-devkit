@@ -14,6 +14,11 @@ ship and stop.
 
 If `stage` is `parked`, refuse: a parked cycle resumes through `/resume` (and its reconcile) first.
 
+**Design-only route** (`route.kind` is `"design-only"`): the required gates are G1 and G2/G3 `pass`, and G4–G9
+`n/a: route — design-only route`. Then invoke `sc-ship`, which runs the document sign-off instead of a PR
+(G10 where the docs live, G11 claim map, G12 the user's acceptance in their words, G13 keeping a docs branch)
+— `${CLAUDE_PLUGIN_ROOT}/docs/design-only-route.md`. The rest of this check is for the code route.
+
 **Gate check before shipping** — the ship stage must not run on an unfinished cycle. From `gates`, verify
 the required upstream gates are `pass`: **G1** (agreed criteria), **G2/G3** (design + critic), **G4**
 (failing tests / Red), **G5/G6/G7/G7b** (build + coverage + artifact + boot smoke where required), **G8**

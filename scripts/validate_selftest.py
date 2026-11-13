@@ -703,6 +703,62 @@ CASES = [
         "route.basis lacks 'nature'",
     ),
     (
+        "design-only (#108): the agent may choose it alone",
+        lambda r: mutate(r / "docs" / "design-only-route.md", "Chosen at G1, never by the agent alone", "Chosen freely"),
+        "design-only rule block does not state 'Chosen at G1, never by the agent alone'",
+    ),
+    (
+        "design-only (#108): claim evidence is dropped with the code floors",
+        lambda r: mutate(r / "docs" / "design-only-route.md", "merge-tree conflict check — there is",
+                         "merge-tree conflict check, and claim evidence — there is"),
+        "dropped floors include claim evidence or the critic",
+    ),
+    (
+        "design-only (#108): sign-off without the user's words",
+        lambda r: mutate(r / "docs" / "design-only-route.md", "their words", "a summary"),
+        "design-only rule block does not state 'their words'",
+    ),
+    (
+        "design-only (#108): G12 row has no sign-off",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "the document sign-off accepted", "a note"),
+        "G12 row has no design-only document sign-off",
+    ),
+    (
+        "design-only (#108): sc-brainstorm never proposes it",
+        lambda r: mutate(r / "skills" / "sc-brainstorm" / "SKILL.md", "design-only-route.md", "design.md"),
+        "skills/sc-brainstorm/SKILL.md: does not point to the design-only route",
+    ),
+    (
+        "design-only (#108): the sign-off record loses the unresolved count",
+        lambda r: mutate(r / "docs" / "state-file.md", '"unresolved": 0, ', ""),
+        "signOff lacks ['unresolved']",
+    ),
+    (
+        "design-only (#108): sc-tdd re-runs on the route",
+        lambda r: mutate(r / "skills" / "sc-tdd" / "SKILL.md", "design-only-route.md", "route.md"),
+        "skills/sc-tdd/SKILL.md: does not point to the design-only route",
+    ),
+    (
+        "design-only (#108): /ship refuses a design-only cycle",
+        lambda r: mutate(r / "commands" / "ship.md", "**Design-only route**", "**Other route**"),
+        "commands/ship.md: has no design-only route branch",
+    ),
+    (
+        "design-only (#108): G13 may remove uncommitted sign-off docs",
+        lambda r: mutate(r / "docs" / "design-only-route.md", "never removed", "removed"),
+        "design-only rule block does not state 'never removed'",
+    ),
+    (
+        "design-only (#108): the route bullet loses the keeps-sc-ship qualifier",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "and keeps `sc-ship`", "and keeps it"),
+        "Route plan has no Design-only route bullet",
+    ),
+    (
+        "design-only (#108): the route bullet is gone",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "- **Design-only route.**", "- Design-only."),
+        "Route plan has no Design-only route bullet",
+    ),
+    (
         "cross-artifact (#110): the writer may check its own sync alone",
         lambda r: mutate(r / "docs" / "cross-artifact-check.md", "does not count", "counts"),
         "cross-artifact rule block does not state 'does not count'",

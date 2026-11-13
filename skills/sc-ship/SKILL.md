@@ -5,6 +5,13 @@ description: Stage 7 of ship-cycle. Documentation + evidence-based verification 
 
 # sc-ship — docs, verify, PR, cleanup (Stage 7)
 
+**Design-only route** (`state.route.kind = "design-only"`): G10–G12 become the **document sign-off** —
+G10 names where the docs live (outside the repo, committed and pushed on a kept branch, or "merge wanted" →
+a normal cycle); G11 maps every criterion to a doc section or critic round (review focus is not mapped);
+G12 shows the sign-off — docs, what was reviewed, rounds, zero unresolved, the Gate summary and route line —
+and passes only on the user's words. No PR, no merge-tree probe. G13 keeps a docs branch and never removes a
+worktree with uncommitted sign-off docs. Rules: `${CLAUDE_PLUGIN_ROOT}/docs/design-only-route.md`.
+
 ## Docs (G10)
 Update README/CHANGELOG/API docs/comments to match the change **in this same change**. G10 passes when
 `git diff --name-only <base>...HEAD` includes a doc file, or the PR body gives an explicit
