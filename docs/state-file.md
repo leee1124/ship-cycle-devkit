@@ -16,7 +16,10 @@ the mechanics that only matter when something unusual happens to its name or its
              "stages": { "sc-design": "skip: config bump, nothing to design", "sc-tdd": "run",
                          "sc-implement": "run", "sc-review": "run", "sc-qa": "run", "sc-ship": "run" },
              "lenses": ["security", "quality", "cold"], "qa": "full bring-up + seam checks",
-             "waveCheck": "run", "ownerPresent": true },
+             "waveCheck": "run", "ownerPresent": true,
+             "routing": { "design": { "tier": "top", "why": "schema change; a wrong interface costs every later stage",
+                                      "upgrade": "schema", "belowTier": null } },
+             "tierMap": "overlay" },
   "sizeEvidence": ["src/a.py:41", "src/b.py:88"],
   "baseline": { "capturedOn": "<base-sha>", "source": "local",
                 "run": null,
@@ -181,6 +184,14 @@ reached. `basis` is `size`, `risk` and `nature` at confirmation: a larger size, 
 it, invalidates every skip. `lenses` and `qa` are what sc-review (with the floor) and sc-qa run. It only
 grows: entries turn from `skip` to `run` and lenses are added, never the reverse. Absent on a cycle started
 before 0.3.13 — stages then decide from the tier as before.
+
+`route.routing` explains the model and effort the user confirmed at G1, one row per stage the route runs,
+keyed like the stage entries of `models` — `tier`,
+`why`, `upgrade` and `belowTier` (a reason when the row sits below the stage's documented tier, else
+`null`) — and `route.tierMap` is `"overlay"` or the tier → model object the orchestrator chose without an
+overlay `tierMap` (§`${CLAUDE_PLUGIN_ROOT}/docs/model-routing.md` — Shown at G1). The models and effort
+themselves stay in `models` and `effort`. A change after G1 logs a `route` row naming the `models.<k>` /
+`effort.<k>` keys it changed; lowering a row needs the user's re-confirmation. Absent on a cycle started before 0.3.23.
 
 `route.waveCheck` is `"run"` or `"skip: <reason>"` on Tier L waved or multi-stack work and absent
 otherwise; it follows the growth-only rule.
@@ -415,7 +426,8 @@ header; every transition after that appends **one row**:
 - **result** — exactly the value written to `gates` (`pass`, `fail`, `degrade`, `checklist`, `skip`,
   `n/a: <reason>` with the reason verbatim), plus `(loop n/3)` on a `fail`; for a stage change `enter`,
   `parked`, `resume` or the terminal value; for a `route` row `confirmed`, `grew` or `reconfirmed`
-  (evidence: the `state.route` keys it changed, e.g. `stages.sc-design: run · loop cap G8`); `cleared` for
+  (evidence: the `state.route` keys it changed, e.g. `stages.sc-design: run · loop cap G8`, or for a
+  routing change the `models.<k>` / `effort.<k>` keys); `cleared` for
   a reconcile clear; `deferred: <part>` for each manual-gate deferral as it is recorded.
 - **evidence** — a short pointer, never the evidence itself: a path, a test id, a tree id prefix, a job id,
   a CI link; `—` when there is none.

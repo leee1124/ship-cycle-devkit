@@ -55,7 +55,8 @@ Otherwise parse the JSON and print a compact, scannable status report:
   a three-way value (`degrade`, `checklist`, `skip`) / `"n/a: <reason>"` (a stage deliberately skipped —
   print the reason, and never fold it in with `fail`).
 - **Route plan** from `route`, when present: one line per stage — `run` or `skip` with its reason — then
-  the lenses, the QA form, `confirmedAt` and `basis`. Absent (a cycle started before 0.3.13, or G1 not yet
+  the lenses, the QA form, `confirmedAt` and `basis`, and per stage the routing row from `route.routing`
+  (tier → `models` value · `effort` value, the reason, any `upgrade` or `belowTier`) with `route.tierMap`. Absent (a cycle started before 0.3.13, or G1 not yet
   passed): say so; the tier then decides as before. Flag, loudly: a whole-stage gate (G2/G3, G4, G9) that
   is `n/a` while its stage's route entry is `run` — a skip the route did not plan, which G12 refuses — except
   a config `n/a` (`n/a: no <x> config`); and a basis rise (larger `size`, or a `risk` tag

@@ -120,6 +120,23 @@ re-deriving its own skip.
   The loop is part
   of sc-implement, not a stage, so it is never skipped as one; the designer lens and its a11y floor join the
   lens floor for a UI nature and no route or Tier S drops them.
+- **Model and effort per stage, shown at G1.** PREFLIGHT resolved `state.models` and `state.effort`
+  before the criteria existed; the route plan shows them, so the one G1 confirmation covers who runs each
+  stage too. Each row carries the tier, the concrete model, the effort and a one-line reason tied to the
+  cost of being wrong at that stage, written to `state.route.routing` (shape:
+  `${CLAUDE_PLUGIN_ROOT}/docs/model-routing.md` — Shown at G1). A risk upgrade that fired (schema,
+  boundary, security) is named on its row, and a `securityReviewModel` pin on the review row. **A model
+  below the stage's documented tier needs a stated reason**, like a skipped stage — "copied from an earlier
+  cycle" is not one; on Tier S the reason is the Tier S path itself (`belowTier: "tier S path"`). Rows are
+  keyed like `state.models` (`design` for `sc-design`), one per stage the route runs, brainstorm included; a
+  skipped stage has no row until it grows to `run`, which adds and shows its row. With no overlay `tierMap`
+  PREFLIGHT chose the models itself (§Stage 0.7), so the table also shows the tier → model mapping it used,
+  recorded as `state.route.tierMap`; with a `tierMap` that field is `"overlay"`. A model or effort change
+  after G1 re-shows the changed rows and logs a `route` row. Raising a row (a higher tier, or the same tier
+  at higher effort) is growth, told to the user; anything else — a lower tier, lower effort, or a mix — is
+  lowering, the one deliberate exception to growth-only below: it needs the user's re-confirmation, and
+  declined, the confirmed row stays. A basis rise (below) also re-checks every `belowTier` reason and
+  re-shows a risk upgrade it fires on its row.
 - **Growth only.** Once confirmed, a stage or lens can be added, never removed. Growth comes from: scope or
   nature growing (§Stage 0.4); a loop-back to sc-design — the user's choice at a loop cap, a wave-check /
   `BLOCKED` design defect (§sc-implement), or a G8 design flaw — which grows `sc-design` to `run` and tells
@@ -241,11 +258,14 @@ is not resumed by a new goal: ask "resume or replace?" (`/resume` is the explici
    Not one-shot, mirroring step 4: a later stage revealing a higher-stakes axis (a token lifetime, a
    migration, an API contract) re-classifies and re-resolves routing, monotonically.
 7. **Resolve per-stage models *and effort* now (not per-spawn)**: resolve each stage's tier → a concrete
-   model via overlay `modelRouting.tierMap` (base pyramid + any risk upgrade) and its work-kind → an effort
+   model via overlay `modelRouting.tierMap` (base pyramid + any risk upgrade; with no `tierMap`, through a
+   tier → model mapping chosen here from the host's models, the same one for every stage, which G1 shows
+   for confirmation) and its work-kind → an effort
    level via `effortMap`, scaled by `state.size` (§Effort). Write both to state and print them with the
    size tier, e.g. `size=S · review→sonnet/medium, implement→sonnet/low`; record which risk upgrades fired
    in `telemetry.upgrades`. Every stage then spawns with `state.models[<stage>]` and `state.effort[<stage>]`
-   (§core 6).
+   (§core 6). G1 shows the same values per stage in the route plan, each with its reason, for the user to
+   confirm (§Route plan).
    **Routing guard**: a security review routed to a model that refuses security analysis silently no-ops, so
    where overlay `modelRouting.securityReviewModel` is set the `security`/`authz` lenses use it over their
    tier-resolved model — record it as `models["review.security"]` for sc-review, and when the pin differs
@@ -318,7 +338,8 @@ Assign models by **cost-of-being-wrong × cost-of-verification**, not by role na
 security/quality review, *mid* on implement/QA, *low* on docs/style/plumbing, with a high-risk change
 bumping the single matching role to *top*. Overlay `modelRouting.tierMap` turns tiers into concrete models
 and `effortMap` does the same for effort; PREFLIGHT resolves both into state (§Stage 0.7) and every spawn
-passes them explicitly (§core 6). Without the maps, both are advisory only. The rationale, the
+passes them explicitly (§core 6). Without a `tierMap`, PREFLIGHT chooses the mapping and G1 shows it for
+confirmation (§Route plan); without an `effortMap`, effort levels are advisory only. The rationale, the
 security-refusing-model guard, the bigger levers, the small-but-high-stakes exception and the post-run
 **cost readout** are in `${CLAUDE_PLUGIN_ROOT}/docs/model-routing.md`; PREFLIGHT needs the effort table
 inline.

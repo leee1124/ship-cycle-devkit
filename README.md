@@ -203,7 +203,8 @@ conflict check are outcomes — they are the cheapest stages in the pipeline and
 pass reaches for, and cutting them is how you ship a misdiagnosed request confidently.
 
 **Route at G1.** The tier is a guess from the diff; the route plan is the decision. sc-brainstorm ends with
-a compact table of which stages run, which are skipped and why, and which lenses and QA form apply; the
+a compact table of which stages run, which are skipped and why, which lenses and QA form apply, and which
+model and effort run each stage with the reason (a row below the stage's documented tier needs one); the
 user confirms it with the acceptance criteria, and every stage reads it from state. It can skip a ceremony
 stage the tier would run (design, QA, and test-first only for layout/copy/config) with a named reason,
 never review or an outcome, and only grows afterwards — a size or risk rise re-opens every skip. When the
