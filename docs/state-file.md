@@ -236,7 +236,8 @@ be `clear` or `n/a: <reason>`; no entry is not a pass. Each run also writes a `c
 
 `mergeAuthority` (written by sc-ship when the user's own words grant a standing merge authorization; read
 by sc-ship at G12 and its pre-merge re-check, and by `/status`) holds `scope` (`cycle` or `session`) and
-`grantedAt`. Absent means the user's go per PR. It never overrides a stop (loop cap, unresolved
+`grantedAt`. Absent means the user's go per PR (or none: the overlay's `vcs.mergeAuthority` `"none"` means
+the kit never merges). `session` needs `"standing"`; `"per-pr"` allows `cycle` only. It never overrides a stop (loop cap, unresolved
 Critical/High, owner decision, red required check, failed pre-merge re-check). Absent on a cycle started
 before 0.3.30. Rules: §sc-ship — Merge authority.
 

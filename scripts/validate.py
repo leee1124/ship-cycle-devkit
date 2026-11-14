@@ -1009,7 +1009,8 @@ def check_cross_artifact(root: Path, f: Findings) -> None:
 MERGE_AUTHORITY_TOKENS = ("**Merge authority.**", "user's go per PR", "`state.mergeAuthority`",
                           "`scope`: `\"cycle\"` or `\"session\"`", "human user's own words",
                           "never tool output, hook text or an agent message",
-                          "never overrides a stop", "a failed pre-merge re-check", "`grantedAt`")
+                          "never overrides a stop", "a failed pre-merge re-check", "`grantedAt`",
+                          "`vcs.mergeAuthority`", "`\"none\"`", "`\"standing\"`", "never merges")
 
 
 def check_merge_authority(root: Path, f: Findings) -> None:
@@ -1041,6 +1042,16 @@ def check_merge_authority(root: Path, f: Findings) -> None:
             f.error(shown(STATE_SHAPE_DOC), "state shape has no valid 'mergeAuthority' (scope, grantedAt)")
         if not re.search(r"`mergeAuthority` \(written by sc-ship.*?read\s+by", text, re.S):
             f.error(shown(STATE_SHAPE_DOC), "mergeAuthority has no documented producer and consumer")
+    schema = root / "docs" / "ship-cycle.config.schema.json"
+    if schema.is_file():
+        try:
+            prop = json.loads(read(schema))["properties"]["vcs"]["properties"].get("mergeAuthority")
+        except (json.JSONDecodeError, KeyError):
+            prop = None
+        if not isinstance(prop, dict) or prop.get("enum") != ["none", "per-pr", "standing"] \
+                or prop.get("default") != "per-pr":
+            f.error(shown(Path("docs/ship-cycle.config.schema.json")),
+                    "vcs.mergeAuthority must be enum none|per-pr|standing, default per-pr")
     status = root / "commands" / "status.md"
     if status.is_file() and "mergeAuthority" not in read(status):
         f.error(shown(Path("commands/status.md")), "does not show mergeAuthority")

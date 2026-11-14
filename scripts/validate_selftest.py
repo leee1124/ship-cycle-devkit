@@ -820,6 +820,16 @@ CASES = [
         "Merge authority rule does not state 'never overrides a stop'",
     ),
     (
+        "merge authority (#119): overlay none still lets the agent merge",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "never merges", "may merge"),
+        "Merge authority rule does not state 'never merges'",
+    ),
+    (
+        "merge authority (#119): schema default drifts",
+        lambda r: mutate(r / "docs" / "ship-cycle.config.schema.json", '"default": "per-pr"', '"default": "standing"'),
+        "vcs.mergeAuthority must be enum",
+    ),
+    (
         "merge authority (#119): the Gate summary hides it",
         lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "Merge authority line", "Authority"),
         "Gate summary does not show the merge authority",
