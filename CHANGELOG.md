@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.31 — Entry triage covers delegated edits and late entry (#117)
+
+- **Why.** Triage classified a *request*, but two paths slipped past it: a cross-stack change handed to a
+  plain implementer subagent with no triage line, and work started outside a cycle with no rule — G4 (Red) can't be backfilled, so the state
+  file was hand-written.
+- **Rules** (§ship-cycle Entry triage): handing code edits to a subagent is a code change, triaged before
+  dispatch; **late entry** is stop-and-restart or adopt with a `post-hoc` G4 row
+  (`pass`, evidence `post-hoc: Red not observed before code · …`, `docs/state-file.md`), never silent.
+  The prompt hook text carries the delegated-edit sentence. README gains "What is mandatory".
+- **Tests.** `check_entry_triage` tokens + 3 validator mutations; `prompt_hook_test.py` marker.
+
 ## 0.3.30 — sc-ship: who merges is an overlay setting (#119)
 
 - **Why.** The kit opened the PR (G12) and tore down after merge (G13) but never said who merges, and many

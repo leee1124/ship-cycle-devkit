@@ -206,6 +206,15 @@ active on this branch is continued, not re-triaged, and an answer to a question 
 Triage runs when this skill is loaded — on its triggers, or on any code-change request it is consulted for;
 the hook below makes it run on every prompt.
 
+Two paths slip past a request-level check. **Delegated edits:**
+handing code edits to a subagent is a code change — triage (and PREFLIGHT) runs before the dispatch, never
+after; "the kit is always the full cycle" is false (the route plan and Tier S size it), so don't say it.
+**Late entry.** Work already started outside a cycle is — the user's choice, asked in one line — either stopped and restarted at PREFLIGHT, or adopted with
+its G4 gate-log row recorded as `post-hoc` (result `pass`, evidence
+`post-hoc: Red not observed before code · <sha or tests>`; §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` Gate
+log) — never adopted silently, and never a hand-written state file or a G4 that claims a Red that was not
+seen.
+
 **Auto-start, opt-in.** The plugin ships a `UserPromptSubmit` hook (`hooks/prompt-triage.cjs`) that adds this
 triage instruction to each prompt when `SHIP_CYCLE_AUTOSTART=on`; it is silent otherwise, echoes nothing and
 decides nothing. It is registered for every plugin user, so node starts on each prompt even when it stays silent (§`${CLAUDE_PLUGIN_ROOT}/docs/runtime-adapters.md` — Prompt triage hook).

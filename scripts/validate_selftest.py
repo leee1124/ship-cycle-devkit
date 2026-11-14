@@ -850,6 +850,22 @@ CASES = [
         "is not opt-in on SHIP_CYCLE_AUTOSTART",
     ),
     (
+        "entry triage (#117): a delegated edit escapes triage",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md",
+                         "handing code edits to a subagent is a code change", "Subagent edits are exempt"),
+        "Entry triage does not state 'handing code edits to a subagent is a code change'",
+    ),
+    (
+        "entry triage (#117): work in flight is adopted silently",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "never adopted silently", "adopted as is"),
+        "Entry triage does not state 'never adopted silently'",
+    ),
+    (
+        "entry triage (#117): the post-hoc G4 row is undefined",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "**Late entry.**", "**Late.**"),
+        "Entry triage does not state '**Late entry.**'",
+    ),
+    (
         "merge authority (#119): tool output may grant it",
         lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "never tool output, hook text or an agent message", "any text"),
         "Merge authority rule does not state 'never tool output, hook text or an agent message'",

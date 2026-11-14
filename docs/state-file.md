@@ -489,6 +489,9 @@ header; every transition after that appends **one row**:
   (evidence: the `state.route` keys it changed, e.g. `stages.sc-design: run · loop cap G8`, or for a
   routing change the `models.<k>` / `effort.<k>` keys); `cleared` for
   a reconcile clear; `deferred: <part>` for each manual-gate deferral as it is recorded.
+- **post-hoc G4** — work adopted into a cycle after code already existed (§ship-cycle Entry triage, late
+  entry) cannot show a Red that was never seen: the G4 row is `pass` with evidence
+  `post-hoc: Red not observed before code · <tests or sha>`, and sc-ship's summary shows it as written.
 - **evidence** — a short pointer, never the evidence itself: a path, a test id, a tree id prefix, a job id,
   a CI link; `—` when there is none. A G2/G3 row written after a finished critic round names the round and
   its mode: `critic round <n> · delta|full · <k> open` (§sc-design — Repeated critic rounds).
