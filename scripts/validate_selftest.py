@@ -810,6 +810,27 @@ CASES = [
         "is not opt-in on SHIP_CYCLE_AUTOSTART",
     ),
     (
+        "entry triage (#117): a delegated edit escapes triage",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md",
+                         "handing code edits to a subagent is a code change", "Subagent edits are exempt"),
+        "Entry triage does not state 'handing code edits to a subagent is a code change'",
+    ),
+    (
+        "entry triage (#117): a sequencing go-ahead starts the agent's own item",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "only sets order or priority", "sets anything"),
+        "Entry triage does not state 'only sets order or priority'",
+    ),
+    (
+        "entry triage (#117): work in flight is adopted silently",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "never adopted silently", "adopted as is"),
+        "Entry triage does not state 'never adopted silently'",
+    ),
+    (
+        "entry triage (#117): the post-hoc G4 row is undefined",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "**Late entry.**", "**Late.**"),
+        "Entry triage does not state '**Late entry.**'",
+    ),
+    (
         "cross-artifact (#110): the writer may check its own sync alone",
         lambda r: mutate(r / "docs" / "cross-artifact-check.md", "does not count", "counts"),
         "cross-artifact rule block does not state 'does not count'",

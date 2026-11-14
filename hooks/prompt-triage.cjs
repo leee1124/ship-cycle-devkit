@@ -28,6 +28,7 @@ const TRIAGE_TEXT =
   "(b) work that ends in a design document -> start a cycle and propose the design-only route at G1; " +
   "(c) one stage's job (review this branch, critique a design, parity audit) -> run that skill standalone; " +
   "(d) a question, research or writing task -> no cycle. " +
+  "Handing code edits to a subagent is a code change too: triage before dispatching it. " +
   "State the result first, in one line the user can override: " +
   "'triage: <code change|design-only|one stage|question/research/writing> -> <cycle|standalone <skill>|no cycle> - <reason>'. " +
   "Never skip the cycle silently for a code change.";

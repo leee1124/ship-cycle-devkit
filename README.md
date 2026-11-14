@@ -37,6 +37,15 @@ Composable skills — a thin orchestrator that chains one short skill per stage 
 | Prompt triage (opt-in) | `hooks/` | `UserPromptSubmit` hook: with `SHIP_CYCLE_AUTOSTART=on`, asks for a one-line entry triage (cycle, standalone skill or none, and why) on each prompt; silent otherwise (node still starts per prompt) |
 | Session-start reminder | `hooks/` | Optional `SessionStart` hook: after startup/`/clear`/compaction, states an active or parked cycle on this branch in three quiet lines (silent otherwise; `SHIP_CYCLE_HOOK=off` disables) |
 
+## What is mandatory
+
+Any change that ends in a commit for review goes through a cycle — the orchestrator says so in one
+`triage:` line before acting, and you can override it. That includes edits handed to a subagent and work
+already started outside a cycle (stopped and restarted, or adopted with a `post-hoc` G4 row). Small is
+cheap, not exempt: Tier S and the route plan (confirmed at G1) drop the stages a change does not need.
+`SHIP_CYCLE_AUTOSTART=on` makes the plugin's prompt hook add that triage instruction to every prompt;
+unset, triage runs only when the skill is consulted.
+
 ## Install
 
 ```bash
