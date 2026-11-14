@@ -121,6 +121,9 @@ re-deriving its own skip.
   The loop is part
   of sc-implement, not a stage, so it is never skipped as one; the designer lens and its a11y floor join the
   lens floor for a UI nature and no route or Tier S drops them.
+- **Code-host adapter, when it is not a ready CLI or MCP.** When `state.env.host.adapter` is `manual` or `rest`,
+  or its status is not `ok`, the plan names the adapter sc-ship's PR step and sc-retro's filing will use
+  (§Stage 0.7), so the user consents once at G1, not at G12. `rest` appears only as an opt-in the user picks.
 - **Model and effort per stage, shown at G1.** PREFLIGHT resolved `state.models` and `state.effort`
   before the criteria existed; the route plan shows them, so the one G1 confirmation covers who runs each
   stage too. Each row carries the tier, the concrete model, the effort and a one-line reason tied to the
@@ -316,6 +319,15 @@ is not resumed by a new goal: ask "resume or replace?" (`/resume` is the explici
    On Tier L also resolve the wave check's reviewer — mid tier, `medium` — as `models["review.wave"]` and
    `effort["review.wave"]` (§`${CLAUDE_PLUGIN_ROOT}/docs/wave-check.md`), and resolve them then when a cycle
    grows to Tier L later (§Stage 0.2, Stage 0.4).
+   **Resolve the code-host adapter.** The kit needs five capabilities from the code host: open a PR, poll
+   `mergeable`, merge, read the merge back (merged + merge sha), and create/list issues. Resolve which adapter
+   provides them, first match wins: (1) overlay `vcs.hostAdapter` if set; (2) a host CLI on PATH (`gh`,
+   `glab`) whose auth check passes; (3) a connected MCP server exposing PR tools; (4) `manual`. Record
+   `state.env.host` as `{ "adapter": "cli:gh|cli:glab|mcp:<server>|rest|manual", "status": "ok|unauthenticated|unavailable" }`.
+   Not `ok` is not a stop and `manual` is the default fallback: sc-ship prints the PR/issue body and the exact
+   steps for the user to open by hand and reports the PR as not opened. `rest`, the host API with a token from
+   `git credential fill`, is an opt-in alternative used only with the user's consent given at G1; the
+   credential stays in memory: never print or log the token.
 8. **Init state**: write this cycle's `.claude/ship-cycle/<branch-slug>.json` with everything resolved above
    plus an empty `telemetry`, an empty `reviewJobs` and `gitFreeze` inactive, and create its gate log
    `<branch-slug>.log.md` beside it with the first stage's `enter` row — archiving any log a replaced state

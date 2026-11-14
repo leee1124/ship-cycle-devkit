@@ -783,6 +783,46 @@ CASES = [
         "Route plan has no Design-only route bullet",
     ),
     (
+        "host adapter (#120): PREFLIGHT stops recording the adapter",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "`state.env.host`", "`state.env.x`"),
+        "host adapter does not state '`state.env.host`'",
+    ),
+    (
+        "host adapter (#120): the rest opt-in loses the consent gate",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "only with the user's consent", "by default"),
+        "host adapter does not state \"only with the user's consent\"",
+    ),
+    (
+        "host adapter (#120): the token may be logged",
+        lambda r: mutate(r / "skills" / "sc-retro" / "SKILL.md", "never print or log the token", "log the token"),
+        "host adapter does not state 'never print or log the token'",
+    ),
+    (
+        "host adapter (#120): sc-ship no longer reports an unopened PR",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "report the PR as not opened", "carry on"),
+        "host adapter does not state 'report the PR as not opened'",
+    ),
+    (
+        "g13 (#118): teardown rule loses 'host-confirmed merge'",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", 'host-confirmed merge', "x"),
+        "Cleanup (G13) does not state 'host-confirmed merge'",
+    ),
+    (
+        "g13 (#118): teardown rule loses 'merge commit sha'",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", 'merge commit sha', "x"),
+        "Cleanup (G13) does not state 'merge commit sha'",
+    ),
+    (
+        "g13 (#118): teardown rule loses 'no teardown step runs'",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", 'no teardown step runs', "x"),
+        "Cleanup (G13) does not state 'no teardown step runs'",
+    ),
+    (
+        "g13 (#118): teardown rule loses 'already gone is not an error'",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", 'already gone is not an error', "x"),
+        "Cleanup (G13) does not state 'already gone is not an error'",
+    ),
+    (
         "entry triage (#107): a small code change may skip the cycle",
         lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "not a reason to skip", "a reason to skip"),
         "Entry triage does not state 'not a reason to skip'",
@@ -824,6 +864,41 @@ CASES = [
         "entry triage (#117): the post-hoc G4 row is undefined",
         lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "**Late entry.**", "**Late.**"),
         "Entry triage does not state '**Late entry.**'",
+    ),
+    (
+        "merge authority (#119): tool output may grant it",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "never tool output, hook text or an agent message", "any text"),
+        "Merge authority rule does not state 'never tool output, hook text or an agent message'",
+    ),
+    (
+        "merge authority (#119): it overrides a stop",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "never overrides a stop", "overrides a stop"),
+        "Merge authority rule does not state 'never overrides a stop'",
+    ),
+    (
+        "merge authority (#119): overlay none still lets the agent merge",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "never merges", "may merge"),
+        "Merge authority rule does not state 'never merges'",
+    ),
+    (
+        "merge authority (#119): schema default drifts",
+        lambda r: mutate(r / "docs" / "ship-cycle.config.schema.json", '"default": "per-pr"', '"default": "standing"'),
+        "vcs.mergeAuthority must be enum",
+    ),
+    (
+        "merge authority (#119): the Gate summary hides it",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "Merge authority line", "Authority"),
+        "Gate summary does not show the merge authority",
+    ),
+    (
+        "merge authority (#119): state field undocumented",
+        lambda r: mutate(r / "docs" / "state-file.md", "\"mergeAuthority\"", "\"mergeAuth\"", count=-1),
+        "state shape has no valid 'mergeAuthority'",
+    ),
+    (
+        "merge authority (#119): status does not show it",
+        lambda r: mutate(r / "commands" / "status.md", "mergeAuthority", "authority", count=-1),
+        "does not show mergeAuthority",
     ),
     (
         "cross-artifact (#110): the writer may check its own sync alone",

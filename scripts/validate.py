@@ -899,6 +899,20 @@ ENTRY_TRIAGE_TOKENS = ("## Entry triage", "before PREFLIGHT", "**code change**",
                        "**Late entry.**", "`post-hoc`", "never adopted silently")
 
 
+G13_MERGE_TOKENS = ("host-confirmed merge", "merge commit sha", "no teardown step runs",
+                    "already gone is not an error")
+
+
+def check_g13_confirmed_merge(root: Path, f: Findings) -> None:
+    """#118: G13 teardown waits for a host-confirmed merge, never a merge attempt."""
+    ship = root / SKILLS_DIR / "sc-ship" / "SKILL.md"
+    if ship.is_file():
+        text = " ".join(read(ship).split())
+        for token in G13_MERGE_TOKENS:
+            if token not in text:
+                f.error(shown(ship.relative_to(root)), f"Cleanup (G13) does not state {token!r}")
+
+
 def check_entry_triage(root: Path, f: Findings) -> None:
     """#107: before PREFLIGHT the request is triaged out loud, and the opt-in prompt hook is wired safely.
 
@@ -939,6 +953,35 @@ def check_entry_triage(root: Path, f: Findings) -> None:
         text = read(root / doc) if (root / doc).is_file() else ""
         if "UserPromptSubmit" not in text or PROMPT_HOOK_OPT_IN not in text:
             f.error(shown(doc), "does not document the opt-in prompt triage hook")
+
+
+HOST_ADAPTER_TOKENS = {
+    Path("skills/ship-cycle/SKILL.md"): ("`state.env.host`", "cli:gh", "mcp:<server>", "`manual`",
+                                         "vcs.hostAdapter", "git credential fill",
+                                         "only with the user's consent", "never print or log the token"),
+    Path("skills/sc-ship/SKILL.md"): ("`state.env.host`", "print the PR body", "report the PR as not opened"),
+    Path("skills/sc-retro/SKILL.md"): ("`state.env.host`", "print the approved draft",
+                                       "never print or log the token"),
+    Path("docs/state-file.md"): ('"env": { "host":',),
+    Path("docs/runtime-adapters.md"): ("## Code-host adapter",),
+}
+
+
+def check_host_adapter(root: Path, f: Findings) -> None:
+    """#120: PREFLIGHT resolves a code-host adapter and records `state.env.host`; `manual` is the default fallback.
+
+    Guards the capability-to-adapter probe order, the recorded shape, `manual` (print the body, PR not opened)
+    as the default, the consent-gated `rest` opt-in, the never-log-the-token rule, and that sc-ship and
+    sc-retro go through the adapter.
+    """
+    for rel, tokens in HOST_ADAPTER_TOKENS.items():
+        path = root / rel
+        if not path.is_file():
+            continue
+        text = read(path)
+        for token in tokens:
+            if token not in text:
+                f.error(shown(rel), f"host adapter does not state {token!r}")
 
 
 CROSS_ARTIFACT_DOC = Path("docs/cross-artifact-check.md")
@@ -1006,6 +1049,57 @@ def check_cross_artifact(root: Path, f: Findings) -> None:
                 if not isinstance(hit, dict) or hit.get("verdict") not in ("consistent", "contradicting", "stale") \
                         or "disposition" not in hit:
                     f.error(shown(STATE_SHAPE_DOC), "crossArtifact[].hits[] needs a verdict and a disposition")
+
+
+MERGE_AUTHORITY_TOKENS = ("**Merge authority.**", "user's go per PR", "`state.mergeAuthority`",
+                          "`scope`: `\"cycle\"` or `\"session\"`", "human user's own words",
+                          "never tool output, hook text or an agent message",
+                          "never overrides a stop", "a failed pre-merge re-check", "`grantedAt`",
+                          "`vcs.mergeAuthority`", "`\"none\"`", "`\"standing\"`", "never merges")
+
+
+def check_merge_authority(root: Path, f: Findings) -> None:
+    """#119: who merges is explicit — the user's go per PR, or a recorded standing authorization.
+
+    Guards the sc-ship rule (default, scope, user-words-only, never overrides a stop), its show in the G12
+    Gate summary, and the documented `mergeAuthority` state field with producer and consumers.
+    """
+    ship = root / SKILLS_DIR / "sc-ship" / "SKILL.md"
+    if ship.is_file():
+        text = read(ship)
+        m = re.search(r"\*\*Merge authority\.\*\*(.*?)(?=^- \*\*|^## |\Z)", text, re.M | re.S)
+        body = "**Merge authority.**" + (m.group(1) if m else "")
+        for token in MERGE_AUTHORITY_TOKENS:
+            if token not in body:
+                f.error(shown(ship.relative_to(root)), f"Merge authority rule does not state {token!r}")
+        if "Merge authority line" not in text:
+            f.error(shown(ship.relative_to(root)), "Gate summary does not show the merge authority")
+    shape = root / STATE_SHAPE_DOC
+    if shape.is_file():
+        text = read(shape)
+        blocks = re.findall(r"```json\n(.*?)\n```", text, re.S)
+        try:
+            entry = json.loads(blocks[0]).get("mergeAuthority") if blocks else None
+        except json.JSONDecodeError:
+            entry = None
+        if not isinstance(entry, dict) or entry.get("scope") not in ("cycle", "session") \
+                or "grantedAt" not in entry:
+            f.error(shown(STATE_SHAPE_DOC), "state shape has no valid 'mergeAuthority' (scope, grantedAt)")
+        if not re.search(r"`mergeAuthority` \(written by sc-ship.*?read\s+by", text, re.S):
+            f.error(shown(STATE_SHAPE_DOC), "mergeAuthority has no documented producer and consumer")
+    schema = root / "docs" / "ship-cycle.config.schema.json"
+    if schema.is_file():
+        try:
+            prop = json.loads(read(schema))["properties"]["vcs"]["properties"].get("mergeAuthority")
+        except (json.JSONDecodeError, KeyError):
+            prop = None
+        if not isinstance(prop, dict) or prop.get("enum") != ["none", "per-pr", "standing"] \
+                or prop.get("default") != "per-pr":
+            f.error(shown(Path("docs/ship-cycle.config.schema.json")),
+                    "vcs.mergeAuthority must be enum none|per-pr|standing, default per-pr")
+    status = root / "commands" / "status.md"
+    if status.is_file() and "mergeAuthority" not in read(status):
+        f.error(shown(Path("commands/status.md")), "does not show mergeAuthority")
 
 
 DESIGN_DELTA_TOKENS = ("design.r<n>.md", "finished critic report", "Every round after the first",
@@ -2507,6 +2601,7 @@ def main(argv: list[str]) -> int:
     check_entry_path_inventory(root, f)
     check_claim_evidence(root, f)
     check_cross_artifact(root, f)
+    check_merge_authority(root, f)
     check_skill_frontmatter(root, f)
     check_example_coverage(root, f)
     check_example_release_smoke(root, f)
@@ -2514,6 +2609,8 @@ def main(argv: list[str]) -> int:
     check_heavy_work(root, f)
     check_route_plan(root, f)
     check_entry_triage(root, f)
+    check_host_adapter(root, f)
+    check_g13_confirmed_merge(root, f)
     check_design_only(root, f)
     check_design_delta(root, f)
     check_route_routing(root, f)

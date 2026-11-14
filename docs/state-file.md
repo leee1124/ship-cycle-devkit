@@ -10,6 +10,7 @@ the mechanics that only matter when something unusual happens to its name or its
   "gates": { "G1": "pass", "G2": "n/a: route — config bump, nothing to design", "G4": "pass" },
   "gateTrees": { "G5": "<tree id of the worktree the build/tests ran on>" },
   "loops": { "G8": 1 },
+  "env": { "host": { "adapter": "cli:gh", "status": "ok" } },
   "nature": ["backend"], "risk": ["auth"], "size": "L", "branchCreated": true,
   "route": { "confirmedAt": "<iso>", "basis": { "size": "L", "risk": ["auth"],
                                                 "nature": ["backend"] },
@@ -34,6 +35,7 @@ the mechanics that only matter when something unusual happens to its name or its
                       "hits": [{ "claim": "C1", "where": "db/comments.sql:42", "verdict": "stale",
                                  "disposition": null }],
                       "writtenBy": "executor (delegated)", "checkedBy": "separate-agent", "result": "blocked" }],
+  "mergeAuthority": { "scope": "cycle", "grantedAt": "<iso>" },
   "signOff": { "docs": ["docs/design/orders-model.md"], "where": "branch:design/orders-model", "reviewed": "existing design (critic-only)",
                "criticRounds": 3, "unresolved": 0, "by": "owner", "words": "<the owner's words>", "at": "<iso>" },
   "handoff": { "from": "<archived gate log path>", "designDocs": ["docs/design/orders-model.md"],
@@ -232,6 +234,13 @@ their grep `terms`, the `scope` grepped, every `hit` with `where` (`path:line`),
 trigger did not apply). G2/G3, G5 and G10 need their stage's latest entry, on the tree the gate passes on, to
 be `clear` or `n/a: <reason>`; no entry is not a pass. Each run also writes a `cross-artifact` gate-log row. Rules:
 `${CLAUDE_PLUGIN_ROOT}/docs/cross-artifact-check.md`. Absent on a cycle started before 0.3.25.
+
+`mergeAuthority` (written by sc-ship when the user's own words grant a standing merge authorization; read
+by sc-ship at G12 and its pre-merge re-check, and by `/status`) holds `scope` (`cycle` or `session`) and
+`grantedAt`. Absent means the user's go per PR (or none: the overlay's `vcs.mergeAuthority` `"none"` means
+the kit never merges). `session` needs `"standing"`; `"per-pr"` allows `cycle` only. It never overrides a stop (loop cap, unresolved
+Critical/High, owner decision, red required check, failed pre-merge re-check). Absent on a cycle started
+before 0.3.30. Rules: §sc-ship — Merge authority.
 
 `route.kind` is `"code"` (the default; absent means the same) or `"design-only"`, with `route.designMode`
 (`"architect+critic"` or `"critic-only"`) on the latter. On a design-only route the code stages are
