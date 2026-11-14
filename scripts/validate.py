@@ -897,6 +897,20 @@ ENTRY_TRIAGE_TOKENS = ("## Entry triage", "before PREFLIGHT", "**code change**",
                        "Never a silent skip", "not a reason to skip", "prompt-triage.cjs", PROMPT_HOOK_OPT_IN)
 
 
+G13_MERGE_TOKENS = ("host-confirmed merge", "merge commit sha", "no teardown step runs",
+                    "already gone is not an error")
+
+
+def check_g13_confirmed_merge(root: Path, f: Findings) -> None:
+    """#118: G13 teardown waits for a host-confirmed merge, never a merge attempt."""
+    ship = root / SKILLS_DIR / "sc-ship" / "SKILL.md"
+    if ship.is_file():
+        text = " ".join(read(ship).split())
+        for token in G13_MERGE_TOKENS:
+            if token not in text:
+                f.error(shown(ship.relative_to(root)), f"Cleanup (G13) does not state {token!r}")
+
+
 def check_entry_triage(root: Path, f: Findings) -> None:
     """#107: before PREFLIGHT the request is triaged out loud, and the opt-in prompt hook is wired safely.
 
@@ -2542,6 +2556,7 @@ def main(argv: list[str]) -> int:
     check_route_plan(root, f)
     check_entry_triage(root, f)
     check_host_adapter(root, f)
+    check_g13_confirmed_merge(root, f)
     check_design_only(root, f)
     check_design_delta(root, f)
     check_route_routing(root, f)

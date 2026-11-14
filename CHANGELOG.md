@@ -16,6 +16,17 @@
   example. `docs/runtime-adapters.md` has a short "Code-host adapter" section.
 - **Tests.** `check_host_adapter` in `scripts/validate.py` plus 4 selftest mutations.
 
+## 0.3.28 — G13 teardown waits for a host-confirmed merge (#118)
+
+- **Why.** G13 said "after merge" without defining it. In a real run the host rejected the merge (a sibling
+  PR's content conflict) after teardown had already run, so worktree and branch were rebuilt from the
+  remote; another run printed 404/422 deleting an already-deleted remote branch.
+- **Change** (§sc-ship — Cleanup): teardown starts only after a host-confirmed merge — read the PR back and
+  require `merged` with a merge commit sha. A rejected or unknown merge runs no teardown step and returns to
+  the G12 pre-merge re-check (merge-tree probe → merge base → re-verify). The remote-branch delete is
+  idempotent: already gone is not an error.
+- **Tests.** `check_g13_confirmed_merge` in `scripts/validate.py` plus four selftest mutations.
+
 ## 0.3.27 — Entry triage: decide out loud whether a request needs a cycle (#107)
 
 - **Why.** Nothing decided whether a request should enter a cycle: it started only on "ship it", and the
