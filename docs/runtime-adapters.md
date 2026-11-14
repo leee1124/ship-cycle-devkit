@@ -196,9 +196,11 @@ through it. Claude Code gets `{"hookSpecificOutput": {"hookEventName": "UserProm
 "additionalContext": ...}}`; `--host codex` prints the plain text. `scripts/prompt_hook_test.py` checks it.
 
 
-## `gh` availability
+## Code-host adapter
 
-PREFLIGHT probes `command -v gh` and `gh auth status` on either host and records `state.env.gh`
-(`ok|missing|unauthenticated`); nothing about it is Claude-specific. A Codex sandbox often has no `gh` or no
-network credential, so expect `missing` there: the G1 route plan then names the fallback (host REST API via
-`git credential fill` with the user's consent, or print the body for the user to open by hand).
+PREFLIGHT resolves which adapter gives the kit its code-host capabilities (open a PR, poll mergeable, merge,
+read the merge back, create/list issues) and records `state.env.host` on either host: overlay
+`vcs.hostAdapter`, else a host CLI on PATH (`gh`, `glab`) with its auth check, else a connected MCP server
+exposing PR tools, else `manual`. A Codex sandbox often has no CLI or credential, so expect `manual` there:
+the kit prints the PR/issue body for the user to open by hand. `rest` (token from `git credential fill`) is
+an opt-in the user consents to at G1.

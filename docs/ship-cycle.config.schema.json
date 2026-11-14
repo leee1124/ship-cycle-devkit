@@ -12,6 +12,7 @@
         "defaultBase": { "type": "string" },
         "releaseBranch": { "type": "string", "description": "Optional. The branch a release PR targets. releaseChecklist `when.release: true` matches only when the PR's actual base equals it; unset, such items never match (PREFLIGHT says so)." },
         "protectedBranches": { "type": "array", "items": { "type": "string" } },
+        "hostAdapter": { "type": "string", "description": "Optional. Pins the code-host adapter PREFLIGHT would otherwise probe for: cli:gh, cli:glab, mcp:<server>, rest or manual. Unset, PREFLIGHT probes." },
         "tracker": {
           "type": "object",
           "properties": {

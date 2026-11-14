@@ -939,31 +939,33 @@ def check_entry_triage(root: Path, f: Findings) -> None:
             f.error(shown(doc), "does not document the opt-in prompt triage hook")
 
 
-GH_PREFLIGHT_TOKENS = {
-    Path("skills/ship-cycle/SKILL.md"): ("command -v gh", "gh auth status", "`state.env.gh`",
-                                         "ok|missing|unauthenticated", "git credential fill",
+HOST_ADAPTER_TOKENS = {
+    Path("skills/ship-cycle/SKILL.md"): ("`state.env.host`", "cli:gh", "mcp:<server>", "`manual`",
+                                         "vcs.hostAdapter", "git credential fill",
                                          "only with the user's consent", "never print or log the token"),
-    Path("skills/sc-ship/SKILL.md"): ("`state.env.gh`", "git credential fill", "print the PR body"),
-    Path("skills/sc-retro/SKILL.md"): ("`gh` is missing", "git credential fill", "unauthenticated issues API",
+    Path("skills/sc-ship/SKILL.md"): ("`state.env.host`", "print the PR body", "report the PR as not opened"),
+    Path("skills/sc-retro/SKILL.md"): ("`state.env.host`", "print the approved draft",
                                        "never print or log the token"),
-    Path("docs/state-file.md"): ('"env": { "gh":',),
+    Path("docs/state-file.md"): ('"env": { "host":',),
+    Path("docs/runtime-adapters.md"): ("## Code-host adapter",),
 }
 
 
-def check_gh_preflight(root: Path, f: Findings) -> None:
-    """#120: PREFLIGHT probes for `gh`, records `state.env.gh`, and G1 names the fallback before G12 needs it.
+def check_host_adapter(root: Path, f: Findings) -> None:
+    """#120: PREFLIGHT resolves a code-host adapter and records `state.env.host`; `manual` is the default fallback.
 
-    Guards the probe, the three values, the consent-gated credential-helper fallback, the print-for-the-user
-    fallback, the never-log-the-token rule, and that sc-ship and sc-retro use the same fallback.
+    Guards the capability-to-adapter probe order, the recorded shape, `manual` (print the body, PR not opened)
+    as the default, the consent-gated `rest` opt-in, the never-log-the-token rule, and that sc-ship and
+    sc-retro go through the adapter.
     """
-    for rel, tokens in GH_PREFLIGHT_TOKENS.items():
+    for rel, tokens in HOST_ADAPTER_TOKENS.items():
         path = root / rel
         if not path.is_file():
             continue
         text = read(path)
         for token in tokens:
             if token not in text:
-                f.error(shown(rel), f"gh preflight does not state {token!r}")
+                f.error(shown(rel), f"host adapter does not state {token!r}")
 
 
 CROSS_ARTIFACT_DOC = Path("docs/cross-artifact-check.md")
@@ -2539,7 +2541,7 @@ def main(argv: list[str]) -> int:
     check_heavy_work(root, f)
     check_route_plan(root, f)
     check_entry_triage(root, f)
-    check_gh_preflight(root, f)
+    check_host_adapter(root, f)
     check_design_only(root, f)
     check_design_delta(root, f)
     check_route_routing(root, f)

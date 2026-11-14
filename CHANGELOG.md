@@ -1,17 +1,20 @@
 # Changelog
 
-## 0.3.29 — PREFLIGHT detects a missing `gh` CLI and names the fallback (#120)
+## 0.3.29 — PREFLIGHT resolves a code-host adapter; manual is the default fallback (#120)
 
-- **Why.** sc-ship's PR step, `mergeable` polling and issue linking assume `gh`. On a host without it the first
-  sign was `command not found` at PR time, and the agent improvised a REST client mid-cycle; sc-retro's dedup
-  and filing hit the same wall.
-- **Probe and record.** PREFLIGHT runs `command -v gh` and `gh auth status` and records `state.env.gh` as
-  `ok|missing|unauthenticated`. When not `ok`, the G1 route plan names the fallback: the host REST API via the
-  user's git credential helper (`git credential fill`), only with the user's consent, or print the PR/issue
-  body for the user to open by hand. The token is never printed or logged.
-- **Consumers.** sc-ship's PR step follows the confirmed fallback; sc-retro uses the same one, and may use the
-  unauthenticated issues API for read-only dedup of a public repo. `docs/runtime-adapters.md` notes Codex.
-- **Tests.** `check_gh_preflight` in `scripts/validate.py` plus 4 selftest mutations.
+- **Why.** sc-ship's PR step, `mergeable` polling and issue linking assumed one host CLI. On a host without
+  it the first sign was `command not found` at PR time, and the agent improvised a REST client mid-cycle;
+  sc-retro's filing hit the same wall. The kit is host-agnostic, so it asks for capabilities, not a tool.
+- **Capabilities and adapter.** The kit needs: open a PR, poll mergeable, merge, read the merge back, create/list
+  issues. PREFLIGHT resolves the adapter that provides them (overlay `vcs.hostAdapter`, else a `gh`/`glab`
+  CLI with a passing auth check, else an MCP server with PR tools, else `manual`) and records
+  `state.env.host` as `{adapter, status}`.
+- **Fallback.** `manual` is the default: print the PR/issue body and the exact steps, report the PR as not
+  opened. `rest` via `git credential fill` is an opt-in only with the user's consent at G1; the token is never
+  printed or logged. The G1 route plan names the adapter when it is not a ready CLI/MCP.
+- **Consumers.** sc-ship and sc-retro go through the adapter; their `gh ...` commands stay as the `cli:gh`
+  example. `docs/runtime-adapters.md` has a short "Code-host adapter" section.
+- **Tests.** `check_host_adapter` in `scripts/validate.py` plus 4 selftest mutations.
 
 ## 0.3.27 — Entry triage: decide out loud whether a request needs a cycle (#107)
 
