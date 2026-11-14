@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.30 — sc-ship: who merges, and a recorded standing authorization (#119)
+
+- **Why.** The kit opened the PR (G12) and tore down after merge (G13) but never said who merges. Users gave
+  standing authorizations and agents improvised the scope (a "this cycle" decision, a memory note) or asked
+  "merge?" every cycle.
+- **Merge authority** (§sc-ship): default is the user's go per PR. A standing authorization is recorded in
+  `state.mergeAuthority` (`scope` `cycle`|`session`, `grantedAt`), shown as a merge line under the G12 Gate
+  summary, granted only by the human user's own words, and never overrides a stop (loop cap, unresolved
+  Critical/High, owner decision, red required check, failed pre-merge re-check). Documented in
+  docs/state-file.md and shown by `/status`. No overlay default added.
+- **Tests.** `check_merge_authority` + 5 validator self-test mutations.
+
 ## 0.3.27 — Entry triage: decide out loud whether a request needs a cycle (#107)
 
 - **Why.** Nothing decided whether a request should enter a cycle: it started only on "ship it", and the
