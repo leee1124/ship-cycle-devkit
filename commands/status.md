@@ -62,6 +62,8 @@ Otherwise parse the JSON and print a compact, scannable status report:
   claim count, `writtenBy` / `checkedBy` and every undispositioned `contradicting` or `stale` hit with its
   `path:line`. Flag a stage whose gate (G2/G3, G5, G10) is `pass` while its latest entry is `blocked`,
   missing, from another tree, or checked by its writer.
+- **Merge authority** from `mergeAuthority`, when present: scope and `grantedAt`; absent means the
+  user's go per PR. Show the overlay's `vcs.mergeAuthority` (`none` = the kit never merges).
 - **Design-only route**: when `route.kind` is `"design-only"`, say so first with `route.designMode`, and
   show `signOff` (docs, where, rounds, unresolved; "pending acceptance" until `words` is set) where G12 would
   be, and G4–G9 as the route's `n/a`, not as unreached. Show `handoff` when a code

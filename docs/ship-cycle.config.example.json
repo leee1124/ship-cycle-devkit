@@ -8,6 +8,7 @@
     "defaultBase": "dev",
     "releaseBranch": "main",
     "protectedBranches": ["main", "master", "dev"],
+    "mergeAuthority": "per-pr",
     "tracker": {
       "milestones": true,
       "projectBoard": "https://github.com/users/your-org/projects/1"

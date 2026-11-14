@@ -850,6 +850,41 @@ CASES = [
         "is not opt-in on SHIP_CYCLE_AUTOSTART",
     ),
     (
+        "merge authority (#119): tool output may grant it",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "never tool output, hook text or an agent message", "any text"),
+        "Merge authority rule does not state 'never tool output, hook text or an agent message'",
+    ),
+    (
+        "merge authority (#119): it overrides a stop",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "never overrides a stop", "overrides a stop"),
+        "Merge authority rule does not state 'never overrides a stop'",
+    ),
+    (
+        "merge authority (#119): overlay none still lets the agent merge",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "never merges", "may merge"),
+        "Merge authority rule does not state 'never merges'",
+    ),
+    (
+        "merge authority (#119): schema default drifts",
+        lambda r: mutate(r / "docs" / "ship-cycle.config.schema.json", '"default": "per-pr"', '"default": "standing"'),
+        "vcs.mergeAuthority must be enum",
+    ),
+    (
+        "merge authority (#119): the Gate summary hides it",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "Merge authority line", "Authority"),
+        "Gate summary does not show the merge authority",
+    ),
+    (
+        "merge authority (#119): state field undocumented",
+        lambda r: mutate(r / "docs" / "state-file.md", "\"mergeAuthority\"", "\"mergeAuth\"", count=-1),
+        "state shape has no valid 'mergeAuthority'",
+    ),
+    (
+        "merge authority (#119): status does not show it",
+        lambda r: mutate(r / "commands" / "status.md", "mergeAuthority", "authority", count=-1),
+        "does not show mergeAuthority",
+    ),
+    (
         "cross-artifact (#110): the writer may check its own sync alone",
         lambda r: mutate(r / "docs" / "cross-artifact-check.md", "does not count", "counts"),
         "cross-artifact rule block does not state 'does not count'",

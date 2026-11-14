@@ -12,6 +12,7 @@
         "defaultBase": { "type": "string" },
         "releaseBranch": { "type": "string", "description": "Optional. The branch a release PR targets. releaseChecklist `when.release: true` matches only when the PR's actual base equals it; unset, such items never match (PREFLIGHT says so)." },
         "protectedBranches": { "type": "array", "items": { "type": "string" } },
+        "mergeAuthority": { "enum": ["none", "per-pr", "standing"], "default": "per-pr", "description": "Who merges. none: the kit never merges, it hands over a mergeable PR and stops at G12 (G13 runs when the user reports or the host shows the merge). per-pr (default): the user's go per PR; a standing grant from the user's words is allowed with scope cycle only. standing: a standing grant may also have scope session." },
         "hostAdapter": { "type": "string", "description": "Optional. Pins the code-host adapter PREFLIGHT would otherwise probe for: cli:gh, cli:glab, mcp:<server>, rest or manual. Unset, PREFLIGHT probes." },
         "tracker": {
           "type": "object",

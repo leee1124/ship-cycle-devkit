@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.30 — sc-ship: who merges is an overlay setting (#119)
+
+- **Why.** The kit opened the PR (G12) and tore down after merge (G13) but never said who merges, and many
+  teams merge in the host UI. Agents improvised standing authorizations or asked "merge?" every cycle.
+- **`vcs.mergeAuthority`** (overlay): `"none"` (the kit never merges; hands over a mergeable PR, stops at G12,
+  G13 runs when the user reports the merge), `"per-pr"` (default: the user's go per PR; a standing grant is
+  `cycle` scope only), `"standing"` (a grant may be `session` scope too).
+- **Standing grant** recorded in `state.mergeAuthority` (`scope`, `grantedAt`), shown as a merge line under the
+  G12 Gate summary, granted only by the human user's own words, never overriding a stop (loop cap, unresolved
+  Critical/High, owner decision, red required check, failed pre-merge re-check). `session` is carried only
+  within the same host conversation. Documented in docs/state-file.md, shown by `/status`.
+- **Tests.** `check_merge_authority` + 7 validator self-test mutations.
+
 ## 0.3.29 — PREFLIGHT resolves a code-host adapter; manual is the default fallback (#120)
 
 - **Why.** sc-ship's PR step, `mergeable` polling and issue linking assumed one host CLI. On a host without
