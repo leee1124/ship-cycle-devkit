@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.3.29 — PREFLIGHT resolves a code-host adapter; manual is the default fallback (#120)
+
+- **Why.** sc-ship's PR step, `mergeable` polling and issue linking assumed one host CLI. On a host without
+  it the first sign was `command not found` at PR time, and the agent improvised a REST client mid-cycle;
+  sc-retro's filing hit the same wall. The kit is host-agnostic, so it asks for capabilities, not a tool.
+- **Capabilities and adapter.** The kit needs: open a PR, poll mergeable, merge, read the merge back, create/list
+  issues. PREFLIGHT resolves the adapter that provides them (overlay `vcs.hostAdapter`, else a `gh`/`glab`
+  CLI with a passing auth check, else an MCP server with PR tools, else `manual`) and records
+  `state.env.host` as `{adapter, status}`.
+- **Fallback.** `manual` is the default: print the PR/issue body and the exact steps, report the PR as not
+  opened. `rest` via `git credential fill` is an opt-in only with the user's consent at G1; the token is never
+  printed or logged. The G1 route plan names the adapter when it is not a ready CLI/MCP.
+- **Consumers.** sc-ship and sc-retro go through the adapter; their `gh ...` commands stay as the `cli:gh`
+  example. `docs/runtime-adapters.md` has a short "Code-host adapter" section.
+- **Tests.** `check_host_adapter` in `scripts/validate.py` plus 4 selftest mutations.
+
 ## 0.3.28 — G13 teardown waits for a host-confirmed merge (#118)
 
 - **Why.** G13 said "after merge" without defining it. In a real run the host rejected the merge (a sibling

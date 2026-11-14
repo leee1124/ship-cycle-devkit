@@ -96,6 +96,11 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   badly-timed write, and G8 should already have released the freeze; if it is still active, a review job is
   unresolved and you are shipping ahead of your own gate.
 - Atomic commits; open the PR against overlay `vcs.defaultBase`.
+- **Go through the code-host adapter** in `state.env.host` (§ship-cycle Stage 0.7) for the PR, the `mergeable`
+  poll, the merge, the merge read-back and issue links; any `gh ...` command below is the `cli:gh` example of
+  that capability. When the adapter is `manual` or not `ok`, print the PR body and the exact steps for the
+  user to open by hand and report the PR as not opened. `rest` only if the user consented at G1 (never print
+  or log the token). Do not write a REST client the user has not agreed to.
 - **Never stage generated/CI-built artifacts** listed in overlay `commit.excludePaths` (e.g. a bundle
   output dir a QA step built locally). Auto-revert / don't-stage them before committing (`git checkout --
   <path>` + `git clean` the untracked ones) so commits stay **source-only**. Forgetting this is easy — a QA

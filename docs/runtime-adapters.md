@@ -195,3 +195,12 @@ process, and its output is a fixed ASCII string — nothing from the prompt or t
 through it. Claude Code gets `{"hookSpecificOutput": {"hookEventName": "UserPromptSubmit",
 "additionalContext": ...}}`; `--host codex` prints the plain text. `scripts/prompt_hook_test.py` checks it.
 
+
+## Code-host adapter
+
+PREFLIGHT resolves which adapter gives the kit its code-host capabilities (open a PR, poll mergeable, merge,
+read the merge back, create/list issues) and records `state.env.host` on either host: overlay
+`vcs.hostAdapter`, else a host CLI on PATH (`gh`, `glab`) with its auth check, else a connected MCP server
+exposing PR tools, else `manual`. A Codex sandbox often has no CLI or credential, so expect `manual` there:
+the kit prints the PR/issue body for the user to open by hand. `rest` (token from `git credential fill`) is
+an opt-in the user consents to at G1.
