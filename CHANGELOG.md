@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.29 — PREFLIGHT detects a missing `gh` CLI and names the fallback (#120)
+
+- **Why.** sc-ship's PR step, `mergeable` polling and issue linking assume `gh`. On a host without it the first
+  sign was `command not found` at PR time, and the agent improvised a REST client mid-cycle; sc-retro's dedup
+  and filing hit the same wall.
+- **Probe and record.** PREFLIGHT runs `command -v gh` and `gh auth status` and records `state.env.gh` as
+  `ok|missing|unauthenticated`. When not `ok`, the G1 route plan names the fallback: the host REST API via the
+  user's git credential helper (`git credential fill`), only with the user's consent, or print the PR/issue
+  body for the user to open by hand. The token is never printed or logged.
+- **Consumers.** sc-ship's PR step follows the confirmed fallback; sc-retro uses the same one, and may use the
+  unauthenticated issues API for read-only dedup of a public repo. `docs/runtime-adapters.md` notes Codex.
+- **Tests.** `check_gh_preflight` in `scripts/validate.py` plus 4 selftest mutations.
+
 ## 0.3.27 — Entry triage: decide out loud whether a request needs a cycle (#107)
 
 - **Why.** Nothing decided whether a request should enter a cycle: it started only on "ship it", and the

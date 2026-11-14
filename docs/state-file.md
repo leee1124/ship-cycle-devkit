@@ -10,6 +10,7 @@ the mechanics that only matter when something unusual happens to its name or its
   "gates": { "G1": "pass", "G2": "n/a: route — config bump, nothing to design", "G4": "pass" },
   "gateTrees": { "G5": "<tree id of the worktree the build/tests ran on>" },
   "loops": { "G8": 1 },
+  "env": { "gh": "ok" },
   "nature": ["backend"], "risk": ["auth"], "size": "L", "branchCreated": true,
   "route": { "confirmedAt": "<iso>", "basis": { "size": "L", "risk": ["auth"],
                                                 "nature": ["backend"] },

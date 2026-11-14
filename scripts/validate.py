@@ -939,6 +939,33 @@ def check_entry_triage(root: Path, f: Findings) -> None:
             f.error(shown(doc), "does not document the opt-in prompt triage hook")
 
 
+GH_PREFLIGHT_TOKENS = {
+    Path("skills/ship-cycle/SKILL.md"): ("command -v gh", "gh auth status", "`state.env.gh`",
+                                         "ok|missing|unauthenticated", "git credential fill",
+                                         "only with the user's consent", "never print or log the token"),
+    Path("skills/sc-ship/SKILL.md"): ("`state.env.gh`", "git credential fill", "print the PR body"),
+    Path("skills/sc-retro/SKILL.md"): ("`gh` is missing", "git credential fill", "unauthenticated issues API",
+                                       "never print or log the token"),
+    Path("docs/state-file.md"): ('"env": { "gh":',),
+}
+
+
+def check_gh_preflight(root: Path, f: Findings) -> None:
+    """#120: PREFLIGHT probes for `gh`, records `state.env.gh`, and G1 names the fallback before G12 needs it.
+
+    Guards the probe, the three values, the consent-gated credential-helper fallback, the print-for-the-user
+    fallback, the never-log-the-token rule, and that sc-ship and sc-retro use the same fallback.
+    """
+    for rel, tokens in GH_PREFLIGHT_TOKENS.items():
+        path = root / rel
+        if not path.is_file():
+            continue
+        text = read(path)
+        for token in tokens:
+            if token not in text:
+                f.error(shown(rel), f"gh preflight does not state {token!r}")
+
+
 CROSS_ARTIFACT_DOC = Path("docs/cross-artifact-check.md")
 CROSS_ARTIFACT_TOKENS = ("more than one\nartifact in scope", "No\nentry is not a pass", "short claim",
                          "path:line", "`consistent`", "`contradicting`", "`stale`",
@@ -2512,6 +2539,7 @@ def main(argv: list[str]) -> int:
     check_heavy_work(root, f)
     check_route_plan(root, f)
     check_entry_triage(root, f)
+    check_gh_preflight(root, f)
     check_design_only(root, f)
     check_design_delta(root, f)
     check_route_routing(root, f)

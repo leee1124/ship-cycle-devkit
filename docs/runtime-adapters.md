@@ -195,3 +195,10 @@ process, and its output is a fixed ASCII string — nothing from the prompt or t
 through it. Claude Code gets `{"hookSpecificOutput": {"hookEventName": "UserPromptSubmit",
 "additionalContext": ...}}`; `--host codex` prints the plain text. `scripts/prompt_hook_test.py` checks it.
 
+
+## `gh` availability
+
+PREFLIGHT probes `command -v gh` and `gh auth status` on either host and records `state.env.gh`
+(`ok|missing|unauthenticated`); nothing about it is Claude-specific. A Codex sandbox often has no `gh` or no
+network credential, so expect `missing` there: the G1 route plan then names the fallback (host REST API via
+`git credential fill` with the user's consent, or print the body for the user to open by hand).

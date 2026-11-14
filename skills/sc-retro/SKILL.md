@@ -153,6 +153,10 @@ session that talks to the user can). Never auto-file, never batch-approve. File 
 `gh issue create --repo <owner/repo> --title "$(cat <title-file>)" --body-file <body-file>` — the title
 file a single line (no CR/LF, ≤256 chars), never draft text interpolated into a shell string. A declined
 draft stays in the report. With no approval, nothing is filed and nothing leaves the machine.
+When `gh` is missing or unauthenticated (`state.env.gh`, or `command -v gh` when no state survives), use the
+same fallback as sc-ship: the host REST API with a token from `git credential fill`, only with the user's
+consent, or print the approved draft for the user to file by hand — never print or log the token. Read-only
+dedup of a public repo may use the unauthenticated issues API, still with kit-vocabulary terms only.
 <!-- /retro-filing -->
 
 ## Model routing

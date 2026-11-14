@@ -783,6 +783,26 @@ CASES = [
         "Route plan has no Design-only route bullet",
     ),
     (
+        "gh preflight (#120): PREFLIGHT stops probing gh",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "command -v gh", "which gh"),
+        "gh preflight does not state 'command -v gh'",
+    ),
+    (
+        "gh preflight (#120): the credential fallback loses the consent gate",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "only with the user's consent", "by default"),
+        "gh preflight does not state \"only with the user's consent\"",
+    ),
+    (
+        "gh preflight (#120): the token may be logged",
+        lambda r: mutate(r / "skills" / "sc-retro" / "SKILL.md", "never print or log the token", "log the token"),
+        "gh preflight does not state 'never print or log the token'",
+    ),
+    (
+        "gh preflight (#120): sc-ship has no gh fallback",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "git credential fill", "git credential"),
+        "gh preflight does not state 'git credential fill'",
+    ),
+    (
         "entry triage (#107): a small code change may skip the cycle",
         lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "not a reason to skip", "a reason to skip"),
         "Entry triage does not state 'not a reason to skip'",
