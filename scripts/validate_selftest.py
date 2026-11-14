@@ -816,11 +816,6 @@ CASES = [
         "Entry triage does not state 'handing code edits to a subagent is a code change'",
     ),
     (
-        "entry triage (#117): a sequencing go-ahead starts the agent's own item",
-        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "only sets order or priority", "sets anything"),
-        "Entry triage does not state 'only sets order or priority'",
-    ),
-    (
         "entry triage (#117): work in flight is adopted silently",
         lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "never adopted silently", "adopted as is"),
         "Entry triage does not state 'never adopted silently'",

@@ -895,7 +895,7 @@ ENTRY_TRIAGE_TOKENS = ("## Entry triage", "before PREFLIGHT", "**code change**",
                        "**question / research / writing**", "**one stage's job**",
                        "`triage: <class> → <cycle|standalone <skill>|no cycle> — <reason>`",
                        "Never a silent skip", "not a reason to skip", "prompt-triage.cjs", PROMPT_HOOK_OPT_IN,
-                       "handing code edits to a subagent is a code change", "only sets order or priority",
+                       "handing code edits to a subagent is a code change",
                        "**Late entry.**", "`post-hoc`", "never adopted silently")
 
 

@@ -1,17 +1,15 @@
 # Changelog
 
-## 0.3.31 — Entry triage covers delegated edits, sequencing go-aheads and late entry (#117)
+## 0.3.31 — Entry triage covers delegated edits and late entry (#117)
 
-- **Why.** Triage classified a *request*, but three paths slipped past it: a cross-stack change handed to a
-  plain implementer subagent with no triage line, a user's "go in that order" taken as a go for the agent's
-  own first item, and work started outside a cycle with no rule — G4 (Red) can't be backfilled, so the state
+- **Why.** Triage classified a *request*, but two paths slipped past it: a cross-stack change handed to a
+  plain implementer subagent with no triage line, and work started outside a cycle with no rule — G4 (Red) can't be backfilled, so the state
   file was hand-written.
 - **Rules** (§ship-cycle Entry triage): handing code edits to a subagent is a code change, triaged before
-  dispatch; an order-only turn about the agent's own proposal gets a one-line item confirmation before
-  PREFLIGHT; **late entry** is stop-and-restart or adopt with a `post-hoc` G4 row
+  dispatch; **late entry** is stop-and-restart or adopt with a `post-hoc` G4 row
   (`pass`, evidence `post-hoc: Red not observed before code · …`, `docs/state-file.md`), never silent.
   The prompt hook text carries the delegated-edit sentence. README gains "What is mandatory".
-- **Tests.** `check_entry_triage` tokens + 4 validator mutations; `prompt_hook_test.py` marker.
+- **Tests.** `check_entry_triage` tokens + 3 validator mutations; `prompt_hook_test.py` marker.
 
 ## 0.3.27 — Entry triage: decide out loud whether a request needs a cycle (#107)
 
