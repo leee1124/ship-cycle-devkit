@@ -208,7 +208,7 @@ handing code edits to a subagent is a code change — triage (and PREFLIGHT) run
 false (the route plan and Tier S size it), so don't say it. **Sequencing go-aheads:** when the user's turn
 only sets order or priority ("go in that order") and the work item came from your own proposal, confirm the
 item in one line before PREFLIGHT — an order is not a go for your first item. **Late entry.** Work already
-started outside a cycle is either stopped and restarted at PREFLIGHT, or adopted with its G4 gate-log row
+started outside a cycle is — the user's choice, asked in one line — either stopped and restarted at PREFLIGHT, or adopted with its G4 gate-log row
 recorded as `post-hoc` (result `pass`, evidence `post-hoc: Red not observed before code · <sha or tests>`;
 §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` Gate log) — never adopted silently, and never a hand-written state file or a G4 that
 claims a Red that was not seen.
