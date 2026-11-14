@@ -897,6 +897,20 @@ ENTRY_TRIAGE_TOKENS = ("## Entry triage", "before PREFLIGHT", "**code change**",
                        "Never a silent skip", "not a reason to skip", "prompt-triage.cjs", PROMPT_HOOK_OPT_IN)
 
 
+G13_MERGE_TOKENS = ("host-confirmed merge", "merge commit sha", "no teardown step runs",
+                    "already gone is not an error")
+
+
+def check_g13_confirmed_merge(root: Path, f: Findings) -> None:
+    """#118: G13 teardown waits for a host-confirmed merge, never a merge attempt."""
+    ship = root / SKILLS_DIR / "sc-ship" / "SKILL.md"
+    if ship.is_file():
+        text = " ".join(read(ship).split())
+        for token in G13_MERGE_TOKENS:
+            if token not in text:
+                f.error(shown(ship.relative_to(root)), f"Cleanup (G13) does not state {token!r}")
+
+
 def check_entry_triage(root: Path, f: Findings) -> None:
     """#107: before PREFLIGHT the request is triaged out loud, and the opt-in prompt hook is wired safely.
 
@@ -937,6 +951,35 @@ def check_entry_triage(root: Path, f: Findings) -> None:
         text = read(root / doc) if (root / doc).is_file() else ""
         if "UserPromptSubmit" not in text or PROMPT_HOOK_OPT_IN not in text:
             f.error(shown(doc), "does not document the opt-in prompt triage hook")
+
+
+HOST_ADAPTER_TOKENS = {
+    Path("skills/ship-cycle/SKILL.md"): ("`state.env.host`", "cli:gh", "mcp:<server>", "`manual`",
+                                         "vcs.hostAdapter", "git credential fill",
+                                         "only with the user's consent", "never print or log the token"),
+    Path("skills/sc-ship/SKILL.md"): ("`state.env.host`", "print the PR body", "report the PR as not opened"),
+    Path("skills/sc-retro/SKILL.md"): ("`state.env.host`", "print the approved draft",
+                                       "never print or log the token"),
+    Path("docs/state-file.md"): ('"env": { "host":',),
+    Path("docs/runtime-adapters.md"): ("## Code-host adapter",),
+}
+
+
+def check_host_adapter(root: Path, f: Findings) -> None:
+    """#120: PREFLIGHT resolves a code-host adapter and records `state.env.host`; `manual` is the default fallback.
+
+    Guards the capability-to-adapter probe order, the recorded shape, `manual` (print the body, PR not opened)
+    as the default, the consent-gated `rest` opt-in, the never-log-the-token rule, and that sc-ship and
+    sc-retro go through the adapter.
+    """
+    for rel, tokens in HOST_ADAPTER_TOKENS.items():
+        path = root / rel
+        if not path.is_file():
+            continue
+        text = read(path)
+        for token in tokens:
+            if token not in text:
+                f.error(shown(rel), f"host adapter does not state {token!r}")
 
 
 CROSS_ARTIFACT_DOC = Path("docs/cross-artifact-check.md")
@@ -2564,6 +2607,8 @@ def main(argv: list[str]) -> int:
     check_heavy_work(root, f)
     check_route_plan(root, f)
     check_entry_triage(root, f)
+    check_host_adapter(root, f)
+    check_g13_confirmed_merge(root, f)
     check_design_only(root, f)
     check_design_delta(root, f)
     check_route_routing(root, f)

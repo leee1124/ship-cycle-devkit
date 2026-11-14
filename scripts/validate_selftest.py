@@ -783,6 +783,46 @@ CASES = [
         "Route plan has no Design-only route bullet",
     ),
     (
+        "host adapter (#120): PREFLIGHT stops recording the adapter",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "`state.env.host`", "`state.env.x`"),
+        "host adapter does not state '`state.env.host`'",
+    ),
+    (
+        "host adapter (#120): the rest opt-in loses the consent gate",
+        lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "only with the user's consent", "by default"),
+        "host adapter does not state \"only with the user's consent\"",
+    ),
+    (
+        "host adapter (#120): the token may be logged",
+        lambda r: mutate(r / "skills" / "sc-retro" / "SKILL.md", "never print or log the token", "log the token"),
+        "host adapter does not state 'never print or log the token'",
+    ),
+    (
+        "host adapter (#120): sc-ship no longer reports an unopened PR",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", "report the PR as not opened", "carry on"),
+        "host adapter does not state 'report the PR as not opened'",
+    ),
+    (
+        "g13 (#118): teardown rule loses 'host-confirmed merge'",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", 'host-confirmed merge', "x"),
+        "Cleanup (G13) does not state 'host-confirmed merge'",
+    ),
+    (
+        "g13 (#118): teardown rule loses 'merge commit sha'",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", 'merge commit sha', "x"),
+        "Cleanup (G13) does not state 'merge commit sha'",
+    ),
+    (
+        "g13 (#118): teardown rule loses 'no teardown step runs'",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", 'no teardown step runs', "x"),
+        "Cleanup (G13) does not state 'no teardown step runs'",
+    ),
+    (
+        "g13 (#118): teardown rule loses 'already gone is not an error'",
+        lambda r: mutate(r / "skills" / "sc-ship" / "SKILL.md", 'already gone is not an error', "x"),
+        "Cleanup (G13) does not state 'already gone is not an error'",
+    ),
+    (
         "entry triage (#107): a small code change may skip the cycle",
         lambda r: mutate(r / "skills" / "ship-cycle" / "SKILL.md", "not a reason to skip", "a reason to skip"),
         "Entry triage does not state 'not a reason to skip'",

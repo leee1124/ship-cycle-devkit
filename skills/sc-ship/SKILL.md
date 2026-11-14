@@ -96,6 +96,11 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   badly-timed write, and G8 should already have released the freeze; if it is still active, a review job is
   unresolved and you are shipping ahead of your own gate.
 - Atomic commits; open the PR against overlay `vcs.defaultBase`.
+- **Go through the code-host adapter** in `state.env.host` (§ship-cycle Stage 0.7) for the PR, the `mergeable`
+  poll, the merge, the merge read-back and issue links; any `gh ...` command below is the `cli:gh` example of
+  that capability. When the adapter is `manual` or not `ok`, print the PR body and the exact steps for the
+  user to open by hand and report the PR as not opened. `rest` only if the user consented at G1 (never print
+  or log the token). Do not write a REST client the user has not agreed to.
 - **Never stage generated/CI-built artifacts** listed in overlay `commit.excludePaths` (e.g. a bundle
   output dir a QA step built locally). Auto-revert / don't-stage them before committing (`git checkout --
   <path>` + `git clean` the untracked ones) so commits stay **source-only**. Forgetting this is easy — a QA
@@ -278,6 +283,11 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   or `merge: standing, <scope>, granted <at>`), re-rendered with the summary.
 
 ## Cleanup (G13)
+- **Teardown starts only after a host-confirmed merge — a merge attempt is not a merge.** After the merge
+  call, read the PR back and require `merged` with a merge commit sha; a rejected call (a sibling PR's
+  conflict, a failed check) or an unknown result means no teardown step runs — none of
+  this section: no cost readout, no log archive, no branch delete, no worktree removal, no state delete —
+  and the cycle returns to the G12 pre-merge re-check (merge-tree probe → merge base → re-verify) with the worktree and branch intact.
 - **Check `state.gitFreeze.active` and `state.reviewJobs` before you delete anything.** Teardown removes a
   worktree and a branch; an out-of-process reviewer reading either hangs or dies mid-read (§sc-review).
   **Never remove a worktree that is a recorded `reviewJobs[].snapshot`** — a detached snapshot worktree is
@@ -302,7 +312,9 @@ mapped" from "just entered sc-ship". While an unproven criterion loops back, lea
   §`${CLAUDE_PLUGIN_ROOT}/docs/state-file.md` — Gate log (Lifetime); G13's final row goes to the archive,
   not to state. A failed move is a warning: print the log's last rows into this run's readout rather than
   lose them.
-- After merge: delete the branch **local + remote** (constitution #9); never delete protected branches.
+- Once merged: delete the branch **local + remote** (constitution #9); never delete protected branches.
+  The remote delete is idempotent — already gone is not an error (the host may auto-delete on merge; a
+  404/422 there is success, not a failure to report).
 - **Remove the feature worktree — sweep for links, then let git delete.** Teardown is the one step in the
   cycle that can destroy state **outside** the worktree, so this order is binding:
   1. **Sweep the whole worktree for links and unlink every hit, before anything is deleted.** Not just

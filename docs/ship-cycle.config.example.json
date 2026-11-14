@@ -3,6 +3,7 @@
 
   "vcs": {
     "provider": "github",
+    "hostAdapter": "cli:gh",
     "repo": "your-org/your-repo",
     "defaultBase": "dev",
     "releaseBranch": "main",
